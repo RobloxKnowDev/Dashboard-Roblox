@@ -25,14 +25,15 @@ export function formatCompact(value: number): string {
 /** Money in the studio currency. Compact above 100k: "$4.2M". */
 export function formatCurrency(
   value: number,
-  options: { compact?: boolean; currency?: string } = {},
+  options: { compact?: boolean; currency?: string; /** Show cents (exact amounts). */ cents?: boolean } = {},
 ): string {
-  const { compact = Math.abs(value) >= 100_000, currency = siteConfig.currency } = options;
+  const { compact = Math.abs(value) >= 100_000, currency = siteConfig.currency, cents = false } = options;
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     notation: compact ? "compact" : "standard",
-    maximumFractionDigits: compact ? 1 : 0,
+    minimumFractionDigits: cents && !compact ? 2 : 0,
+    maximumFractionDigits: compact ? 1 : cents ? 2 : 0,
   }).format(value);
 }
 

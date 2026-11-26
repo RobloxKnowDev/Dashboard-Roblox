@@ -17,6 +17,8 @@ type BarChartProps = {
   stacked?: boolean;
   formatValue?: ValueFormatter;
   label: string;
+  /** Header of the first column in the table view. */
+  categoryLabel?: string;
 };
 
 const axisTick = { fill: CHART_INK.tick, fontSize: 11 };
@@ -25,13 +27,21 @@ const axisTick = { fill: CHART_INK.tick, fontSize: 11 };
  * Magnitude comparison across categories. Bars ≤24px, 4px rounded data-end
  * (square at the baseline), 2px surface gap between neighbors, per-bar hover.
  */
-export function BarChart({ data, series, height = 240, stacked = false, formatValue = formatCompact, label }: BarChartProps) {
+export function BarChart({
+  data,
+  series,
+  height = 240,
+  stacked = false,
+  formatValue = formatCompact,
+  label,
+  categoryLabel = "Category",
+}: BarChartProps) {
   const view = useChartView();
   const hydrated = useHydrated();
 
   if (view === "table") {
     return (
-      <ChartDataTable data={data} categoryKey="category" categoryLabel="Category" series={series} formatValue={formatValue} />
+      <ChartDataTable data={data} categoryKey="category" categoryLabel={categoryLabel} series={series} formatValue={formatValue} />
     );
   }
 

@@ -75,14 +75,28 @@ export function MetricChart({
 export function MetricBarChart({
   rows,
   series,
+  stacked,
+  categoryLabel,
   ...common
-}: Common & { rows: CategoryRow[]; series: { key: string; label: string }[] }) {
+}: Common & {
+  rows: CategoryRow[];
+  series: { key: string; label: string; color?: string }[];
+  stacked?: boolean;
+  categoryLabel?: string;
+}) {
   return (
     <ChartCard title={common.title} description={common.description} source={common.source}>
       {rows.length === 0 ? (
         <EmptyState compact title="No data for this period" description={common.emptyMessage} />
       ) : (
-        <BarChart label={common.label} data={rows} series={series} formatValue={FORMATTERS[common.format]} />
+        <BarChart
+          label={common.label}
+          data={rows}
+          series={series}
+          stacked={stacked}
+          categoryLabel={categoryLabel}
+          formatValue={FORMATTERS[common.format]}
+        />
       )}
     </ChartCard>
   );

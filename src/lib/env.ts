@@ -6,13 +6,13 @@ import { z } from "zod";
  * browser; everything else must only be read on the server.
  */
 const publicSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url({ message: "NEXT_PUBLIC_SUPABASE_URL must be your Supabase project URL" }),
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing"),
+  NEXT_PUBLIC_SUPABASE_URL: z.url({ error: "NEXT_PUBLIC_SUPABASE_URL is missing or isn't your Supabase project URL" }),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string({ error: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing" }).min(1, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing"),
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
 });
 
 const serverSchema = z.object({
-  SUPABASE_SECRET_KEY: z.string().min(1, "SUPABASE_SECRET_KEY is missing"),
+  SUPABASE_SECRET_KEY: z.string({ error: "SUPABASE_SECRET_KEY is missing" }).min(1, "SUPABASE_SECRET_KEY is missing"),
 });
 
 export type PublicEnv = z.infer<typeof publicSchema>;

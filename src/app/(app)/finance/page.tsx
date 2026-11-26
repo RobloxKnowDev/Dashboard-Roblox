@@ -1,11 +1,25 @@
-import { Plus } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoonButton } from "@/components/feedback/coming-soon";
+import { Suspense } from "react";
+import { ChartSkeleton, ListSkeleton } from "@/components/feedback/states";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
-import { PlannedPage } from "@/components/layout/planned-page";
 import { RequireRole } from "@/components/layout/session-widgets";
+import { Skeleton } from "@/components/ui/primitives";
+import { checkAccess } from "@/lib/auth/session";
+import {
+  AddTransactionAction,
+  FinanceCharts,
+  FinanceKpis,
+  RobloxEarnings,
+  TransactionsSection,
+} from "@/features/finance/sections";
 
 export const metadata: Metadata = { title: "Finance" };
+
+async function HeaderAction() {
+  const access = await checkAccess("admin");
+  if (access.status !== "allowed") return null;
+  return <AddTransactionAction />;
+}
 
 export default function FinancePage() {
   return (
@@ -13,26 +27,56 @@ export default function FinancePage() {
       <PageHeader
         title="Finance"
         eyebrow="Business"
-        description="Revenue, expenses and profit, in USD."
+        description="Revenue, expenses and profit from the transactions you record, in USD."
         actions={
-          <ComingSoonButton variant="primary">
-            <Plus aria-hidden />
-            Add transaction
-          </ComingSoonButton>
+          <Suspense fallback={null}>
+            <HeaderAction />
+          </Suspense>
         }
       />
       <RequireRole min="admin">
-        <PlannedPage
-          milestone="Milestone D"
-          sections={[
-            "Total and monthly revenue",
-            "Expenses: development, advertising, tools",
-            "Estimated profit",
-            "Revenue, expenses and profit history",
-            "Revenue per game",
-            "Manual transactions"
-          ]}
-        />
+        <Suspense
+          fallback={
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading indicators">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} className="h-[108px] rounded-lg" />
+              ))}
+            </div>
+          }
+        >
+          <FinanceKpis />
+        </Suspense>
+
+        <Suspense
+          fallback={
+            <div className="grid gap-4 xl:grid-cols-2">
+              {Array.from({ length: 4 }, (_, i) => (
+                <ChartSkeleton key={i} />
+              ))}
+            </div>
+          }
+        >
+          <FinanceCharts />
+        </Suspense>
+
+        <section aria-labelledby="transactions-heading" className="space-y-3">
+          <h2 id="transactions-heading" className="text-sm font-semibold text-fg">
+            Transactions
+          </h2>
+          <Suspense
+            fallback={
+              <div className="rounded-lg border border-line bg-surface">
+                <ListSkeleton rows={6} />
+              </div>
+            }
+          >
+            <TransactionsSection />
+          </Suspense>
+        </section>
+
+        <Suspense fallback={<Skeleton className="h-48 rounded-lg" />}>
+          <RobloxEarnings />
+        </Suspense>
       </RequireRole>
     </PageContainer>
   );
