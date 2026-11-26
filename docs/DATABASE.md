@@ -18,6 +18,8 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `20261126001000_pending_access.sql` | Rôle facultatif : `NULL` = compte en attente, sans accès ; les lectures exigent au moins `viewer` |
 | `20261126001100_role_from_app_metadata.sql` | Applique `app_metadata.role` (invitation) quand Supabase l'écrit, uniquement sur un profil encore en attente |
 | `20261126001200_team_member_for_profiles.sql` | Crée automatiquement la fiche « membre d'équipe » de tout compte qui reçoit un rôle (nom et avatar synchronisés) |
+| `20261126001300_market_snapshots.sql` | `market_snapshots` : rang et joueurs de chaque jeu des classements Roblox, un relevé par jour (écrit uniquement par la tâche quotidienne) |
+| `20261126001400_notifications_for_work.sql` | `profiles.notification_prefs` + triggers qui notifient un membre quand quelqu’un d’autre lui assigne une tâche ou l’ajoute à un projet (désactivable dans *Settings → Notifications*) |
 
 **Conventions :**
 - clés primaires `uuid` ;
@@ -30,7 +32,7 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 
 | Table | Rôle | Colonnes clés | Relations |
 |---|---|---|---|
-| `profiles` | Un profil par compte, porte le **rôle d'accès** | `email` (copie, lecture seule), `full_name`, `avatar_url`, `role` | 1-1 avec `auth.users` (suppression en cascade) |
+| `profiles` | Un profil par compte, porte le **rôle d'accès** | `email` (copie, lecture seule), `full_name`, `avatar_url`, `role`, `notification_prefs` | 1-1 avec `auth.users` (suppression en cascade) |
 | `studio_settings` | Réglages du studio, **ligne unique** | `studio_name` (« Dashboard »), `currency` (USD), `timezone`, `devex_rate_usd` | — |
 | `team_members` | Membres du studio, avec ou sans compte | `display_name`, `studio_role` (intitulé de poste), `status`, `joined_at` | `profile_id` → `profiles`, optionnel et unique |
 | `games` | Jeux Roblox du studio | `universe_id` (unique), `place_id`, `name`, `genre`, `status`, `launched_at` | `created_by` → `profiles` |

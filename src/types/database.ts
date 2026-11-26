@@ -280,14 +280,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"email": string | null,"full_name": string,"id": string,"role": Database["public"]['Enums']["app_role"] | null,"updated_at": string
+                    "avatar_url": string | null,"created_at": string,"email": string | null,"full_name": string,"id": string,"notification_prefs": NonNullable<Json>,"role": Database["public"]['Enums']["app_role"] | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id": string,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id": string,"notification_prefs"?: NonNullable<Json>,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"notification_prefs"?: NonNullable<Json>,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -442,11 +442,17 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "current_app_role":
+            "actor_display_name":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"current_app_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["app_role"]
                            },
 "has_min_role":
 { Args: { "min_role": Database["public"]['Enums']["app_role"] }; Returns: boolean
+                           },
+"notification_enabled":
+{ Args: { "p_key": string,"p_profile": string }; Returns: boolean
                            },
 "role_rank":
 { Args: { "r": Database["public"]['Enums']["app_role"] }; Returns: number

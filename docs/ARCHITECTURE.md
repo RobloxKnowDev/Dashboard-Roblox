@@ -72,7 +72,7 @@ Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 
 | Réel (Supabase / API Roblox) | Démo jusqu'à l'intégration |
 |---|---|
-| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Top 5 idées IA, agents IA, assistant |
+| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Top 5 idées IA, agents IA, assistant (réponses d’exemple ; les conversations de démo ne sont pas enregistrées) |
 
 Garanties :
 - toute donnée porte sa source (`DataResult<T>`), et un badge **DEMO** s'affiche automatiquement ;
@@ -82,7 +82,10 @@ Garanties :
 
 ## 6. Authentification et permissions
 
-- Supabase Auth email + mot de passe, inscription publique désactivée, comptes créés par invitation.
+- Supabase Auth email + mot de passe, inscription publique désactivée.
+- **Création de comptes** : *Settings → Members* → « Create account » (aucun e-mail envoyé) ; un mot de passe temporaire est affiché **une seule fois**, à transmettre en privé ; la personne le change dans *Settings → Profile*. Un Owner peut créer tous les rôles, un Admin seulement Developer/Viewer.
+- **Gestion des accès** (Owner uniquement) : changer un rôle, approuver un compte en attente, retirer l’accès (le compte repasse « en attente »), supprimer le compte (sa fiche d’équipe reste, inactive, pour garder l’historique). On ne peut jamais modifier son propre rôle ni retirer le dernier Owner (garde en base).
+- Les personnes **sans compte** (freelances…) s’ajoutent depuis la page *Team* et peuvent recevoir projets et tâches.
 - Rôles : Owner > Administrator > Developer > Viewer. Matrice dans `src/lib/auth/roles.ts`, affichée dans *Settings → Permissions*, et appliquée par les politiques RLS.
 - **Compte « en attente »** : un compte sans rôle (`profiles.role = NULL`) peut se connecter mais ne voit aucune donnée (RLS) et l'interface affiche « Access pending ». Le rôle initial d'une invitation passe par `app_metadata.role` (modifiable uniquement avec la clé secrète).
 - Double authentification (TOTP Supabase) : prévue, activable plus tard.
@@ -115,7 +118,10 @@ Garanties :
 |---|---|---|---|
 | API publique Roblox (`games.roblox.com`, `thumbnails.roblox.com`) | Joueurs en ligne, visites, favoris, votes, genre, nom, icône — pour n'importe quel jeu | Sans clé, appel serveur, cache 1 min | ✅ jalon C |
 | Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 | Clé(s) API avec `universe.analytics:read` : `ROBLOX_OPEN_CLOUD_API_KEY`, puis `_2`…`_5` si les jeux sont dans plusieurs groupes (chaque jeu utilise automatiquement la clé qui fonctionne) ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C |
-| Claude (Anthropic) | Assistant connecté aux données du dashboard | `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
+| Claude (Anthropic) | Assistant connecté aux données du dashboard | Interface prête (jalon D) avec un fournisseur **démo** ; le branchement se fait dans `src/features/assistant/provider.ts` : `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
+| Tâche quotidienne (Vercel Cron) | Classements Roblox, watchlist, statistiques publiques des jeux → historique | `/api/cron/daily-snapshot` à 06:00 UTC, protégée par `CRON_SECRET`, écrit avec `SUPABASE_SECRET_KEY` | ✅ jalon D |
+
+L’état de chaque connexion est visible en direct dans *Integrations* (Admin+) ; *Settings → API Configuration* (Owner) indique quelles variables d’environnement sont définies, **sans jamais afficher leur valeur**.
 
 ## 8. Avancement
 
@@ -124,5 +130,5 @@ Garanties :
 | A | Architecture, initialisation, Supabase (code + migrations), design system, navigation | ✅ |
 | B | Authentification (connexion, mot de passe oublié/réinitialisation, protection des routes, rôles, compte en attente, déconnexion), Overview (KPI, 4 graphiques, listes, filtres de période) | ✅ |
 | C | My Games (Roblox en direct + analytics), Projects (cartes/tableau, membres), Tasks (4 vues, filtres), AI Agents (démo), Overview sur données réelles, Settings → Profile | ✅ |
-| D | ✅ Discover (classements Roblox réels, sorties récentes, watchlist, idées, tâche quotidienne) · à venir : Finance, Team, AI Assistant, Settings, Integrations | en cours |
+| D | Discover (classements Roblox réels, sorties récentes, watchlist, idées, tâche quotidienne), Finance (transactions, 6 KPI, 4 graphiques, estimation Roblox séparée), Team (fiches, projets, tâches, activité ; membres sans compte), Settings → Members (création de comptes, rôles), AI Assistant (interface, mode démo), Settings (General, Notifications, Security, API, Integrations), Integrations (état en direct), notifications « tâche assignée » / « ajouté à un projet » | ✅ |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |
