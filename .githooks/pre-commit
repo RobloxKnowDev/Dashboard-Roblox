@@ -11,7 +11,7 @@ if git diff --cached --name-only | grep -E '(^|/)\.env(\.[a-z]+)?\.local$|(^|/)\
 fi
 
 # 2. Never commit secret values (added lines only)
-patterns='sb_secret_[A-Za-z0-9]|(SUPABASE_SECRET_KEY|ROBLOX_OPEN_CLOUD_API_KEY|ANTHROPIC_API_KEY|SUPABASE_DB_URL)=[A-Za-z0-9/+_.:-]{8,}|sk-ant-[A-Za-z0-9]|postgres(ql)?://[^:@/[:space:]]+:[^@[:space:]]+@'
+patterns='sb_secret_[A-Za-z0-9]|(SUPABASE_SECRET_KEY|ROBLOX_OPEN_CLOUD_API_KEY(_[0-9])?|ANTHROPIC_API_KEY|SUPABASE_DB_URL)=[A-Za-z0-9/+_.:-]{8,}|sk-ant-[A-Za-z0-9]|postgres(ql)?://[^:@/[:space:]]+:[^@[:space:]]+@'
 if git diff --cached -U0 | grep -E '^\+' | grep -v '^+++' | grep -E "$patterns" >/dev/null; then
   echo "✖ A secret key or password appears in the staged changes."
   echo "  Put real values in .env.local only — never in .env.example or source files."

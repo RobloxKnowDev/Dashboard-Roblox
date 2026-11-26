@@ -55,9 +55,44 @@ async function queryCached(universeId: number, metric: AnalyticsMetric, startDat
   "use cache";
   cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
 
-  const key = process.env.ROBLOX_OPEN_CLOUD_API_KEY;
-  if (!key) return { status: "not_configured" };
+  const keys = apiKeys();
+  if (keys.length === 0) return { status: "not_configured" };
 
+  // Try the key that last worked for this experience first, then the others.
+  const remembered = workingKeyIndex.get(universeId);
+  const order = remembered === undefined ? keys.map((_, i) => i) : [remembered, ...keys.map((_, i) => i).filter((i) => i !== remembered)];
+
+  for (const index of order) {
+    const key = keys[index];
+    if (!key) continue;
+    const result = await queryWithKey(universeId, metric, startDate, endDate, key);
+    if (result.status === "unauthorized") continue;
+    workingKeyIndex.set(universeId, index);
+    return result;
+  }
+  return { status: "unauthorized" };
+}
+
+/**
+ * All configured keys. One key can only read the experiences its owner may
+ * access, so a studio with games in several Roblox groups can set one key per
+ * group: ROBLOX_OPEN_CLOUD_API_KEY, then _2, _3… up to _5.
+ */
+function apiKeys(): string[] {
+  const names = ["ROBLOX_OPEN_CLOUD_API_KEY", "ROBLOX_OPEN_CLOUD_API_KEY_2", "ROBLOX_OPEN_CLOUD_API_KEY_3", "ROBLOX_OPEN_CLOUD_API_KEY_4", "ROBLOX_OPEN_CLOUD_API_KEY_5"];
+  return names.map((name) => process.env[name]?.trim() ?? "").filter((value) => value.length > 0);
+}
+
+/** Which key reads which experience (index into apiKeys()); avoids retrying wrong keys. */
+const workingKeyIndex = new Map<number, number>();
+
+async function queryWithKey(
+  universeId: number,
+  metric: AnalyticsMetric,
+  startDate: string,
+  endDate: string,
+  key: string,
+): Promise<MetricResult> {
   let { status, body } = await call(
     `${BASE}/v1/universes/${universeId}/metrics`,
     {

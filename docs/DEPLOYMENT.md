@@ -24,6 +24,7 @@ Les clés actuelles sont passées dans une conversation : on les remplace avant 
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | la clé « publishable » (`sb_publishable_…`) |
 | `SUPABASE_SECRET_KEY` | la **nouvelle** clé secrète (`sb_secret_…`) |
 | `ROBLOX_OPEN_CLOUD_API_KEY` | la **nouvelle** clé Roblox |
+| `ROBLOX_OPEN_CLOUD_API_KEY_2` | la 2ᵉ clé Roblox, si vos jeux sont répartis dans plusieurs groupes (jusqu'à `_5`) |
 | `NEXT_PUBLIC_SITE_URL` | l'adresse du site, ex. `https://dashboard-roblox.vercel.app` (puis le domaine personnalisé) |
 
 `SUPABASE_DB_URL` n'est **pas** nécessaire sur Vercel (elle ne sert qu'aux migrations, en local).

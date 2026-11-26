@@ -172,7 +172,11 @@ function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["s
                 Under Access Permissions → <span className="font-mono text-fg-2">universe-analytics</span>, add this experience with the{" "}
                 <span className="font-mono text-fg-2">universe.analytics:read</span> operation.
               </li>
-              <li>If the game belongs to a group, your role in that group must allow it. Then reload this page.</li>
+              <li>If the game belongs to a group, your role in that group must allow it.</li>
+              <li>
+                Games from another group or account can use their own key: add it to the server environment as{" "}
+                <span className="font-mono text-fg-2">ROBLOX_OPEN_CLOUD_API_KEY_2</span> (up to _5). Each game automatically uses the key that works.
+              </li>
             </ol>
           </div>
         </div>

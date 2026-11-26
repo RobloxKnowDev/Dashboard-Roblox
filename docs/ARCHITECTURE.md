@@ -114,7 +114,7 @@ Garanties :
 | Source | Données | Accès | Phase |
 |---|---|---|---|
 | API publique Roblox (`games.roblox.com`, `thumbnails.roblox.com`) | Joueurs en ligne, visites, favoris, votes, genre, nom, icône — pour n'importe quel jeu | Sans clé, appel serveur, cache 1 min | ✅ jalon C |
-| Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 | Clé API avec `universe.analytics:read` **par jeu** ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C |
+| Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 | Clé(s) API avec `universe.analytics:read` : `ROBLOX_OPEN_CLOUD_API_KEY`, puis `_2`…`_5` si les jeux sont dans plusieurs groupes (chaque jeu utilise automatiquement la clé qui fonctionne) ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C |
 | Claude (Anthropic) | Assistant connecté aux données du dashboard | `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
 
 ## 8. Avancement
