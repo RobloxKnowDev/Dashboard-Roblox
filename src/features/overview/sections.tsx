@@ -32,6 +32,7 @@ import { DEMO_NOW, type DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
 import { formatCompact, formatCurrency, formatDelta, formatNumber, formatRelative, formatRobux } from "@/lib/utils/format";
 import { getChart } from "@/features/discover/data";
+import { revenueChart } from "@/features/games/payouts-compute";
 import { getRecentActivity, getStudioCounts, getUpcomingTasks } from "./live";
 import { getStudioMetrics } from "./studio";
 
@@ -76,7 +77,11 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           icon={Coins}
           delta={hasAnalytics ? delta(studio.revenue.total, studio.revenue.previous) : undefined}
           deltaLabel={comparison}
-          hint={hasAnalytics ? `≈ ${formatCurrency(studio.revenue.total * studio.devexRate)} · ${coverage}` : noData}
+          hint={
+            hasAnalytics
+              ? `≈ ${formatCurrency(studio.revenue.total * studio.devexRate)} · ${studio.revenue.rewards > 0 ? `incl. ${formatRobux(studio.revenue.rewards)} rewards` : coverage}`
+              : noData
+          }
           trend={hasAnalytics ? studio.revenue.series.slice(-12).map((p) => p.value) : undefined}
         />
         <StatCard
@@ -178,10 +183,9 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
         <MetricChart
           title="Revenue overview"
           description={`Robux earned per ${range.granularity}, ${range.label} · ${coverage}`}
-          label={`Robux earned per ${range.granularity}, ${range.label}`}
+          label={`Robux earned per ${range.granularity}, ${range.label}: game sales and rewards`}
           format="robux"
-          rows={rows("revenue", studio.revenue.series)}
-          series={[{ key: "revenue", label: "Robux" }]}
+          {...revenueChart(studio.revenue.salesSeries, studio.revenue.rewardsSeries)}
           {...common}
         />
         <MetricChart

@@ -1,8 +1,10 @@
 import "server-only";
 import { cache } from "react";
 import { computeGameAlerts, type GameAlert } from "@/features/games/alerts";
-import { getGameAnalytics, sumOf, type GameAnalytics } from "@/features/games/analytics";
+import { analyticsWindow, getGameAnalytics, sumOf, type GameAnalytics } from "@/features/games/analytics";
 import { getDevexRate, listGames } from "@/features/games/data";
+import { listPayouts } from "@/features/games/payouts";
+import { addSeries, payoutSeries } from "@/features/games/payouts-compute";
 import { parseRange } from "@/features/shared/range";
 import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
 import { getRobloxGames } from "@/lib/integrations/roblox/public";
@@ -31,10 +33,11 @@ async function loadStudioMetrics(rangeKey: string, today: string) {
   const tracked = games.filter((g) => g.status !== "archived");
   if (tracked.length === 0) return { status: "no_games" as const };
 
-  const [roblox, devexRate, analyticsList] = await Promise.all([
+  const [roblox, devexRate, analyticsList, payouts] = await Promise.all([
     getRobloxGames(tracked.map((g) => g.universe_id)),
     getDevexRate(),
     Promise.all(tracked.map((g) => getGameAnalytics(g.universe_id, range, today, "overview"))),
+    listPayouts(tracked.map((g) => g.id)),
   ]);
 
   const withAnalytics = tracked
@@ -45,8 +48,11 @@ async function loadStudioMetrics(rangeKey: string, today: string) {
   const pick = (key: "revenue" | "dau" | "visits" | "peakCcu", period: "current" | "previous") =>
     sumByDate(withAnalytics.map((e) => e.analytics[key][period]));
 
-  const revenue = pick("revenue", "current");
-  const revenuePrevious = pick("revenue", "previous");
+  // Revenue = game sales (Roblox Analytics) + Creator Rewards and Roblox Plus
+  // (recorded monthly, spread over the days — an estimate).
+  const sales = pick("revenue", "current");
+  const salesPrevious = pick("revenue", "previous");
+  const rewards = payoutSeries(payouts, analyticsWindow(range, today), range.granularity, today);
   const dau = pick("dau", "current");
   const dauPrevious = pick("dau", "previous");
   const visits = pick("visits", "current");
@@ -69,7 +75,16 @@ async function loadStudioMetrics(rangeKey: string, today: string) {
     unauthorized: unauthorized.map((g) => ({ id: g.id, name: g.name })),
     robloxReachable: roblox !== null,
     playingNow: roblox ? tracked.reduce((acc, g) => acc + (roblox.get(g.universe_id)?.playing ?? 0), 0) : null,
-    revenue: { total: sumOf(revenue), previous: revenuePrevious.length ? sumOf(revenuePrevious) : null, series: revenue },
+    revenue: {
+      total: sumOf(sales) + sumOf(rewards.current),
+      sales: sumOf(sales),
+      rewards: sumOf(rewards.current),
+      previous: salesPrevious.length ? sumOf(salesPrevious) + sumOf(rewards.previous) : null,
+      /** Sales + rewards per day (or month). */
+      series: addSeries(sales, rewards.current),
+      salesSeries: sales,
+      rewardsSeries: rewards.current,
+    },
     dau: { average: avg(dau), previous: avg(dauPrevious), series: dau },
     peakCcu: pick("peakCcu", "current"),
     growth,

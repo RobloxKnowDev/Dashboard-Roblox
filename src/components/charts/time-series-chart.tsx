@@ -82,7 +82,7 @@ export function TimeSeriesChart({
     />
   );
   const yAxis = (
-    <YAxis tickFormatter={formatValue} tick={axisTick} tickLine={false} axisLine={false} width={48} tickMargin={4} />
+    <YAxis tickFormatter={formatValue} tick={axisTick} tickLine={false} axisLine={false} width="auto" tickMargin={4} />
   );
   const tooltip = (
     <Tooltip

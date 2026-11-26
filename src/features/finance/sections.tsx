@@ -180,7 +180,11 @@ export async function RobloxEarnings() {
           value={formatRobux(robux)}
           source="live"
           icon={TrendingUp}
-          hint={`Last 30 days · ${studio.analyticsCount} of ${studio.gameCount} games`}
+          hint={
+            studio.revenue.rewards > 0
+              ? `Last 30 days · incl. ${formatRobux(studio.revenue.rewards)} rewards (est.)`
+              : `Last 30 days · ${studio.analyticsCount} of ${studio.gameCount} games`
+          }
           trend={studio.revenue.series.map((p) => p.value)}
         />
         <StatCard
@@ -198,7 +202,7 @@ export async function RobloxEarnings() {
     <Card>
       <CardHeader
         title="Roblox earnings — estimate"
-        description="From Roblox analytics. Not included in the totals above: record payouts as revenue when you receive them."
+        description="Game sales from Roblox analytics, plus the Creator Rewards and Roblox Plus recorded on each game. Not included in the totals above: record DevEx payouts as revenue when you receive them."
       />
       <CardBody>{body}</CardBody>
     </Card>

@@ -70,7 +70,7 @@ export function BarChart({
           tickMargin={8}
           interval={0}
         />
-        <YAxis tickFormatter={formatValue} tick={axisTick} tickLine={false} axisLine={false} width={48} tickMargin={4} />
+        <YAxis tickFormatter={formatValue} tick={axisTick} tickLine={false} axisLine={false} width="auto" tickMargin={4} />
         <Tooltip
           cursor={{ fill: "rgb(255 255 255 / 0.025)" }}
           content={(props) => <ChartTooltipContent {...props} formatValue={formatValue} />}

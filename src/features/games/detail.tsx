@@ -19,6 +19,7 @@ import { SourceBadge } from "@/components/feedback/demo-badge";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { parseRange, type RangeConfig } from "@/features/shared/range";
 import { MetricChart } from "@/features/shared/metric-chart";
 import { GAME_STATUS } from "@/features/shared/status";
@@ -26,12 +27,15 @@ import { checkAccess } from "@/lib/auth/session";
 import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
 import { getRobloxGames, likeRatio, robloxGameUrl } from "@/lib/integrations/roblox/public";
 import { cn } from "@/lib/utils/cn";
-import { formatCompact, formatCurrency, formatDate, formatNumber, formatPercent, formatRobux } from "@/lib/utils/format";
+import { formatCompact, formatCurrency, formatDate, formatMonthYear, formatNumber, formatPercent, formatRobux } from "@/lib/utils/format";
 import { GameStatusSelect, RemoveGameButton } from "./admin-controls";
 import { computeGameAlerts } from "./alerts";
-import { avgOf, deltaOf, getGameAnalytics, sumOf, type GameAnalytics } from "./analytics";
+import { analyticsWindow, avgOf, deltaOf, getGameAnalytics, sumOf, type GameAnalytics } from "./analytics";
 import { GameIcon } from "./components";
 import { getDevexRate, getGame, type GameRow } from "./data";
+import { listPayouts } from "./payouts";
+import { EditPayoutButton, PayoutFormModal } from "./payout-form";
+import { PAYOUT_SOURCES, payoutSeries, recentMonths, revenueChart, type PayoutSource } from "./payouts-compute";
 
 type Params = Promise<{ gameId: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -210,12 +214,16 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
   const range: RangeConfig = parseRange((await searchParams).range);
   await connection();
   const today = new Date().toISOString().slice(0, 10);
-  const [analytics, devexRate] = await Promise.all([getGameAnalytics(game.universe_id, range, today), getDevexRate()]);
+  const [analytics, devexRate, payouts] = await Promise.all([getGameAnalytics(game.universe_id, range, today), getDevexRate(), listPayouts([game.id])]);
 
   if (analytics.status !== "ok") return <AnalyticsUnavailable status={analytics.status} universeId={game.universe_id} />;
 
   const dauNow = avgOf(analytics.dau.current);
-  const revenueNow = sumOf(analytics.revenue.current);
+  // Revenue = game sales (Roblox Analytics) + Creator Rewards and Roblox Plus (recorded monthly, spread over the days).
+  const rewards = payoutSeries(payouts, analyticsWindow(range, today), range.granularity, today);
+  const rewardsNow = sumOf(rewards.current);
+  const revenueNow = sumOf(analytics.revenue.current) + rewardsNow;
+  const revenuePrevious = analytics.revenue.previous.length ? sumOf(analytics.revenue.previous) + sumOf(rewards.previous) : null;
   const d1Now = avgOf(analytics.d1.current);
   const sessionNow = avgOf(analytics.session.current);
   const comparison = range.granularity === "month" ? undefined : range.comparison;
@@ -239,9 +247,9 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
           value={formatRobux(revenueNow)}
           source="live"
           icon={Coins}
-          delta={deltaOf(revenueNow, analytics.revenue.previous.length ? sumOf(analytics.revenue.previous) : null)}
+          delta={deltaOf(revenueNow, revenuePrevious)}
           deltaLabel={comparison}
-          hint={revenueHint(revenueNow, devexRate)}
+          hint={rewardsNow > 0 ? `≈ ${formatCurrency(revenueNow * devexRate)} · incl. ${formatRobux(rewardsNow)} rewards` : revenueHint(revenueNow, devexRate)}
         />
         <StatCard
           label="Day-1 retention"
@@ -277,10 +285,9 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
         <MetricChart
           title="Revenue"
           description={`Robux earned per ${range.granularity}, ${range.label}`}
-          label={`Robux earned per ${range.granularity}, ${range.label}`}
+          label={`Robux earned per ${range.granularity}, ${range.label}: game sales and rewards`}
           format="robux"
-          rows={rowsOf({ revenue: analytics.revenue.current })}
-          series={[{ key: "revenue", label: "Robux" }]}
+          {...revenueChart(analytics.revenue.current, rewards.current)}
           {...common}
         />
         <MetricChart
@@ -349,5 +356,91 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
       </div>
       <p className="text-[11px] text-fg-3">Roblox Analytics · daily values, about one day behind, refreshed hourly.</p>
     </div>
+  );
+}
+
+/* ─────────────────────── Creator Rewards & Roblox Plus ─────────────────────── */
+
+export async function GamePayoutsSection({ params }: { params: Params }) {
+  const game = await loadGame(params);
+  const [payouts, access, devexRate] = await Promise.all([listPayouts([game.id]), checkAccess("admin"), getDevexRate()]);
+  await connection();
+  const today = new Date().toISOString().slice(0, 10);
+  const isAdmin = access.status === "allowed";
+
+  // Last 12 months, plus any older month that has payouts.
+  const months = [...new Set([...recentMonths(today), ...payouts.map((p) => p.month)])].sort().reverse();
+  const valueOf = (month: string, source: PayoutSource) => payouts.find((p) => p.month === month && p.source === source)?.robux ?? null;
+  const total = payouts.reduce((acc, p) => acc + p.robux, 0);
+  const monthLabel = (month: string) => formatMonthYear(month);
+
+  return (
+    <Card>
+      <CardHeader
+        title="Creator Rewards & Roblox Plus"
+        description="Robux Roblox pays on top of game sales. They have no API: record them each month from the Creator Hub."
+        actions={isAdmin ? <PayoutFormModal gameId={game.id} gameName={game.name} /> : null}
+      />
+      <div className="overflow-x-auto">
+        <Table>
+          <caption className="sr-only">Monthly Creator Rewards and Roblox Plus payouts</caption>
+          <THead>
+            <TR>
+              <TH>Month</TH>
+              {PAYOUT_SOURCES.map((s) => (
+                <TH key={s.key} className="text-right">
+                  {s.label}
+                </TH>
+              ))}
+              <TH className="text-right">Total</TH>
+              {isAdmin ? (
+                <TH className="w-12">
+                  <span className="sr-only">Edit</span>
+                </TH>
+              ) : null}
+            </TR>
+          </THead>
+          <TBody>
+            {months.map((month) => {
+              const values = PAYOUT_SOURCES.map((s) => valueOf(month, s.key));
+              const sum = values.reduce<number>((acc, v) => acc + (v ?? 0), 0);
+              const recorded = values.some((v) => v !== null);
+              return (
+                <TR key={month}>
+                  <TD className="whitespace-nowrap text-fg-2">
+                    {monthLabel(month)}
+                    {month.slice(0, 7) === today.slice(0, 7) ? <span className="ml-1.5 text-xs text-fg-3">(so far)</span> : null}
+                  </TD>
+                  {values.map((v, i) => (
+                    <TD key={PAYOUT_SOURCES[i]?.key} className="text-right tabular">
+                      {v === null ? <span className="text-fg-4">—</span> : formatRobux(v)}
+                    </TD>
+                  ))}
+                  <TD className="text-right font-medium tabular text-fg">{recorded ? formatRobux(sum) : <span className="font-normal text-fg-4">—</span>}</TD>
+                  {isAdmin ? (
+                    <TD className="text-right">
+                      <EditPayoutButton
+                        gameId={game.id}
+                        gameName={game.name}
+                        label={monthLabel(month)}
+                        initial={{
+                          month: month.slice(0, 7),
+                          creatorRewards: values[0] === null || values[0] === undefined ? "" : String(values[0]),
+                          robloxPlus: values[1] === null || values[1] === undefined ? "" : String(values[1]),
+                        }}
+                      />
+                    </TD>
+                  ) : null}
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
+      </div>
+      <p className="border-t border-line px-5 py-3 text-xs text-fg-3">
+        {total > 0 ? `${formatRobux(total)} recorded in total (≈ ${formatCurrency(total * devexRate)} at the DevEx rate). ` : "Nothing recorded yet. "}
+        Added to this game&apos;s revenue above and to the studio totals.
+      </p>
+    </Card>
   );
 }

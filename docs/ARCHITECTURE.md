@@ -74,6 +74,8 @@ Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 |---|---|
 | Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Top 5 idées IA, agents IA, assistant (réponses d’exemple ; les conversations de démo ne sont pas enregistrées) |
 
+**Revenu d’un jeu** = ventes (métrique `DailyRevenue` de Roblox Analytics : game passes, developer products, serveurs privés, commissions avatar — vérifié via la ventilation `RevenueSource`) **+ Creator Rewards + Roblox Plus** (saisis chaque mois). Ce total alimente la page du jeu, l’Overview et l’estimation Roblox de Finance ; les alertes de revenu utilisent les ventes seules.
+
 Garanties :
 - toute donnée porte sa source (`DataResult<T>`), et un badge **DEMO** s'affiche automatiquement ;
 - aucun chiffre ne combine les deux sources ;
@@ -117,6 +119,7 @@ Garanties :
 | Source | Données | Accès | Phase |
 |---|---|---|---|
 | API publique Roblox (`games.roblox.com`, `thumbnails.roblox.com`) | Joueurs en ligne, visites, favoris, votes, genre, nom, icône — pour n'importe quel jeu | Sans clé, appel serveur, cache 1 min | ✅ jalon C |
+| Creator Rewards et Roblox Plus | Robux versés par Roblox en plus des ventes du jeu | **Aucune API** (vérifié) : saisie mensuelle par jeu sur la page du jeu (table `game_payouts`) ; sur les périodes en jours, chaque mois est réparti au prorata des jours (estimation signalée « est. ») | ✅ jalon D |
 | Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 | Clé(s) API avec `universe.analytics:read` : `ROBLOX_OPEN_CLOUD_API_KEY`, puis `_2`…`_5` si les jeux sont dans plusieurs groupes (chaque jeu utilise automatiquement la clé qui fonctionne) ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C |
 | Claude (Anthropic) | Assistant connecté aux données du dashboard | Interface prête (jalon D) avec un fournisseur **démo** ; le branchement se fait dans `src/features/assistant/provider.ts` : `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
 | Tâche quotidienne (Vercel Cron) | Classements Roblox, watchlist, statistiques publiques des jeux → historique | `/api/cron/daily-snapshot` à 06:00 UTC, protégée par `CRON_SECRET`, écrit avec `SUPABASE_SECRET_KEY` | ✅ jalon D |

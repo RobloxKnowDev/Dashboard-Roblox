@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ChartSkeleton } from "@/components/feedback/states";
 import { PageContainer } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/primitives";
-import { GameAnalyticsSection, GameHeader, GameLiveStats } from "@/features/games/detail";
+import { GameAnalyticsSection, GameHeader, GameLiveStats, GamePayoutsSection } from "@/features/games/detail";
 import { RangeFilter, RangeFilterFallback } from "@/features/shared/range-filter";
 
 export const metadata: Metadata = { title: "Game" };
@@ -62,6 +62,10 @@ export default function GamePage({ params, searchParams }: PageProps<"/games/[ga
         }
       >
         <GameAnalyticsSection params={params} searchParams={searchParams} />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+        <GamePayoutsSection params={params} />
       </Suspense>
     </PageContainer>
   );

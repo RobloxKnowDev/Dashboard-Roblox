@@ -184,6 +184,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"game_payouts": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"game_id": string,"id": string,"month": string,"robux": number,"source": Database["public"]['Enums']["payout_source"],"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"game_id": string,"id"?: string,"month": string,"robux": number,"source": Database["public"]['Enums']["payout_source"],"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"game_id"?: string,"id"?: string,"month"?: string,"robux"?: number,"source"?: Database["public"]['Enums']["payout_source"],"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "game_payouts_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "game_payouts_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"game_watchlist": {
                   Row: {
                     "added_by": string | null,"created_at": string,"genre": string | null,"id": string,"name": string,"notes": string | null,"thumbnail_url": string | null,"universe_id": number,"updated_at": string
@@ -459,7 +485,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "agent_event_type": "started"|"progress"|"waiting"|"completed"|"error"|"log"|"status_change","agent_status": "working"|"waiting"|"completed"|"error"|"offline","app_role": "owner"|"admin"|"developer"|"viewer","assistant_role": "user"|"assistant","game_status": "in_development"|"testing"|"live"|"paused"|"archived","idea_origin": "manual"|"ai","idea_status": "suggested"|"saved"|"archived","integration_provider": "roblox"|"anthropic","integration_status": "disconnected"|"connected"|"error","member_status": "active"|"inactive","metric_period": "hour"|"day","notification_type": "info"|"success"|"warning"|"error"|"task"|"agent"|"finance"|"system","project_status": "planning"|"in_progress"|"testing"|"completed"|"on_hold"|"cancelled","task_priority": "low"|"medium"|"high"|"critical","task_status": "todo"|"in_progress"|"in_review"|"done"|"cancelled","transaction_category": "roblox_payout"|"devex"|"sponsorship"|"development"|"advertising"|"tools"|"salaries"|"assets"|"other","transaction_type": "revenue"|"expense"
+            "agent_event_type": "started"|"progress"|"waiting"|"completed"|"error"|"log"|"status_change","agent_status": "working"|"waiting"|"completed"|"error"|"offline","app_role": "owner"|"admin"|"developer"|"viewer","assistant_role": "user"|"assistant","game_status": "in_development"|"testing"|"live"|"paused"|"archived","idea_origin": "manual"|"ai","idea_status": "suggested"|"saved"|"archived","integration_provider": "roblox"|"anthropic","integration_status": "disconnected"|"connected"|"error","member_status": "active"|"inactive","metric_period": "hour"|"day","notification_type": "info"|"success"|"warning"|"error"|"task"|"agent"|"finance"|"system","payout_source": "creator_rewards"|"roblox_plus","project_status": "planning"|"in_progress"|"testing"|"completed"|"on_hold"|"cancelled","task_priority": "low"|"medium"|"high"|"critical","task_status": "todo"|"in_progress"|"in_review"|"done"|"cancelled","transaction_category": "roblox_payout"|"devex"|"sponsorship"|"development"|"advertising"|"tools"|"salaries"|"assets"|"other","transaction_type": "revenue"|"expense"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -575,7 +601,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "agent_event_type": ["started", "progress", "waiting", "completed", "error", "log", "status_change"],"agent_status": ["working", "waiting", "completed", "error", "offline"],"app_role": ["owner", "admin", "developer", "viewer"],"assistant_role": ["user", "assistant"],"game_status": ["in_development", "testing", "live", "paused", "archived"],"idea_origin": ["manual", "ai"],"idea_status": ["suggested", "saved", "archived"],"integration_provider": ["roblox", "anthropic"],"integration_status": ["disconnected", "connected", "error"],"member_status": ["active", "inactive"],"metric_period": ["hour", "day"],"notification_type": ["info", "success", "warning", "error", "task", "agent", "finance", "system"],"project_status": ["planning", "in_progress", "testing", "completed", "on_hold", "cancelled"],"task_priority": ["low", "medium", "high", "critical"],"task_status": ["todo", "in_progress", "in_review", "done", "cancelled"],"transaction_category": ["roblox_payout", "devex", "sponsorship", "development", "advertising", "tools", "salaries", "assets", "other"],"transaction_type": ["revenue", "expense"]
+            "agent_event_type": ["started", "progress", "waiting", "completed", "error", "log", "status_change"],"agent_status": ["working", "waiting", "completed", "error", "offline"],"app_role": ["owner", "admin", "developer", "viewer"],"assistant_role": ["user", "assistant"],"game_status": ["in_development", "testing", "live", "paused", "archived"],"idea_origin": ["manual", "ai"],"idea_status": ["suggested", "saved", "archived"],"integration_provider": ["roblox", "anthropic"],"integration_status": ["disconnected", "connected", "error"],"member_status": ["active", "inactive"],"metric_period": ["hour", "day"],"notification_type": ["info", "success", "warning", "error", "task", "agent", "finance", "system"],"payout_source": ["creator_rewards", "roblox_plus"],"project_status": ["planning", "in_progress", "testing", "completed", "on_hold", "cancelled"],"task_priority": ["low", "medium", "high", "critical"],"task_status": ["todo", "in_progress", "in_review", "done", "cancelled"],"transaction_category": ["roblox_payout", "devex", "sponsorship", "development", "advertising", "tools", "salaries", "assets", "other"],"transaction_type": ["revenue", "expense"]
           }
         }
 } as const
