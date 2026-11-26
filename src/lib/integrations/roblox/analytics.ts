@@ -7,8 +7,11 @@ import { cacheLife } from "next/cache";
  *
  * - Several keys are supported (one per Roblox group/account): the key that
  *   can read an experience is resolved once and cached.
- * - Results are cached for an hour; only successful and "not authorized"
- *   answers are cached — transient failures are retried on the next request.
+ * - Results are cached for an hour in the REMOTE cache ("use cache: remote"),
+ *   shared by every server instance (on Vercel, each cold instance would
+ *   otherwise re-query Roblox and exhaust the key's data-point budget).
+ *   Only successful and "not authorized" answers are cached — transient
+ *   failures are retried on the next request.
  * - At most 4 requests are in flight, and "too many requests" (429) answers
  *   are retried with backoff, to stay within Roblox's limits.
  */
@@ -143,7 +146,7 @@ async function runQuery(universeId: number, metric: AnalyticsMetric, startDate: 
  * key so adding a key triggers a new probe.
  */
 async function resolveKeyIndex(universeId: number, keyCount: number): Promise<number> {
-  "use cache";
+  "use cache: remote";
   cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
 
   const keys = apiKeys().slice(0, keyCount);
@@ -157,7 +160,7 @@ async function resolveKeyIndex(universeId: number, keyCount: number): Promise<nu
 }
 
 async function queryCached(universeId: number, metric: AnalyticsMetric, startDate: string, endDate: string): Promise<MetricResult> {
-  "use cache";
+  "use cache: remote";
   cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
 
   const keys = apiKeys();
