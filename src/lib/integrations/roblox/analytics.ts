@@ -37,7 +37,7 @@ export type MetricResult =
 
 const BASE = "https://apis.roblox.com/analytics-query-api";
 const MAX_CONCURRENT = 4;
-const MAX_RATE_LIMIT_RETRIES = 3;
+const MAX_RATE_LIMIT_RETRIES = 2;
 
 type QueryResponse = {
   path?: string;
@@ -77,7 +77,15 @@ async function withSlot<T>(task: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Keys that exhausted their retries on 429 rest for a minute: hammering a
+ * key that is over its data-point budget only delays its recovery.
+ */
+const COOL_DOWN_MS = 60_000;
+const coolingUntil = new Map<string, number>();
+
 async function call(url: string, init: RequestInit, key: string): Promise<{ status: number; body: QueryResponse }> {
+  if ((coolingUntil.get(key) ?? 0) > Date.now()) return { status: 429, body: {} };
   for (let attempt = 0; ; attempt++) {
     const response = await withSlot(() =>
       fetch(url, {
@@ -86,10 +94,13 @@ async function call(url: string, init: RequestInit, key: string): Promise<{ stat
         signal: AbortSignal.timeout(15_000),
       }),
     );
-    if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
-      const retryAfter = Number(response.headers.get("retry-after"));
-      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 10) * 1000 : 1000 * 2 ** attempt);
-      continue;
+    if (response.status === 429) {
+      if (attempt < MAX_RATE_LIMIT_RETRIES) {
+        const retryAfter = Number(response.headers.get("retry-after"));
+        await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 10) * 1000 : 1500 * 2 ** attempt);
+        continue;
+      }
+      coolingUntil.set(key, Date.now() + COOL_DOWN_MS);
     }
     const body = (await response.json().catch(() => ({}))) as QueryResponse;
     return { status: response.status, body };

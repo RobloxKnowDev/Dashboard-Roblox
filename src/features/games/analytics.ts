@@ -74,24 +74,60 @@ function split(result: MetricResult, mid: string, range: RangeConfig, mode: "sum
   return range.granularity === "month" ? { current: monthly(current, mode), previous: [] } : { current, previous };
 }
 
-/** All dashboard metrics of one experience for a range. Never throws. */
-export async function getGameAnalytics(universeId: number, range: RangeConfig, today: string): Promise<GameAnalytics> {
+type SeriesKey = Exclude<keyof GameAnalytics, "status">;
+
+type MetricPlan = {
+  key: SeriesKey;
+  metric: AnalyticsMetric;
+  mode: "sum" | "avg";
+  /** Also fetch the previous period (only where a delta is shown). */
+  previous: boolean;
+};
+
+/** Game page: everything. Previous period only where a delta is displayed. */
+const FULL_PLAN: MetricPlan[] = [
+  { key: "dau", metric: "DailyActiveUsers", mode: "avg", previous: true },
+  { key: "revenue", metric: "DailyRevenue", mode: "sum", previous: true },
+  { key: "visits", metric: "Visits", mode: "sum", previous: false },
+  { key: "peakCcu", metric: "PeakConcurrentPlayers", mode: "avg", previous: false },
+  { key: "session", metric: "AverageSessionLengthMinutes", mode: "avg", previous: true },
+  { key: "d1", metric: "ForwardD1Retention", mode: "avg", previous: true },
+  { key: "d7", metric: "ForwardD7Retention", mode: "avg", previous: false },
+  { key: "d30", metric: "ForwardD30Retention", mode: "avg", previous: false },
+];
+
+/** Overview: only what the studio-wide KPIs, charts and alerts use. */
+const OVERVIEW_PLAN: MetricPlan[] = [
+  { key: "dau", metric: "DailyActiveUsers", mode: "avg", previous: true },
+  { key: "revenue", metric: "DailyRevenue", mode: "sum", previous: true },
+  { key: "visits", metric: "Visits", mode: "sum", previous: false },
+  { key: "peakCcu", metric: "PeakConcurrentPlayers", mode: "avg", previous: false },
+  { key: "d1", metric: "ForwardD1Retention", mode: "avg", previous: false },
+];
+
+/**
+ * Dashboard metrics of one experience for a range. Never throws.
+ * Roblox meters every requested data point (day × metric), so each profile
+ * only asks for what its page displays.
+ */
+export async function getGameAnalytics(
+  universeId: number,
+  range: RangeConfig,
+  today: string,
+  profile: "full" | "overview" = "full",
+): Promise<GameAnalytics> {
   const { start, mid, end } = analyticsWindow(range, today);
-  const ccuStart = [start, addDays(end, -PEAK_CCU_RETENTION_DAYS)].sort().at(-1) ?? start;
+  const ccuFloor = addDays(end, -PEAK_CCU_RETENTION_DAYS);
+  const plan = profile === "overview" ? OVERVIEW_PLAN : FULL_PLAN;
 
-  const query = (metric: AnalyticsMetric, from = start) => getDailyMetric(universeId, metric, from, end);
-  const [dau, revenue, visits, peakCcu, session, d1, d7, d30] = await Promise.all([
-    query("DailyActiveUsers"),
-    query("DailyRevenue"),
-    query("Visits"),
-    query("PeakConcurrentPlayers", ccuStart),
-    query("AverageSessionLengthMinutes"),
-    query("ForwardD1Retention"),
-    query("ForwardD7Retention"),
-    query("ForwardD30Retention"),
-  ]);
+  const results = await Promise.all(
+    plan.map((item) => {
+      let from = item.previous ? start : mid;
+      if (item.metric === "PeakConcurrentPlayers" && from < ccuFloor) from = ccuFloor;
+      return getDailyMetric(universeId, item.metric, from, end);
+    }),
+  );
 
-  const results = [dau, revenue, visits, peakCcu, session, d1, d7, d30];
   const status: AnalyticsStatus = results.some((r) => r.status === "ok")
     ? "ok"
     : results.every((r) => r.status === "unauthorized")
@@ -100,15 +136,20 @@ export async function getGameAnalytics(universeId: number, range: RangeConfig, t
         ? "not_configured"
         : "error";
 
-  return {
+  const analytics: GameAnalytics = {
     status,
-    dau: split(dau, mid, range, "avg"),
-    revenue: split(revenue, mid, range, "sum"),
-    visits: split(visits, mid, range, "sum"),
-    peakCcu: split(peakCcu, mid, range, "avg"),
-    session: split(session, mid, range, "avg"),
-    d1: split(d1, mid, range, "avg"),
-    d7: split(d7, mid, range, "avg"),
-    d30: split(d30, mid, range, "avg"),
+    dau: EMPTY,
+    revenue: EMPTY,
+    visits: EMPTY,
+    peakCcu: EMPTY,
+    session: EMPTY,
+    d1: EMPTY,
+    d7: EMPTY,
+    d30: EMPTY,
   };
+  plan.forEach((item, index) => {
+    const result = results[index];
+    if (result) analytics[item.key] = split(result, mid, range, item.mode);
+  });
+  return analytics;
 }

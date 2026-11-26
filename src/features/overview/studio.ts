@@ -34,7 +34,7 @@ async function loadStudioMetrics(rangeKey: string, today: string) {
   const [roblox, devexRate, analyticsList] = await Promise.all([
     getRobloxGames(tracked.map((g) => g.universe_id)),
     getDevexRate(),
-    Promise.all(tracked.map((g) => getGameAnalytics(g.universe_id, range, today))),
+    Promise.all(tracked.map((g) => getGameAnalytics(g.universe_id, range, today, "overview"))),
   ]);
 
   const withAnalytics = tracked

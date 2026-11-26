@@ -48,7 +48,8 @@ async function GamesGrid() {
   const today = now.toISOString().slice(0, 10);
   const [roblox, dauResults] = await Promise.all([
     getRobloxGames(games.map((g) => g.universe_id)),
-    Promise.all(games.map((g) => getDailyMetric(g.universe_id, "DailyActiveUsers", isoDaysAgo(now, 7), today))),
+    // Same window as the Overview's default DAU query (30 days + previous 30): shared cache entry.
+    Promise.all(games.map((g) => getDailyMetric(g.universe_id, "DailyActiveUsers", isoDaysAgo(now, 60), today))),
   ]);
 
   return (
