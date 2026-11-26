@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 /** Pages reachable without a session. Everything else requires sign-in. */
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/auth"];
+// /api/cron authenticates itself with CRON_SECRET (no user session).
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/auth", "/api/cron"];
 /** Signed-in users are sent away from these. */
 const GUEST_ONLY_PATHS = ["/login", "/forgot-password"];
 

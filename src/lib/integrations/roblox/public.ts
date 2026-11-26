@@ -56,7 +56,7 @@ type ThumbsResponse = { data: { universeId: number; thumbnails: { state: string;
 
 /** Cached core — throws on failure so errors are never cached. */
 async function fetchGamesCached(universeIds: number[]): Promise<RobloxGameInfo[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife({ stale: 60, revalidate: 60, expire: 600 });
 
   const ids = universeIds.join(",");
@@ -108,6 +108,25 @@ export async function getRobloxGames(universeIds: number[]): Promise<Map<number,
   } catch {
     return null;
   }
+}
+
+/**
+ * Same as getRobloxGames for any number of experiences (Roblox accepts 50 per
+ * request): batches are fetched in parallel and each is cached on its own.
+ */
+export async function getRobloxGamesBatched(universeIds: number[]): Promise<Map<number, RobloxGameInfo> | null> {
+  const unique = [...new Set(universeIds)].sort((a, b) => a - b);
+  const batches: number[][] = [];
+  for (let i = 0; i < unique.length; i += 50) batches.push(unique.slice(i, i + 50));
+
+  // Two batches at a time: a burst of parallel calls gets rate-limited by Roblox.
+  const results: (Map<number, RobloxGameInfo> | null)[] = [];
+  for (let i = 0; i < batches.length; i += 2) {
+    results.push(...(await Promise.all(batches.slice(i, i + 2).map((batch) => getRobloxGames(batch)))));
+  }
+  // Keep whatever succeeded; only report failure when nothing came back.
+  if (results.length > 0 && results.every((r) => r === null)) return null;
+  return new Map(results.flatMap((r) => (r ? [...r.entries()] : [])));
 }
 
 /** Like ratio in [0, 1], or null when there are no votes. */

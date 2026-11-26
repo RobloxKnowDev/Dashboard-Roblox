@@ -66,8 +66,8 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
       />
 
       <DemoBanner>
-        AI agents and market highlights are illustrative until their integrations are connected. Games, revenue,
-        players, alerts, projects, tasks and activity are your real data.
+        Only the AI agents are illustrative until they report to the dashboard. Games, revenue, players, alerts,
+        market highlights, projects, tasks and activity are real data.
       </DemoBanner>
 
       <Suspense fallback={<KpiSkeleton />}>
@@ -92,7 +92,9 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
         <Suspense fallback={<CardSkeleton />}>
           <ImportantAlerts searchParams={searchParams} />
         </Suspense>
-        <MarketHighlights />
+        <Suspense fallback={<CardSkeleton />}>
+          <MarketHighlights />
+        </Suspense>
       </div>
     </PageContainer>
   );

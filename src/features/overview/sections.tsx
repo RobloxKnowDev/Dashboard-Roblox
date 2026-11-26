@@ -30,7 +30,7 @@ import { ACTIVE_AGENT_STATUSES, AGENT_STATUS, TASK_PRIORITY, TASK_STATUS } from 
 import { DEMO_NOW, type DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
 import { formatCompact, formatCurrency, formatDelta, formatNumber, formatRelative, formatRobux } from "@/lib/utils/format";
-import { DEMO_MARKET_HIGHLIGHTS } from "./demo";
+import { getChart } from "@/features/discover/data";
 import { getRecentActivity, getStudioCounts, getUpcomingTasks } from "./live";
 import { getStudioMetrics } from "./studio";
 
@@ -381,26 +381,51 @@ export function ActiveAgents() {
   );
 }
 
-export function MarketHighlights() {
+/** Live: the top of Roblox's Up-and-Coming chart. */
+export async function MarketHighlights() {
+  const chart = await getChart("up-and-coming", await todayIso());
+
   return (
-    <ListCard title="Market highlights" description="Fastest-growing Roblox experiences this week" source="demo" href="/discover">
-      <ol>
-        {DEMO_MARKET_HIGHLIGHTS.map((game, index) => (
-          <li key={game.name} className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
-            <span className="w-4 shrink-0 font-mono text-xs text-fg-3">{index + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-fg">{game.name}</p>
-              <p className="text-xs text-fg-3">{formatCompact(game.ccu)} playing</p>
-            </div>
-            <Badge>{game.genre}</Badge>
-            <span className="inline-flex w-16 shrink-0 items-center justify-end gap-0.5 text-xs font-medium text-good">
-              <TrendingUp className="size-3.5" aria-hidden />
-              {formatDelta(game.growth)}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <p className="px-3 pb-1 pt-2 text-[11px] text-fg-3">Growth in concurrent players over 7 days.</p>
+    <ListCard title="Market highlights" description="Top of Roblox's Up-and-Coming chart right now" source="live" href="/discover?chart=up-and-coming">
+      {chart.status !== "ok" ? (
+        <ErrorState compact title="Market data unavailable" description="Roblox's charts couldn't be reached. Try again later." />
+      ) : (
+        <>
+          <ol>
+            {chart.games.slice(0, 5).map((game, index) => {
+              const change = game.playersYesterday ? game.playerCount / game.playersYesterday - 1 : null;
+              return (
+                <li key={game.universeId} className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                  <span className="w-4 shrink-0 font-mono text-xs text-fg-3">{index + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-fg">{game.name}</p>
+                    <p className="text-xs text-fg-3">{formatCompact(game.playerCount)} playing</p>
+                  </div>
+                  {game.genre ? <Badge>{game.genre}</Badge> : null}
+                  <span
+                    className={cn(
+                      "inline-flex w-16 shrink-0 items-center justify-end gap-0.5 text-xs font-medium",
+                      change === null ? "text-fg-4" : change >= 0 ? "text-good" : "text-critical",
+                    )}
+                  >
+                    {change === null ? (
+                      "—"
+                    ) : (
+                      <>
+                        <TrendingUp className={cn("size-3.5", change < 0 && "rotate-180")} aria-hidden />
+                        {formatDelta(change)}
+                      </>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="px-3 pb-1 pt-2 text-[11px] text-fg-3">
+            {chart.hasHistory ? "Change in players since yesterday's snapshot." : "Day-over-day change appears after the first daily snapshot."}
+          </p>
+        </>
+      )}
     </ListCard>
   );
 }

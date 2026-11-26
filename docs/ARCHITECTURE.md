@@ -72,7 +72,7 @@ Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 
 | Réel (Supabase / API Roblox) | Démo jusqu'à l'intégration |
 |---|---|
-| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées | Discover/tendances, Top 5 idées IA, agents IA, assistant |
+| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Top 5 idées IA, agents IA, assistant |
 
 Garanties :
 - toute donnée porte sa source (`DataResult<T>`), et un badge **DEMO** s'affiche automatiquement ;
@@ -124,5 +124,5 @@ Garanties :
 | A | Architecture, initialisation, Supabase (code + migrations), design system, navigation | ✅ |
 | B | Authentification (connexion, mot de passe oublié/réinitialisation, protection des routes, rôles, compte en attente, déconnexion), Overview (KPI, 4 graphiques, listes, filtres de période) | ✅ |
 | C | My Games (Roblox en direct + analytics), Projects (cartes/tableau, membres), Tasks (4 vues, filtres), AI Agents (démo), Overview sur données réelles, Settings → Profile | ✅ |
-| D | Discover, Finance, Team, AI Assistant, Settings, Integrations | à venir |
+| D | ✅ Discover (classements Roblox réels, sorties récentes, watchlist, idées, tâche quotidienne) · à venir : Finance, Team, AI Assistant, Settings, Integrations | en cours |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |

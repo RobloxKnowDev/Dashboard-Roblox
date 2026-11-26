@@ -25,6 +25,7 @@ Les clés actuelles sont passées dans une conversation : on les remplace avant 
 | `SUPABASE_SECRET_KEY` | la **nouvelle** clé secrète (`sb_secret_…`) |
 | `ROBLOX_OPEN_CLOUD_API_KEY` | la **nouvelle** clé Roblox |
 | `ROBLOX_OPEN_CLOUD_API_KEY_2` | la 2ᵉ clé Roblox, si vos jeux sont répartis dans plusieurs groupes (jusqu'à `_5`) |
+| `CRON_SECRET` | longue valeur aléatoire (générée dans `.env.local`) — protège la tâche quotidienne, type **Secret** |
 | `NEXT_PUBLIC_SITE_URL` | l'adresse du site, ex. `https://dashboard-roblox.vercel.app` (puis le domaine personnalisé) |
 
 `SUPABASE_DB_URL` n'est **pas** nécessaire sur Vercel (elle ne sert qu'aux migrations, en local).
@@ -48,6 +49,10 @@ Ensuite : mettre à jour `NEXT_PUBLIC_SITE_URL` sur Vercel et les URL dans Supab
 ## 5. E-mails (recommandé)
 
 Le service d'e-mail intégré à Supabase n'envoie qu'aux membres de l'organisation Supabase, quelques fois par heure. Pour les invitations et les réinitialisations de mot de passe : *Authentication → Emails → SMTP Settings* avec un fournisseur (ex. Resend, offre gratuite).
+
+## 5 bis. Tâche quotidienne (Vercel Cron)
+
+`vercel.json` programme `/api/cron/daily-snapshot` chaque jour à 6 h UTC : photo des classements Roblox, de la watchlist et des stats publiques de vos jeux (historique). Vercel l'appelle avec `Authorization: Bearer <CRON_SECRET>` ; sans `CRON_SECRET` défini sur Vercel, la tâche est refusée (401). Suivi : Vercel → projet → *Settings → Cron Jobs* (bouton *Run* pour la lancer à la main).
 
 ## 6. Vérifier
 

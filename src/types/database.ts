@@ -244,6 +244,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"market_snapshots": {
+                  Row: {
+                    "created_at": string,"down_votes": number | null,"genre": string | null,"id": string,"name": string,"player_count": number,"rank": number,"recorded_on": string,"sort_id": string,"universe_id": number,"up_votes": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"down_votes"?: number | null,"genre"?: string | null,"id"?: string,"name": string,"player_count"?: number,"rank": number,"recorded_on": string,"sort_id": string,"universe_id": number,"up_votes"?: number | null
+                  }
+                  Update: {
+                    "created_at"?: string,"down_votes"?: number | null,"genre"?: string | null,"id"?: string,"name"?: string,"player_count"?: number,"rank"?: number,"recorded_on"?: string,"sort_id"?: string,"universe_id"?: number,"up_votes"?: number | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"notifications": {
                   Row: {
                     "body": string | null,"created_at": string,"id": string,"link": string | null,"read_at": string | null,"title": string,"type": Database["public"]['Enums']["notification_type"],"user_id": string

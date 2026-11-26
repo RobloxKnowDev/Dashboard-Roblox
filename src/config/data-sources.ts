@@ -20,9 +20,9 @@ export const dataSources = {
   // Roblox: public stats (no key) and Open Cloud Analytics (API key, per game)
   gamePublicStats: "live",
   gameAnalytics: "live",
+  market: "live", // Roblox public charts + daily snapshots
 
   // Demo until their integration ships
-  market: "demo", // Discover, trending, weekly releases
   weeklyIdeas: "demo", // AI-generated top 5
   agents: "demo", // agent status + events ingestion
   assistant: "demo", // Claude-powered assistant
