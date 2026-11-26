@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint",
+    "db:push": "node scripts/db.mjs push",
+    "db:types": "node scripts/db.mjs types"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.9",

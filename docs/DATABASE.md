@@ -142,27 +142,31 @@ Ces fonctions s'exécutent avec les droits du propriétaire de la base (`SECURIT
 
 ## Appliquer les migrations
 
-Prérequis : un projet Supabase créé sur supabase.com. La « référence » du projet est l'identifiant dans son URL `https://<ref>.supabase.co`.
+Prérequis : `SUPABASE_DB_URL` renseignée dans `.env.local` (Supabase → **Connect** → **Direct** → **Session pooler**, en remplaçant `[YOUR-PASSWORD]` **crochets compris** par le mot de passe de la base).
 
 ```bash
-npx supabase login                          # ouvre le navigateur pour s'authentifier
-npx supabase link --project-ref <ref>       # demande le mot de passe de la base
-npx supabase db push                        # applique les migrations dans l'ordre
+npm run db:push     # applique les migrations en attente, dans l'ordre
 ```
 
-Sous Windows, si `npx` est introuvable, ajouter Node au PATH de la session :
+Le script `scripts/db.mjs` lit l'adresse dans `.env.local`, ne l'affiche jamais et masque toute chaîne de connexion dans la sortie. Pour une vérification sans rien modifier : `npx supabase db push --db-url <url> --dry-run`.
+
+Sous Windows, si `npm` est introuvable, ajouter Node au PATH de la session :
 
 ```powershell
 $env:PATH = "$env:LOCALAPPDATA\Programs\nodejs;$env:PATH"
 ```
+
+**État actuel (26/11/2026)** : les 9 migrations sont appliquées sur le projet hébergé. Vérifié de l'extérieur : un visiteur non connecté (clé publique) reçoit « permission denied » sur toutes les tables ; la clé serveur voit les lignes structurelles (1 réglage studio, 2 intégrations).
 
 ## Générer les types TypeScript
 
 Après chaque migration appliquée :
 
 ```bash
-npx supabase gen types typescript --linked > src/types/database.ts
+npm run db:types    # régénère src/types/database.ts depuis le schéma réel
 ```
+
+Les trois clients Supabase (`src/lib/supabase/`) sont typés avec ce fichier : toute requête est vérifiée par TypeScript.
 
 ## Créer le premier Owner
 

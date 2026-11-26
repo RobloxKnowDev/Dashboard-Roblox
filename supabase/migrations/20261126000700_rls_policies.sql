@@ -32,6 +32,20 @@ alter default privileges for role postgres in schema public revoke all on tables
 alter default privileges for role postgres in schema public revoke all on sequences from anon;
 alter default privileges for role postgres in schema public revoke execute on functions from public, anon;
 
+-- Explicit table privileges for signed-in users and the server role.
+-- Recent Supabase projects don't always grant these by default; RLS policies
+-- below still decide which rows each user can see or change. Narrower
+-- column-level grants (e.g. notifications) are applied further down.
+grant usage on schema public to authenticated, service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant all on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to authenticated, service_role;
+
+alter default privileges for role postgres in schema public
+  grant select, insert, update, delete on tables to authenticated;
+alter default privileges for role postgres in schema public
+  grant all on tables to service_role;
+
 -- RLS helpers must stay callable by signed-in users (policies run as them).
 grant execute on function public.role_rank(public.app_role) to authenticated, service_role;
 grant execute on function public.current_app_role() to authenticated, service_role;

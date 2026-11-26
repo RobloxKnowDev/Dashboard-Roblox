@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { publicEnv, serverEnv } from "@/lib/env";
+import type { Database } from "@/types/database";
 
 /**
  * Privileged Supabase client using the SECRET key — it bypasses RLS.
@@ -11,7 +12,7 @@ import { publicEnv, serverEnv } from "@/lib/env";
  * Never import this from a Client Component ("server-only" enforces it).
  */
 export function createAdminClient() {
-  return createSupabaseClient(publicEnv().NEXT_PUBLIC_SUPABASE_URL, serverEnv().SUPABASE_SECRET_KEY, {
+  return createSupabaseClient<Database>(publicEnv().NEXT_PUBLIC_SUPABASE_URL, serverEnv().SUPABASE_SECRET_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
