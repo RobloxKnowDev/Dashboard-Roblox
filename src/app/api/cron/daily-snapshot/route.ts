@@ -25,7 +25,17 @@ function authorized(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    return await runSnapshot();
+  } catch (error) {
+    // Readable failure for the Vercel Cron log (messages never contain secrets).
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[daily-snapshot]", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
+async function runSnapshot() {
   const admin = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
   const recordedAt = `${today}T00:00:00Z`;
