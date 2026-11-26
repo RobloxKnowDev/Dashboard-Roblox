@@ -14,8 +14,8 @@ const ROWS: { permission: Permission; label: string }[] = [
   { permission: "games.manage", label: "Add and edit the studio's games" },
   { permission: "finance.read", label: "View finance" },
   { permission: "finance.write", label: "Record transactions" },
-  { permission: "members.manage", label: "Invite and remove members" },
-  { permission: "roles.manage", label: "Change roles" },
+  { permission: "members.manage", label: "Create accounts and manage team cards" },
+  { permission: "roles.manage", label: "Change roles, revoke access, delete accounts" },
   { permission: "integrations.manage", label: "Manage integrations and API keys" },
   { permission: "settings.manage", label: "Edit studio settings" },
 ];

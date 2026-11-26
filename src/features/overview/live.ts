@@ -81,14 +81,16 @@ export type ActivityEntry = {
   metadata: unknown;
 };
 
-/** Latest studio activity (finance entries are filtered by RLS for non-admins). */
-export async function getRecentActivity(limit = 8): Promise<ActivityEntry[] | null> {
+/** Latest studio activity, optionally by one account (finance entries are filtered by RLS for non-admins). */
+export async function getRecentActivity(limit = 8, actorId?: string): Promise<ActivityEntry[] | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("activity_logs")
     .select("id, action, entity_type, entity_label, metadata, created_at, actor:profiles(full_name, email)")
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (actorId) query = query.eq("actor_id", actorId);
+  const { data, error } = await query;
 
   if (error) return null;
   return data.map((entry) => ({
