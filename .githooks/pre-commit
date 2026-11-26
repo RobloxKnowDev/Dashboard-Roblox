@@ -1,0 +1,21 @@
+#!/bin/sh
+# Blocks commits that would publish secrets (the GitHub repository may be public).
+# Bypass only if you are absolutely sure: git commit --no-verify
+
+fail=0
+
+# 1. Never commit local env files
+if git diff --cached --name-only | grep -E '(^|/)\.env(\.[a-z]+)?\.local$|(^|/)\.env$' >/dev/null; then
+  echo "✖ A .env / .env*.local file is staged. Secrets belong in .env.local, which must stay untracked."
+  fail=1
+fi
+
+# 2. Never commit secret values (added lines only)
+patterns='sb_secret_[A-Za-z0-9]|(SUPABASE_SECRET_KEY|ROBLOX_OPEN_CLOUD_API_KEY|ANTHROPIC_API_KEY|SUPABASE_DB_URL)=[^[:space:]]|sk-ant-[A-Za-z0-9]|postgres(ql)?://[^:@/[:space:]]+:[^@[:space:]]+@'
+if git diff --cached -U0 | grep -E '^\+' | grep -v '^+++' | grep -E "$patterns" >/dev/null; then
+  echo "✖ A secret key or password appears in the staged changes."
+  echo "  Put real values in .env.local only — never in .env.example or source files."
+  fail=1
+fi
+
+[ "$fail" -eq 0 ] || { echo "Commit blocked."; exit 1; }
