@@ -9,12 +9,12 @@ export default function SecuritySettingsPage() {
     <>
       <SettingsSectionHeader slug="security" />
       <PlannedPage
-        milestone="Milestone B"
+        milestone="Milestone D"
         sections={[
-          "Change password",
           "Two-factor authentication (TOTP) — prepared, enabled later",
           "Active sessions",
           "Sign out everywhere",
+          "Change your password: Settings → Profile",
         ]}
       />
     </>

@@ -33,3 +33,25 @@ export const AGENT_STATUS: Record<Enums["agent_status"], StatusMeta & { pulse: b
 };
 
 export const ACTIVE_AGENT_STATUSES: Enums["agent_status"][] = ["working", "waiting"];
+
+export const GAME_STATUS: Record<Enums["game_status"], StatusMeta> = {
+  in_development: { label: "In development", tone: "info" },
+  testing: { label: "Testing", tone: "warning" },
+  live: { label: "Live", tone: "good" },
+  paused: { label: "Paused", tone: "neutral" },
+  archived: { label: "Archived", tone: "neutral" },
+};
+
+export const PROJECT_STATUS: Record<Enums["project_status"], StatusMeta> = {
+  planning: { label: "Planning", tone: "neutral" },
+  in_progress: { label: "In progress", tone: "accent" },
+  testing: { label: "Testing", tone: "warning" },
+  completed: { label: "Completed", tone: "good" },
+  on_hold: { label: "On hold", tone: "neutral" },
+  cancelled: { label: "Cancelled", tone: "critical" },
+};
+
+/** Options for <Select> built from a status map, in declaration order. */
+export function statusOptions<K extends string>(map: Record<K, StatusMeta>): { value: K; label: string }[] {
+  return (Object.keys(map) as K[]).map((value) => ({ value, label: map[value].label }));
+}

@@ -80,7 +80,10 @@ export function StatCard({
             </span>
             {deltaLabel ? <span className="truncate text-fg-3">{deltaLabel}</span> : null}
           </p>
-        ) : hint ? (
+        ) : null}
+        {delta !== undefined && hint ? (
+          <p className="mt-0.5 truncate text-[11px] text-fg-3">{hint}</p>
+        ) : delta === undefined && hint ? (
           <p className="mt-1 truncate text-xs text-fg-3">{hint}</p>
         ) : null}
       </div>

@@ -36,4 +36,5 @@ npm run dev                    # http://localhost:3000
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — choix techniques, structure, règles données démo/réelles, avancement
 - [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) — identité visuelle, tokens, composants, règles des graphiques
 - [docs/DATABASE.md](docs/DATABASE.md) — schéma, permissions (RLS), migrations Supabase
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — mise en ligne sur Vercel, domaine, e-mails
 - Référence visuelle en direct : page `/design-system`

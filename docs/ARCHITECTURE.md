@@ -70,9 +70,9 @@ Ces règles font échouer le build si elles ne sont pas respectées :
 
 Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 
-| Réel (Supabase / API publique) | Démo jusqu'à l'intégration |
+| Réel (Supabase / API Roblox) | Démo jusqu'à l'intégration |
 |---|---|
-| Projets, tâches, équipe, finances (saisies), liste des jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (CCU, visites, favoris) | Analytics Roblox (DAU, revenus, rétention — Open Cloud, phase 2), Discover/tendances, Top 5 idées IA, agents IA, assistant |
+| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées | Discover/tendances, Top 5 idées IA, agents IA, assistant |
 
 Garanties :
 - toute donnée porte sa source (`DataResult<T>`), et un badge **DEMO** s'affiche automatiquement ;
@@ -105,13 +105,16 @@ Garanties :
 - **React 19 réinitialise les champs non contrôlés après une Server Action** : les champs à conserver après une erreur (e-mail) doivent être contrôlés (`value` + `onChange`).
 - **Radix `asChild` exige un seul enfant** : `DropdownMenuItem` n'ajoute pas de raccourci clavier quand `asChild` est utilisé.
 - **Supabase écrit `app_metadata` après l'insertion du compte** : le rôle d'invitation est appliqué par le trigger `on_auth_user_app_metadata_updated`.
+- **Une valeur (tableau, constante) exportée d'un fichier `"use client"` n'est pas utilisable côté serveur** : c'est une référence client. Les constantes partagées vivent dans des fichiers neutres (ex. `features/projects/tabs.ts`).
+- **Supabase lit l'horloge** (expiration de session) : `createClient()` serveur appelle `connection()` pour ne jamais s'exécuter pendant un prérendu.
+- **Next.js 16 garde les pages précédentes cachées dans le DOM** (navigation instantanée) : dans les tests, cibler `#main` et les éléments visibles.
 
 ## 7. Intégrations
 
 | Source | Données | Accès | Phase |
 |---|---|---|---|
-| API publique Roblox (`games.roblox.com`) | CCU actuel, visites, favoris, genre, nom, miniature — pour n'importe quel jeu | Sans clé, appel serveur | 1 (avec *My Games*) |
-| Roblox Open Cloud — Analytics Query API | DAU, revenus, rétention, ARPDAU… (granularité journalière) | Clé API avec `universe.analytics:read` sur vos expériences (bêta) | 2 |
+| API publique Roblox (`games.roblox.com`, `thumbnails.roblox.com`) | Joueurs en ligne, visites, favoris, votes, genre, nom, icône — pour n'importe quel jeu | Sans clé, appel serveur, cache 1 min | ✅ jalon C |
+| Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 | Clé API avec `universe.analytics:read` **par jeu** ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C |
 | Claude (Anthropic) | Assistant connecté aux données du dashboard | `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
 
 ## 8. Avancement
@@ -120,6 +123,6 @@ Garanties :
 |---|---|---|
 | A | Architecture, initialisation, Supabase (code + migrations), design system, navigation | ✅ |
 | B | Authentification (connexion, mot de passe oublié/réinitialisation, protection des routes, rôles, compte en attente, déconnexion), Overview (KPI, 4 graphiques, listes, filtres de période) | ✅ |
-| C | My Games, Projects, Tasks, AI Agents | à venir |
+| C | My Games (Roblox en direct + analytics), Projects (cartes/tableau, membres), Tasks (4 vues, filtres), AI Agents (démo), Overview sur données réelles, Settings → Profile | ✅ |
 | D | Discover, Finance, Team, AI Assistant, Settings, Integrations | à venir |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |

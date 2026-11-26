@@ -3,11 +3,13 @@ import {
   Bot,
   CalendarClock,
   CircleExclamationPoint,
-  DollarSign,
+  Coins,
   FolderKanban,
   Gamepad2,
   Info,
+  KeyRound,
   ListTodo,
+  ShieldCheck,
   TrendingUp,
   TriangleExclamationPoint,
   Users,
@@ -19,15 +21,18 @@ import { StatCard } from "@/components/data/stat-card";
 import { SourceBadge } from "@/components/feedback/demo-badge";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { Badge, StatusDot } from "@/components/ui/badge";
+import { buttonStyles } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { DEMO_AGENTS, demoTime } from "@/features/agents/demo";
+import { parseRange } from "@/features/shared/range";
+import { MetricBarChart, MetricChart } from "@/features/shared/metric-chart";
 import { ACTIVE_AGENT_STATUSES, AGENT_STATUS, TASK_PRIORITY, TASK_STATUS } from "@/features/shared/status";
 import { DEMO_NOW, type DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
-import { formatCompact, formatCurrency, formatDelta, formatNumber, formatRelative } from "@/lib/utils/format";
-import { CcuOverviewChart, GamePerformanceChart, RevenueOverviewChart, StudioGrowthChart } from "./charts";
-import { DEMO_AGENTS, DEMO_ALERTS, DEMO_MARKET_HIGHLIGHTS, getDemoGameMetrics } from "./demo";
+import { formatCompact, formatCurrency, formatDelta, formatNumber, formatRelative, formatRobux } from "@/lib/utils/format";
+import { DEMO_MARKET_HIGHLIGHTS } from "./demo";
 import { getRecentActivity, getStudioCounts, getUpcomingTasks } from "./live";
-import { parseRange } from "./range";
+import { getStudioMetrics } from "./studio";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -35,48 +40,66 @@ async function rangeFrom(searchParams: SearchParams) {
   return parseRange((await searchParams).range);
 }
 
+async function todayIso() {
+  await connection();
+  return new Date().toISOString().slice(0, 10);
+}
+
+function delta(current: number | null, previous: number | null): number | undefined {
+  return current !== null && previous !== null && previous > 0 ? current / previous - 1 : undefined;
+}
+
 /* ─────────────────────────────── KPIs ─────────────────────────────── */
 
 export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) {
   const range = await rangeFrom(searchParams);
-  await connection();
-  const today = new Date().toISOString().slice(0, 10);
-
-  const metrics = getDemoGameMetrics(range); // DEMO — game analytics integration ships in Milestone C
-  const counts = await getStudioCounts(today); // LIVE
+  const today = await todayIso();
+  const [studio, counts] = await Promise.all([getStudioMetrics(range.key, today), getStudioCounts(today)]);
   const activeAgents = DEMO_AGENTS.filter((a) => ACTIVE_AGENT_STATUSES.includes(a.status)).length; // DEMO
-
   const unavailable = "Couldn't load — retry in a moment";
+  const comparison = range.granularity === "month" ? undefined : range.comparison;
+
+  const ok = studio.status === "ok";
+  const hasAnalytics = ok && studio.analyticsCount > 0;
+  const coverage = ok ? `${studio.analyticsCount} of ${studio.gameCount} games` : "";
+  const noData =
+    studio.status === "no_games" ? "Add a game in My Games" : studio.status === "error" ? unavailable : "Analytics not authorized for your games";
 
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
           label="Total revenue"
-          value={formatCurrency(metrics.revenue.total)}
-          source="demo"
-          icon={DollarSign}
-          delta={metrics.revenue.delta}
-          deltaLabel={range.comparison}
-          trend={metrics.revenue.series.slice(-12).map((p) => p.value)}
+          value={hasAnalytics ? formatRobux(studio.revenue.total) : "—"}
+          source="live"
+          icon={Coins}
+          delta={hasAnalytics ? delta(studio.revenue.total, studio.revenue.previous) : undefined}
+          deltaLabel={comparison}
+          hint={hasAnalytics ? `≈ ${formatCurrency(studio.revenue.total * studio.devexRate)} · ${coverage}` : noData}
+          trend={hasAnalytics ? studio.revenue.series.slice(-12).map((p) => p.value) : undefined}
         />
         <StatCard
           label="Total CCU"
-          value={formatNumber(metrics.ccu.now)}
-          source="demo"
+          value={ok && studio.playingNow !== null ? formatNumber(studio.playingNow) : "—"}
+          source="live"
           icon={Users}
-          delta={metrics.ccu.delta}
-          deltaLabel={range.comparison}
-          trend={metrics.ccu.series.slice(-12).map((p) => p.value)}
+          hint={
+            ok
+              ? studio.playingNow === null
+                ? "Roblox unreachable right now"
+                : `Players online now · ${studio.gameCount} game${studio.gameCount > 1 ? "s" : ""}`
+              : noData
+          }
         />
         <StatCard
           label="Total DAU"
-          value={formatCompact(metrics.dau.average)}
-          source="demo"
+          value={hasAnalytics && studio.dau.average !== null ? formatCompact(Math.round(studio.dau.average)) : "—"}
+          source="live"
           icon={Activity}
-          delta={metrics.dau.delta}
-          deltaLabel={`daily average ${range.comparison}`}
-          trend={metrics.dau.series.slice(-12).map((p) => p.value)}
+          delta={hasAnalytics ? delta(studio.dau.average, studio.dau.previous) : undefined}
+          deltaLabel={comparison ? `daily average ${comparison}` : undefined}
+          hint={hasAnalytics ? `Daily average · ${coverage}` : noData}
+          trend={hasAnalytics ? studio.dau.series.slice(-12).map((p) => p.value) : undefined}
         />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -85,13 +108,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={counts.games ? formatNumber(counts.games.live) : "—"}
           source="live"
           icon={Gamepad2}
-          hint={
-            !counts.games
-              ? unavailable
-              : counts.games.total === 0
-                ? "No games registered yet"
-                : `${counts.games.total} tracked in total`
-          }
+          hint={!counts.games ? unavailable : counts.games.total === 0 ? "No games registered yet" : `${counts.games.total} tracked in total`}
         />
         <StatCard
           label="Active projects"
@@ -100,13 +117,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           icon={FolderKanban}
           hint={!counts.projects ? unavailable : counts.projects.active === 0 ? "No active project" : "Planning, in progress or testing"}
         />
-        <StatCard
-          label="Active agents"
-          value={formatNumber(activeAgents)}
-          source="demo"
-          icon={Bot}
-          hint={`${DEMO_AGENTS.length} agents in total`}
-        />
+        <StatCard label="Active agents" value={formatNumber(activeAgents)} source="demo" icon={Bot} hint={`${DEMO_AGENTS.length} agents in total`} />
         <StatCard
           label="Pending tasks"
           value={counts.tasks ? formatNumber(counts.tasks.pending) : "—"}
@@ -131,15 +142,81 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
 
 export async function OverviewCharts({ searchParams }: { searchParams: SearchParams }) {
   const range = await rangeFrom(searchParams);
-  const metrics = getDemoGameMetrics(range);
-  const common = { granularity: range.granularity, source: "demo" as const, rangeLabel: range.label };
+  const studio = await getStudioMetrics(range.key, await todayIso());
+
+  if (studio.status !== "ok" || studio.analyticsCount === 0) {
+    return (
+      <Card>
+        <EmptyState
+          icon={studio.status === "ok" ? KeyRound : Gamepad2}
+          title={studio.status === "no_games" ? "Add your games to see charts" : studio.status === "error" ? "Charts unavailable" : "No analytics yet"}
+          description={
+            studio.status === "no_games"
+              ? "Revenue, players and growth charts are built from your games' Roblox analytics."
+              : studio.status === "error"
+                ? "Your games couldn't be loaded. Refresh the page to try again."
+                : "Your Roblox API key isn't authorized for any of your games' analytics yet. Open a game for the steps to fix it."
+          }
+          action={
+            <Link href="/games" className={buttonStyles({ variant: "secondary", size: "sm" })}>
+              Go to My Games
+            </Link>
+          }
+        />
+      </Card>
+    );
+  }
+
+  const rows = (key: string, points: { date: string; value: number }[]) => points.map((p) => ({ date: p.date, [key]: p.value }));
+  const common = { source: "live" as const, granularity: range.granularity };
+  const coverage = `${studio.analyticsCount} of ${studio.gameCount} games`;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <RevenueOverviewChart points={metrics.revenue.series} {...common} />
-      <CcuOverviewChart points={metrics.ccu.series} {...common} />
-      <GamePerformanceChart games={metrics.perGame} source="demo" rangeLabel={range.label} />
-      <StudioGrowthChart points={metrics.growth} {...common} />
+    <div className="space-y-2">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <MetricChart
+          title="Revenue overview"
+          description={`Robux earned per ${range.granularity}, ${range.label} · ${coverage}`}
+          label={`Robux earned per ${range.granularity}, ${range.label}`}
+          format="robux"
+          rows={rows("revenue", studio.revenue.series)}
+          series={[{ key: "revenue", label: "Robux" }]}
+          {...common}
+        />
+        <MetricChart
+          title="CCU overview"
+          description={`Daily peak concurrent players (Roblox keeps 28 days) · ${coverage}`}
+          label="Daily peak concurrent players, last 28 days at most"
+          format="compact"
+          variant="line"
+          rows={rows("ccu", studio.peakCcu)}
+          series={[{ key: "ccu", label: "Peak players" }]}
+          {...common}
+        />
+        <MetricBarChart
+          title="Game performance"
+          description={`Visits per game, ${range.label}`}
+          label={`Visits per game, ${range.label}`}
+          format="compact"
+          rows={[...studio.perGame].sort((a, b) => b.visits - a.visits)}
+          series={[{ key: "visits", label: "Visits" }]}
+          source="live"
+        />
+        <MetricChart
+          title="Studio growth"
+          description={`Lifetime visits, ${range.label} · ${coverage}`}
+          label={`Cumulative lifetime visits, ${range.label}`}
+          format="compact"
+          rows={rows("visits", studio.growth)}
+          series={[{ key: "visits", label: "Lifetime visits" }]}
+          {...common}
+        />
+      </div>
+      {studio.unauthorized.length > 0 ? (
+        <p className="text-[11px] text-fg-3">
+          Not included (analytics not authorized): {studio.unauthorized.map((g) => g.name).join(", ")}.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -190,8 +267,7 @@ function dueLabel(due: string, today: string): { text: string; overdue: boolean 
 
 export async function UpcomingTasks() {
   const tasks = await getUpcomingTasks();
-  await connection();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = await todayIso();
 
   return (
     <ListCard title="Upcoming tasks" description="Next deadlines" source="live" href="/tasks">
@@ -264,7 +340,8 @@ export async function RecentActivity() {
             <li key={entry.id} className="flex gap-3 rounded-md px-3 py-2">
               <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-fg-4" aria-hidden />
               <p className="min-w-0 flex-1 text-[13px] leading-snug text-fg-2">
-                <span className="font-medium text-fg">{entry.actor ?? "Someone"}</span> {describeActivity(entry)}
+                {/* No actor = done by the system (server-side job or setup script). */}
+                <span className="font-medium text-fg">{entry.actor ?? "System"}</span> {describeActivity(entry)}
               </p>
               <time dateTime={entry.createdAt} className="shrink-0 text-xs text-fg-3">
                 {formatRelative(entry.createdAt, now)}
@@ -283,7 +360,6 @@ export function ActiveAgents() {
       <ul>
         {DEMO_AGENTS.map((agent) => {
           const status = AGENT_STATUS[agent.status];
-          const lastActivity = new Date(DEMO_NOW.getTime() - agent.lastActivityMinutesAgo * 60_000);
           return (
             <li key={agent.id} className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
               <StatusDot tone={status.tone} pulse={status.pulse} label={status.label} />
@@ -295,7 +371,7 @@ export function ActiveAgents() {
               </div>
               <div className="shrink-0 text-right">
                 <Badge tone={status.tone}>{status.label}</Badge>
-                <p className="mt-1 text-[11px] text-fg-3">{formatRelative(lastActivity, DEMO_NOW)}</p>
+                <p className="mt-1 text-[11px] text-fg-3">{formatRelative(demoTime(agent.lastActivityMinutesAgo), DEMO_NOW)}</p>
               </div>
             </li>
           );
@@ -335,32 +411,66 @@ const ALERT_STYLE = {
   info: { icon: Info, tone: "info" as const, label: "Info", box: "border-info/25 bg-info/10 text-info" },
 };
 
-export function ImportantAlerts() {
+type AlertItem = { id: string; severity: keyof typeof ALERT_STYLE; title: string; detail: string; href: string };
+
+export async function ImportantAlerts({ searchParams }: { searchParams: SearchParams }) {
+  const range = await rangeFrom(searchParams);
+  const studio = await getStudioMetrics(range.key, await todayIso());
+
+  const items: AlertItem[] = [];
+  if (studio.status === "ok") {
+    if (!studio.robloxReachable) {
+      items.push({ id: "roblox", severity: "warning", title: "Roblox is unreachable", detail: "Live player counts are temporarily unavailable", href: "/games" });
+    }
+    for (const alert of studio.alerts) items.push({ ...alert, href: "/games" });
+    for (const game of studio.unauthorized) {
+      items.push({
+        id: `auth-${game.id}`,
+        severity: "info",
+        title: "Analytics not authorized",
+        detail: `${game.name} · add it to your Roblox API key to see DAU, revenue and retention`,
+        href: `/games/${game.id}`,
+      });
+    }
+  }
+  const order = { critical: 0, warning: 1, info: 2 };
+  items.sort((a, b) => order[a.severity] - order[b.severity]);
+
   return (
-    <ListCard title="Important alerts" description="What needs your attention" source="demo">
-      <ul className="space-y-1">
-        {DEMO_ALERTS.map((alert) => {
-          const style = ALERT_STYLE[alert.severity];
-          const Icon = style.icon;
-          return (
-            <li key={alert.id}>
-              <Link href={alert.href} className="flex gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md border", style.box)}>
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-fg">{alert.title}</p>
-                  <p className="truncate text-xs text-fg-3">{alert.detail}</p>
-                </div>
-                <Badge tone={style.tone} className="self-start">
-                  {style.label}
-                </Badge>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+    <ListCard title="Important alerts" description={`What needs your attention · ${range.label}`} source="live">
+      {studio.status === "error" ? (
+        <ErrorState compact description="Alerts couldn't be computed. Refresh the page to try again." />
+      ) : items.length === 0 ? (
+        <EmptyState
+          compact
+          icon={ShieldCheck}
+          title="No alerts"
+          description={studio.status === "no_games" ? "Alerts are computed from your games' analytics." : "Players, retention and revenue are within normal ranges."}
+        />
+      ) : (
+        <ul className="space-y-1">
+          {items.slice(0, 6).map((alert) => {
+            const style = ALERT_STYLE[alert.severity];
+            const Icon = style.icon;
+            return (
+              <li key={alert.id}>
+                <Link href={alert.href} className="flex gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                  <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md border", style.box)}>
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-fg">{alert.title}</p>
+                    <p className="truncate text-xs text-fg-3">{alert.detail}</p>
+                  </div>
+                  <Badge tone={style.tone} className="self-start">
+                    {style.label}
+                  </Badge>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </ListCard>
   );
 }
-

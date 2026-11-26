@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { publicEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
@@ -13,6 +14,9 @@ import type { Database } from "@/types/database";
  * Create one client per request; never share it across requests.
  */
 export async function createClient() {
+  // Supabase reads the clock (session expiry) — that must happen at request
+  // time, never while Next.js prerenders or prefetches a shell.
+  await connection();
   const env = publicEnv();
   const cookieStore = await cookies();
 

@@ -4,7 +4,7 @@ import { DemoBanner } from "@/components/feedback/demo-badge";
 import { ChartSkeleton, ListSkeleton } from "@/components/feedback/states";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/primitives";
-import { RangeFilter, RangeFilterFallback } from "@/features/overview/range-filter";
+import { RangeFilter, RangeFilterFallback } from "@/features/shared/range-filter";
 import {
   ActiveAgents,
   ImportantAlerts,
@@ -66,8 +66,8 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
       />
 
       <DemoBanner>
-        Game metrics, AI agents, market data and alerts are illustrative until their integrations are connected
-        (Milestones C and D). Projects, tasks and activity are your real data.
+        AI agents and market highlights are illustrative until their integrations are connected. Games, revenue,
+        players, alerts, projects, tasks and activity are your real data.
       </DemoBanner>
 
       <Suspense fallback={<KpiSkeleton />}>
@@ -89,8 +89,10 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
+        <Suspense fallback={<CardSkeleton />}>
+          <ImportantAlerts searchParams={searchParams} />
+        </Suspense>
         <MarketHighlights />
-        <ImportantAlerts />
       </div>
     </PageContainer>
   );

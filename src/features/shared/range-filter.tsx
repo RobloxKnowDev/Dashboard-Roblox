@@ -4,7 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { DEFAULT_RANGE, parseRange, RANGE_OPTIONS, type RangeKey } from "./range";
+import { DEFAULT_RANGE, parseRange, RANGE_OPTIONS, type RangeKey } from "@/features/shared/range";
 
 /**
  * Time range filter. The value lives in the URL (?range=30d), so a view can

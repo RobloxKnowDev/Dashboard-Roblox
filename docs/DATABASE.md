@@ -17,6 +17,7 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `20261126000900_structural_rows.sql` | Lignes structurelles (réglages du studio, intégrations) |
 | `20261126001000_pending_access.sql` | Rôle facultatif : `NULL` = compte en attente, sans accès ; les lectures exigent au moins `viewer` |
 | `20261126001100_role_from_app_metadata.sql` | Applique `app_metadata.role` (invitation) quand Supabase l'écrit, uniquement sur un profil encore en attente |
+| `20261126001200_team_member_for_profiles.sql` | Crée automatiquement la fiche « membre d'équipe » de tout compte qui reçoit un rôle (nom et avatar synchronisés) |
 
 **Conventions :**
 - clés primaires `uuid` ;
@@ -185,7 +186,7 @@ Les inscriptions publiques sont désactivées : les comptes sont créés par inv
 
 **Ensuite**, les invitations se font depuis l'application (Settings → Members), côté serveur. Le rôle initial est passé dans `app_metadata.role` de l'invitation. Ce champ ne peut être écrit qu'avec la clé secrète. Supabase l'écrit juste après la création du compte : le trigger `on_auth_user_app_metadata_updated` l'applique alors au profil, seulement si celui-ci est encore en attente. Sans rôle valide, le compte reste en attente.
 
-**État actuel (26/11/2026)** : un seul compte, Owner. Inscriptions publiques désactivées (vérifié via l'API Auth).
+**État actuel (26/11/2026)** : un seul compte, Owner, avec sa fiche membre. 3 jeux enregistrés (Clean Old Stuff, Glider Obby, Home Creator). Inscriptions publiques désactivées (vérifié via l'API Auth).
 
 ## Réglages à reporter sur le projet hébergé
 
