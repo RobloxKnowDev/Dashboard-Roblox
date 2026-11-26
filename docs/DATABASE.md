@@ -15,6 +15,8 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `20261126000700_rls_policies.sql` | Privilèges et politiques RLS de toutes les tables |
 | `20261126000800_activity_log_triggers.sql` | Journal d'activité automatique |
 | `20261126000900_structural_rows.sql` | Lignes structurelles (réglages du studio, intégrations) |
+| `20261126001000_pending_access.sql` | Rôle facultatif : `NULL` = compte en attente, sans accès ; les lectures exigent au moins `viewer` |
+| `20261126001100_role_from_app_metadata.sql` | Applique `app_metadata.role` (invitation) quand Supabase l'écrit, uniquement sur un profil encore en attente |
 
 **Conventions :**
 - clés primaires `uuid` ;
@@ -172,7 +174,7 @@ Les trois clients Supabase (`src/lib/supabase/`) sont typés avec ce fichier : t
 
 Les inscriptions publiques sont désactivées : les comptes sont créés par invitation.
 
-1. Dans le tableau de bord Supabase, aller dans **Authentication → Users → Add user**. Créer le compte avec son email et un mot de passe. Le profil est créé automatiquement avec le rôle `viewer`.
+1. Dans le tableau de bord Supabase, aller dans **Authentication → Users → Add user**. Créer le compte avec son email et un mot de passe. Le profil est créé automatiquement **sans rôle** (en attente : connexion possible, aucune donnée visible).
 2. Dans **SQL Editor**, promouvoir ce compte :
 
    ```sql
@@ -181,7 +183,9 @@ Les inscriptions publiques sont désactivées : les comptes sont créés par inv
 
    L'éditeur SQL est un contexte de confiance : le trigger de protection l'autorise.
 
-**Ensuite**, les invitations se font depuis l'application (Settings → Members), côté serveur. Le rôle initial est passé dans `app_metadata.role` de l'invitation. Ce champ ne peut être écrit qu'avec la clé secrète et est lu par le trigger `handle_new_user`. Toute autre valeur donne `viewer`.
+**Ensuite**, les invitations se font depuis l'application (Settings → Members), côté serveur. Le rôle initial est passé dans `app_metadata.role` de l'invitation. Ce champ ne peut être écrit qu'avec la clé secrète. Supabase l'écrit juste après la création du compte : le trigger `on_auth_user_app_metadata_updated` l'applique alors au profil, seulement si celui-ci est encore en attente. Sans rôle valide, le compte reste en attente.
+
+**État actuel (26/11/2026)** : un seul compte, Owner. Inscriptions publiques désactivées (vérifié via l'API Auth).
 
 ## Réglages à reporter sur le projet hébergé
 

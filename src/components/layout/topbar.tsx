@@ -26,14 +26,16 @@ function Breadcrumb() {
 }
 
 type TopbarProps = {
+  /** Navigation shown in the mobile drawer. */
+  nav: ReactNode;
   /** Right-side slot for session-dependent widgets (notifications, user menu). */
   actions?: ReactNode;
 };
 
-export function Topbar({ actions }: TopbarProps) {
+export function Topbar({ nav, actions }: TopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-canvas/80 px-4 backdrop-blur-md md:px-6">
-      <MobileNav />
+      <MobileNav nav={nav} />
       <Suspense fallback={null}>
         <Breadcrumb />
       </Suspense>

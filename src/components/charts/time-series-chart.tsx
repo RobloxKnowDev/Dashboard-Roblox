@@ -18,6 +18,8 @@ type TimeSeriesChartProps = {
   height?: number;
   formatValue?: ValueFormatter;
   formatDate?: (iso: string) => string;
+  /** Tooltip / table date label. Defaults to formatDate. */
+  formatLabel?: (iso: string) => string;
   /** Accessible summary of what the chart shows. */
   label: string;
 };
@@ -35,6 +37,7 @@ export function TimeSeriesChart({
   height = 240,
   formatValue = formatCompact,
   formatDate = formatShortDate,
+  formatLabel = formatDate,
   label,
 }: TimeSeriesChartProps) {
   const view = useChartView();
@@ -49,7 +52,7 @@ export function TimeSeriesChart({
         categoryLabel="Date"
         series={series}
         formatValue={formatValue}
-        formatCategory={formatDate}
+        formatCategory={formatLabel}
       />
     );
   }
@@ -85,7 +88,7 @@ export function TimeSeriesChart({
     <Tooltip
       cursor={{ stroke: CHART_INK.crosshair, strokeWidth: 1 }}
       content={(props) => (
-        <ChartTooltipContent {...props} formatValue={formatValue} formatLabel={formatDate} />
+        <ChartTooltipContent {...props} formatValue={formatValue} formatLabel={formatLabel} />
       )}
     />
   );

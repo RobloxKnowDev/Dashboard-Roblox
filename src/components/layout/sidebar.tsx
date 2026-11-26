@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/cn";
 import { Logo } from "./logo";
-import { SidebarNav } from "./sidebar-nav";
+import { SidebarCollapsedContext } from "./sidebar-context";
 
 const STORAGE_KEY = "sidebar:collapsed";
 const CHANGE_EVENT = "sidebar:change";
@@ -33,8 +33,11 @@ function useCollapsed(): [boolean, () => void] {
   return [collapsed, toggle];
 }
 
-/** Permanent left sidebar (desktop). On small screens, see <MobileNav>. */
-export function Sidebar() {
+/**
+ * Permanent left sidebar (desktop). On small screens, see <MobileNav>.
+ * `nav` is the (session-aware) navigation, rendered by the server layout.
+ */
+export function Sidebar({ nav }: { nav: ReactNode }) {
   const [collapsed, toggle] = useCollapsed();
   return (
     <aside
@@ -50,7 +53,7 @@ export function Sidebar() {
       </div>
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto pb-4 pt-2", collapsed ? "px-2" : "px-3")}>
-        <SidebarNav collapsed={collapsed} />
+        <SidebarCollapsedContext value={collapsed}>{nav}</SidebarCollapsedContext>
       </div>
 
       <div className={cn("flex h-12 shrink-0 items-center border-t border-line", collapsed ? "justify-center" : "justify-between px-4")}>

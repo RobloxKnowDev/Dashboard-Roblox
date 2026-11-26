@@ -2,27 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, use } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { findNavItem, navigation, type NavSection } from "@/config/navigation";
 import { hasMinRole, type AppRole } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils/cn";
+import { SidebarCollapsedContext } from "./sidebar-context";
 
 type SidebarNavProps = {
-  collapsed?: boolean;
   /** When known, items above the user's role are hidden. */
-  role?: AppRole;
-  onNavigate?: () => void;
+  role?: AppRole | null;
 };
 
-function visibleSections(role?: AppRole): NavSection[] {
-  if (!role) return navigation;
+function visibleSections(role?: AppRole | null): NavSection[] {
+  if (role === undefined) return navigation;
   return navigation
-    .map((section) => ({ ...section, items: section.items.filter((item) => !item.minRole || hasMinRole(role, item.minRole)) }))
+    .map((section) => ({ ...section, items: section.items.filter((item) => !item.minRole || (role !== null && hasMinRole(role, item.minRole))) }))
     .filter((section) => section.items.length > 0);
 }
 
-function NavList({ activeHref, collapsed, role, onNavigate }: SidebarNavProps & { activeHref: string | null }) {
+function NavList({ activeHref, role }: SidebarNavProps & { activeHref: string | null }) {
+  const collapsed = use(SidebarCollapsedContext);
   return (
     <nav aria-label="Main" className="flex flex-col gap-5">
       {visibleSections(role).map((section) => (
@@ -41,7 +41,6 @@ function NavList({ activeHref, collapsed, role, onNavigate }: SidebarNavProps & 
               const link = (
                 <Link
                   href={item.href}
-                  onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "group relative flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",

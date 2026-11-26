@@ -55,19 +55,40 @@ export function formatDelta(ratio: number): string {
 const dateFormat = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" });
 const shortDateFormat = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" });
 const timeFormat = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" });
+// Calendar days ("2026-11-26") have no time zone: format them in UTC so they
+// never shift by a day depending on where the viewer is.
+const dayFormatUtc = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+const shortDayFormatUtc = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
+const monthFormatUtc = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+const monthYearFormatUtc = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" });
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 function toDate(value: Date | string): Date {
-  return typeof value === "string" ? new Date(value) : value;
+  if (typeof value !== "string") return value;
+  return new Date(DATE_ONLY.test(value) ? `${value}T00:00:00Z` : value);
 }
 
 /** "Nov 26, 2026" */
 export function formatDate(value: Date | string): string {
-  return dateFormat.format(toDate(value));
+  const formatter = typeof value === "string" && DATE_ONLY.test(value) ? dayFormatUtc : dateFormat;
+  return formatter.format(toDate(value));
 }
 
 /** "Nov 26" */
 export function formatShortDate(value: Date | string): string {
-  return shortDateFormat.format(toDate(value));
+  const formatter = typeof value === "string" && DATE_ONLY.test(value) ? shortDayFormatUtc : shortDateFormat;
+  return formatter.format(toDate(value));
+}
+
+/** "Nov" — month axis ticks. */
+export function formatMonth(value: Date | string): string {
+  return monthFormatUtc.format(toDate(value));
+}
+
+/** "November 2026" — month tooltips. */
+export function formatMonthYear(value: Date | string): string {
+  return monthYearFormatUtc.format(toDate(value));
 }
 
 /** "14:05" */

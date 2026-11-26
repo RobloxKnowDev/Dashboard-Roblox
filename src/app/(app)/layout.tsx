@@ -1,16 +1,33 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/components/feedback/states";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { NotificationCenter } from "@/components/layout/notification-center";
+import {
+  AccessGate,
+  SessionNotifications,
+  SessionSidebarNav,
+  SessionUserMenu,
+} from "@/components/layout/session-widgets";
 import { Sidebar } from "@/components/layout/sidebar";
+import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Topbar } from "@/components/layout/topbar";
-import { UserMenu } from "@/components/layout/user-menu";
+import { Skeleton } from "@/components/ui/primitives";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 /**
- * Private application shell: sidebar + topbar around every page.
- * The shell is static (prerendered); session-dependent widgets will stream
- * in behind Suspense once authentication is wired (Jalon B).
+ * Private application shell. The frame (sidebar, topbar, search) is static
+ * and prerendered; everything that depends on the session streams in behind
+ * its own <Suspense> boundary. Every page passes through <AccessGate>, which
+ * verifies the user on the server (the proxy already redirected anonymous
+ * visitors; RLS remains the final barrier on data).
  */
 export default function AppLayout({ children }: LayoutProps<"/">) {
+  const nav = (
+    <Suspense fallback={<SidebarNav />}>
+      <SessionSidebarNav />
+    </Suspense>
+  );
+
   return (
     <TooltipProvider delayDuration={250}>
       <CommandPaletteProvider>
@@ -21,18 +38,25 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <div className="flex min-h-dvh">
-          <Sidebar />
+          <Sidebar nav={nav} />
           <div className="flex min-w-0 flex-1 flex-col">
             <Topbar
+              nav={nav}
               actions={
                 <>
-                  <NotificationCenter />
-                  <UserMenu user={null} />
+                  <Suspense fallback={<NotificationCenter />}>
+                    <SessionNotifications />
+                  </Suspense>
+                  <Suspense fallback={<Skeleton className="ml-1 size-7 rounded-full" />}>
+                    <SessionUserMenu />
+                  </Suspense>
                 </>
               }
             />
             <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
-              {children}
+              <Suspense fallback={<PageSkeleton />}>
+                <AccessGate>{children}</AccessGate>
+              </Suspense>
             </main>
           </div>
         </div>

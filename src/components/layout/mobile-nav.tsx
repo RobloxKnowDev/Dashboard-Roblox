@@ -2,12 +2,11 @@
 
 import { Dialog } from "radix-ui";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Logo } from "./logo";
-import { SidebarNav } from "./sidebar-nav";
 
 /** Slide-in navigation drawer for screens narrower than the desktop sidebar. */
-export function MobileNav() {
+export function MobileNav({ nav }: { nav: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -28,8 +27,14 @@ export function MobileNav() {
               <X className="size-4" />
             </Dialog.Close>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-2">
-            <SidebarNav onNavigate={() => setOpen(false)} />
+          {/* Close the drawer when a link inside it is followed */}
+          <div
+            className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-2"
+            onClick={(event) => {
+              if ((event.target as Element).closest("a")) setOpen(false);
+            }}
+          >
+            {nav}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

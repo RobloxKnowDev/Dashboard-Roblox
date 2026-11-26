@@ -42,3 +42,8 @@ next-env.d.ts
 
 # allow the template
 !.env.example
+
+# local test artifacts and temp files
+/.tmp/
+/test-results/
+/playwright-report/

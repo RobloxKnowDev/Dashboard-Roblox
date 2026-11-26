@@ -1,32 +1,97 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { DemoBanner } from "@/components/feedback/demo-badge";
+import { ChartSkeleton, ListSkeleton } from "@/components/feedback/states";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
-import { PlannedPage } from "@/components/layout/planned-page";
+import { Skeleton } from "@/components/ui/primitives";
+import { RangeFilter, RangeFilterFallback } from "@/features/overview/range-filter";
+import {
+  ActiveAgents,
+  ImportantAlerts,
+  KpiGrid,
+  MarketHighlights,
+  OverviewCharts,
+  RecentActivity,
+  UpcomingTasks,
+} from "@/features/overview/sections";
 
 export const metadata: Metadata = { title: "Overview" };
 
-export default function OverviewPage() {
+function KpiSkeleton() {
+  return (
+    <div className="space-y-3" role="status" aria-label="Loading indicators">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton key={i} className="h-[118px] rounded-lg" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-[108px] rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChartsSkeleton() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {Array.from({ length: 4 }, (_, i) => (
+        <ChartSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <div className="rounded-lg border border-line bg-surface">
+      <ListSkeleton rows={4} />
+    </div>
+  );
+}
+
+export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
   return (
     <PageContainer>
       <PageHeader
         title="Overview"
         description="Studio health at a glance — revenue, players, projects and agents."
+        actions={
+          <Suspense fallback={<RangeFilterFallback />}>
+            <RangeFilter />
+          </Suspense>
+        }
       />
-      <PlannedPage
-        milestone="Milestone B"
-        sections={[
-          "Key indicators: revenue, CCU, DAU, games, projects, agents, tasks",
-          "Revenue overview",
-          "CCU overview",
-          "Game performance",
-          "Studio growth",
-          "Recent activity",
-          "Active agents",
-          "Upcoming tasks",
-          "Market highlights",
-          "Important alerts",
-          "Time range filters (7d · 30d · 90d · 12m)"
-        ]}
-      />
+
+      <DemoBanner>
+        Game metrics, AI agents, market data and alerts are illustrative until their integrations are connected
+        (Milestones C and D). Projects, tasks and activity are your real data.
+      </DemoBanner>
+
+      <Suspense fallback={<KpiSkeleton />}>
+        <KpiGrid searchParams={searchParams} />
+      </Suspense>
+
+      <Suspense fallback={<ChartsSkeleton />}>
+        <OverviewCharts searchParams={searchParams} />
+      </Suspense>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Suspense fallback={<CardSkeleton />}>
+          <UpcomingTasks />
+        </Suspense>
+        <Suspense fallback={<CardSkeleton />}>
+          <RecentActivity />
+        </Suspense>
+        <ActiveAgents />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <MarketHighlights />
+        <ImportantAlerts />
+      </div>
     </PageContainer>
   );
 }

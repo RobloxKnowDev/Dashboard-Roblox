@@ -91,6 +91,25 @@ export function ChartSkeleton({ className, height = 240 }: { className?: string;
   );
 }
 
+/** Whole-page skeleton shown while the session is verified. */
+export function PageSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 md:px-8 md:py-8" role="status" aria-label="Loading page">
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="h-3.5 w-80 max-w-full" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-28 rounded-lg" />
+        ))}
+      </div>
+      <Skeleton className="h-72 rounded-lg" />
+    </div>
+  );
+}
+
 /** Skeleton for a list or table — used as Suspense fallback. */
 export function ListSkeleton({ rows = 5, className }: { rows?: number; className?: string }) {
   return (

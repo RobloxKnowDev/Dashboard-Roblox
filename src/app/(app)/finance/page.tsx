@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ComingSoonButton } from "@/components/feedback/coming-soon";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
 import { PlannedPage } from "@/components/layout/planned-page";
+import { RequireRole } from "@/components/layout/session-widgets";
 
 export const metadata: Metadata = { title: "Finance" };
 
@@ -20,17 +21,19 @@ export default function FinancePage() {
           </ComingSoonButton>
         }
       />
-      <PlannedPage
-        milestone="Milestone D"
-        sections={[
-          "Total and monthly revenue",
-          "Expenses: development, advertising, tools",
-          "Estimated profit",
-          "Revenue, expenses and profit history",
-          "Revenue per game",
-          "Manual transactions"
-        ]}
-      />
+      <RequireRole min="admin">
+        <PlannedPage
+          milestone="Milestone D"
+          sections={[
+            "Total and monthly revenue",
+            "Expenses: development, advertising, tools",
+            "Estimated profit",
+            "Revenue, expenses and profit history",
+            "Revenue per game",
+            "Manual transactions"
+          ]}
+        />
+      </RequireRole>
     </PageContainer>
   );
 }

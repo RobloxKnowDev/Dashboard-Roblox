@@ -40,16 +40,25 @@ export function DropdownMenuItem({
   className,
   destructive,
   shortcut,
+  asChild,
   children,
   ...props
 }: ComponentProps<typeof Menu.Item> & { destructive?: boolean; shortcut?: ReactNode }) {
   return (
     <Menu.Item
+      asChild={asChild}
       className={cn(itemStyles, destructive && "text-critical data-[highlighted]:text-critical [&_svg]:text-critical", className)}
       {...props}
     >
-      {children}
-      {shortcut ? <span className="ml-auto pl-4 font-mono text-[11px] text-fg-3">{shortcut}</span> : null}
+      {/* With asChild, Radix needs exactly one child element (e.g. a <Link>): no extra slot. */}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {children}
+          {shortcut ? <span className="ml-auto pl-4 font-mono text-[11px] text-fg-3">{shortcut}</span> : null}
+        </>
+      )}
     </Menu.Item>
   );
 }

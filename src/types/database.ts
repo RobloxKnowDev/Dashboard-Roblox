@@ -266,14 +266,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"email": string | null,"full_name": string,"id": string,"role": Database["public"]['Enums']["app_role"],"updated_at": string
+                    "avatar_url": string | null,"created_at": string,"email": string | null,"full_name": string,"id": string,"role": Database["public"]['Enums']["app_role"] | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id": string,"role"?: Database["public"]['Enums']["app_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id": string,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"role"?: Database["public"]['Enums']["app_role"],"updated_at"?: string
+                    "avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"role"?: Database["public"]['Enums']["app_role"] | null,"updated_at"?: string
                   }
                   Relationships: [
                     

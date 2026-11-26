@@ -84,7 +84,27 @@ Garanties :
 
 - Supabase Auth email + mot de passe, inscription publique désactivée, comptes créés par invitation.
 - Rôles : Owner > Administrator > Developer > Viewer. Matrice dans `src/lib/auth/roles.ts`, affichée dans *Settings → Permissions*, et appliquée par les politiques RLS.
+- **Compte « en attente »** : un compte sans rôle (`profiles.role = NULL`) peut se connecter mais ne voit aucune donnée (RLS) et l'interface affiche « Access pending ». Le rôle initial d'une invitation passe par `app_metadata.role` (modifiable uniquement avec la clé secrète).
 - Double authentification (TOTP Supabase) : prévue, activable plus tard.
+
+### Fonctionnement (jalon B)
+
+| Couche | Fichier | Rôle |
+|---|---|---|
+| 1. Proxy | `src/proxy.ts` + `src/lib/supabase/proxy.ts` | Rafraîchit la session (`getClaims()` vérifie la signature du jeton) ; visiteur anonyme → `/login?next=…` |
+| 2. Serveur | `src/lib/auth/session.ts` (`getSessionUser`, `checkAccess`) + `AccessGate` / `RequireRole` | Revérifie l'utilisateur pour chaque page ; bloque les comptes en attente ; pages Admin/Owner → « access denied » |
+| 3. Base | politiques RLS | Décide réellement quelles lignes chaque utilisateur peut lire ou modifier |
+
+- Pages publiques : `/login`, `/forgot-password`, `/reset-password`, `/auth/callback` (lien e-mail PKCE, même navigateur), `/auth/confirm` (lien e-mail par `token_hash`, multi-appareils).
+- `?next=` après connexion : uniquement des chemins internes (`safeNextPath`, testé contre `//evil.com`, `javascript:`, injection d'en-têtes…).
+- Messages d'erreur génériques : le formulaire ne révèle jamais si un e-mail a un compte.
+- Le menu latéral masque Finance et Integrations sous le rôle Admin.
+
+### Pièges rencontrés (à connaître)
+
+- **React 19 réinitialise les champs non contrôlés après une Server Action** : les champs à conserver après une erreur (e-mail) doivent être contrôlés (`value` + `onChange`).
+- **Radix `asChild` exige un seul enfant** : `DropdownMenuItem` n'ajoute pas de raccourci clavier quand `asChild` est utilisé.
+- **Supabase écrit `app_metadata` après l'insertion du compte** : le rôle d'invitation est appliqué par le trigger `on_auth_user_app_metadata_updated`.
 
 ## 7. Intégrations
 
@@ -99,7 +119,7 @@ Garanties :
 | Jalon | Contenu | État |
 |---|---|---|
 | A | Architecture, initialisation, Supabase (code + migrations), design system, navigation | ✅ |
-| B | Authentification, Overview | à venir |
+| B | Authentification (connexion, mot de passe oublié/réinitialisation, protection des routes, rôles, compte en attente, déconnexion), Overview (KPI, 4 graphiques, listes, filtres de période) | ✅ |
 | C | My Games, Projects, Tasks, AI Agents | à venir |
 | D | Discover, Finance, Team, AI Assistant, Settings, Integrations | à venir |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |

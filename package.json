@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "check": "npm run typecheck && npm run lint",
+    "check": "npm run typecheck && npm run lint && npm run test",
     "db:push": "node scripts/db.mjs push",
-    "db:types": "node scripts/db.mjs types"
+    "db:types": "node scripts/db.mjs types",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.9",
@@ -33,13 +34,14 @@
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
-    "@types/node": "^20",
+    "@types/node": "^24.19.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.2"
   },
   "engines": {
     "node": ">=20.9.0"

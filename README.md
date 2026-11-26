@@ -26,7 +26,8 @@ npm run dev                    # http://localhost:3000
 | `npm run start` | Lance le build de production |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Vérification TypeScript |
-| `npm run check` | typecheck + lint |
+| `npm run test` | Tests unitaires (Vitest) |
+| `npm run check` | typecheck + lint + tests |
 | `npm run db:push` | Applique les migrations SQL en attente sur Supabase |
 | `npm run db:types` | Régénère les types TypeScript depuis le schéma de la base |
 

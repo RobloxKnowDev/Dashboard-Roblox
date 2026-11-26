@@ -2,6 +2,8 @@
 
 import { Bell, BellOff, CheckCheck } from "lucide-react";
 import Link from "next/link";
+import { useTransition } from "react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/feedback/states";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils/cn";
@@ -18,14 +20,25 @@ export type NotificationItem = {
 
 type NotificationCenterProps = {
   notifications?: NotificationItem[];
+  /** Server Action marking every notification as read. */
+  markAllRead?: () => Promise<{ ok: boolean }>;
 };
 
 /**
  * Bell + popover listing the user's notifications (Supabase `notifications`
- * table, live). Until the database is connected the list is empty.
+ * table, live — RLS returns only the signed-in user's rows).
  */
-export function NotificationCenter({ notifications = [] }: NotificationCenterProps) {
+export function NotificationCenter({ notifications = [], markAllRead }: NotificationCenterProps) {
   const unread = notifications.filter((n) => !n.read).length;
+  const [pending, startTransition] = useTransition();
+
+  function onMarkAllRead() {
+    if (!markAllRead) return;
+    startTransition(async () => {
+      const result = await markAllRead();
+      if (!result.ok) toast.error("Notifications couldn't be updated. Try again.");
+    });
+  }
   return (
     <Popover>
       <PopoverTrigger
@@ -42,7 +55,8 @@ export function NotificationCenter({ notifications = [] }: NotificationCenterPro
           <h2 className="text-[13px] font-semibold text-fg">Notifications</h2>
           <button
             type="button"
-            disabled={unread === 0}
+            disabled={unread === 0 || !markAllRead || pending}
+            onClick={onMarkAllRead}
             className="inline-flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-fg disabled:pointer-events-none disabled:opacity-40"
           >
             <CheckCheck className="size-3.5" aria-hidden />
@@ -61,7 +75,7 @@ export function NotificationCenter({ notifications = [] }: NotificationCenterPro
             {notifications.map((n) => (
               <li key={n.id}>
                 <Link
-                  href={n.href ?? "#"}
+                  href={n.href?.startsWith("/") ? n.href : "/overview"}
                   className={cn("flex gap-3 px-4 py-2.5 transition-colors hover:bg-surface-3", !n.read && "bg-accent/[0.03]")}
                 >
                   <span

@@ -18,11 +18,11 @@ export type CurrentUser = {
   name: string;
   email: string;
   avatarUrl?: string | null;
-  role: AppRole;
+  /** null = pending approval. */
+  role: AppRole | null;
 };
 
 type UserMenuProps = {
-  /** null until authentication is wired (Jalon B). */
   user: CurrentUser | null;
   /** Server action that signs the user out. */
   signOut?: () => Promise<void>;
@@ -31,7 +31,7 @@ type UserMenuProps = {
 export function UserMenu({ user, signOut }: UserMenuProps) {
   if (!user) {
     return (
-      <Badge tone="neutral" className="h-6 px-2" title="Sign-in is enabled in the next milestone">
+      <Badge tone="neutral" className="h-6 px-2">
         Not signed in
       </Badge>
     );
@@ -56,7 +56,7 @@ export function UserMenu({ user, signOut }: UserMenuProps) {
           </span>
         </DropdownMenuLabel>
         <div className="px-2 pb-2">
-          <Badge tone="accent">{ROLE_LABELS[user.role]}</Badge>
+          {user.role ? <Badge tone="accent">{ROLE_LABELS[user.role]}</Badge> : <Badge tone="warning">Pending approval</Badge>}
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
