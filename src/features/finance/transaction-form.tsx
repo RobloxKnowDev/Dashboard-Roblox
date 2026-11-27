@@ -11,15 +11,9 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
+import { useMessage, useT } from "@/i18n/client";
 import { deleteTransaction, saveTransaction } from "./actions";
-import {
-  CATEGORIES_BY_TYPE,
-  CATEGORY_LABELS,
-  emptyTransaction,
-  transactionSchema,
-  type TransactionInput,
-  type TransactionType,
-} from "./schemas";
+import { CATEGORIES_BY_TYPE, emptyTransaction, transactionSchema, type TransactionInput, type TransactionType } from "./schemas";
 
 export type TransactionFormOptions = {
   games: { id: string; name: string }[];
@@ -41,6 +35,9 @@ type TransactionFormModalProps = {
 };
 
 export function TransactionFormModal({ options, transaction, trigger }: TransactionFormModalProps) {
+  const t = useT();
+  const msg = useMessage();
+  const text = t.finance.form;
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const editing = !!transaction;
@@ -56,7 +53,7 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
     startTransition(async () => {
       const result = await saveTransaction(values, transaction?.id);
       if (result.ok) {
-        toast.success(result.message ?? "Saved");
+        toast.success(result.message ?? (editing ? t.finance.actions.updated : t.finance.actions.added));
         setOpen(false);
         return;
       }
@@ -86,31 +83,31 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
         trigger ?? (
           <Button variant="primary">
             <Plus aria-hidden />
-            Add transaction
+            {text.add}
           </Button>
         )
       }
-      title={editing ? "Edit transaction" : "Add transaction"}
-      description="Amounts are in USD. Revenue and expenses feed the totals and charts on this page."
+      title={editing ? text.editTitle : text.add}
+      description={text.description}
     >
       <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <SegmentedControl
-            aria-label="Transaction type"
+            aria-label={text.typeLabel}
             value={type}
             onValueChange={changeType}
             options={[
-              { value: "revenue", label: "Revenue" },
-              { value: "expense", label: "Expense" },
+              { value: "revenue", label: t.finance.types.revenue },
+              { value: "expense", label: t.finance.types.expense },
             ]}
           />
         </div>
 
-        <Field htmlFor="t-amount" label="Amount (USD)" required error={errors.amount?.message}>
+        <Field htmlFor="t-amount" label={text.amount} required error={msg(errors.amount?.message)}>
           <Input
             id="t-amount"
             inputMode="decimal"
-            placeholder="0.00"
+            placeholder={text.amountPlaceholder}
             autoFocus
             aria-invalid={!!errors.amount}
             aria-describedby={describedBy("t-amount")}
@@ -118,7 +115,7 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
           />
         </Field>
 
-        <Field htmlFor="t-category" label="Category" error={errors.category?.message}>
+        <Field htmlFor="t-category" label={text.category} error={msg(errors.category?.message)}>
           <Controller
             control={control}
             name="category"
@@ -127,26 +124,26 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
                 id="t-category"
                 value={field.value}
                 onValueChange={field.onChange}
-                options={CATEGORIES_BY_TYPE[type].map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))}
+                options={CATEGORIES_BY_TYPE[type].map((c) => ({ value: c, label: t.finance.categories[c] }))}
               />
             )}
           />
         </Field>
 
-        <Field htmlFor="t-date" label="Date" required error={errors.occurredOn?.message}>
+        <Field htmlFor="t-date" label={text.date} required error={msg(errors.occurredOn?.message)}>
           <Input id="t-date" type="date" aria-invalid={!!errors.occurredOn} {...register("occurredOn")} />
         </Field>
 
         <Field
           htmlFor="t-robux"
-          label="Robux"
-          error={errors.robuxAmount?.message}
-          hint={type === "revenue" ? "Optional — Robux behind this payout." : "Optional — e.g. Robux spent on ads."}
+          label={text.robux}
+          error={msg(errors.robuxAmount?.message)}
+          hint={type === "revenue" ? text.robuxHintRevenue : text.robuxHintExpense}
         >
           <Input id="t-robux" inputMode="numeric" placeholder="0" aria-invalid={!!errors.robuxAmount} {...register("robuxAmount")} />
         </Field>
 
-        <Field htmlFor="t-game" label="Game">
+        <Field htmlFor="t-game" label={text.game}>
           <Controller
             control={control}
             name="gameId"
@@ -155,13 +152,13 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
                 id="t-game"
                 value={field.value || NONE}
                 onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
-                options={[{ value: NONE, label: "No game" }, ...options.games.map((g) => ({ value: g.id, label: g.name }))]}
+                options={[{ value: NONE, label: text.noGame }, ...options.games.map((g) => ({ value: g.id, label: g.name }))]}
               />
             )}
           />
         </Field>
 
-        <Field htmlFor="t-project" label="Project">
+        <Field htmlFor="t-project" label={text.project}>
           <Controller
             control={control}
             name="projectId"
@@ -170,17 +167,17 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
                 id="t-project"
                 value={field.value || NONE}
                 onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
-                options={[{ value: NONE, label: "No project" }, ...options.projects.map((p) => ({ value: p.id, label: p.name }))]}
+                options={[{ value: NONE, label: text.noProject }, ...options.projects.map((p) => ({ value: p.id, label: p.name }))]}
               />
             )}
           />
         </Field>
 
-        <Field htmlFor="t-description" label="Description" error={errors.description?.message} className="sm:col-span-2">
+        <Field htmlFor="t-description" label={text.descriptionField} error={msg(errors.description?.message)} className="sm:col-span-2">
           <Textarea
             id="t-description"
             rows={2}
-            placeholder={type === "revenue" ? "e.g. DevEx — October earnings" : "e.g. Builder commission — lobby map"}
+            placeholder={type === "revenue" ? text.placeholderRevenue : text.placeholderExpense}
             aria-invalid={!!errors.description}
             {...register("description")}
           />
@@ -188,10 +185,10 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
 
         <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
-            {editing ? "Save changes" : "Add transaction"}
+            {editing ? t.common.actions.saveChanges : text.add}
           </Button>
         </div>
       </form>
@@ -200,12 +197,13 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
 }
 
 export function EditTransactionButton(props: Omit<TransactionFormModalProps, "trigger"> & { label: string }) {
+  const t = useT();
   const { label, ...rest } = props;
   return (
     <TransactionFormModal
       {...rest}
       trigger={
-        <Button variant="ghost" size="icon" aria-label={`Edit ${label}`}>
+        <Button variant="ghost" size="icon" aria-label={t.finance.form.editLabel(label)}>
           <Pencil />
         </Button>
       }
@@ -214,6 +212,7 @@ export function EditTransactionButton(props: Omit<TransactionFormModalProps, "tr
 }
 
 export function DeleteTransactionButton({ transactionId, label }: { transactionId: string; label: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   return (
@@ -222,16 +221,16 @@ export function DeleteTransactionButton({ transactionId, label }: { transactionI
       onOpenChange={setOpen}
       size="sm"
       trigger={
-        <Button variant="ghost" size="icon" aria-label={`Delete ${label}`}>
+        <Button variant="ghost" size="icon" aria-label={t.finance.form.deleteLabel(label)}>
           <Trash2 />
         </Button>
       }
-      title="Delete this transaction?"
-      description={`${label} will be removed from the totals and charts.`}
+      title={t.finance.form.deleteTitle}
+      description={t.finance.form.deleteDescription(label)}
       footer={
         <>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button
             variant="danger"
@@ -240,13 +239,13 @@ export function DeleteTransactionButton({ transactionId, label }: { transactionI
               startTransition(async () => {
                 const result = await deleteTransaction(transactionId);
                 if (result.ok) {
-                  toast.success(result.message ?? "Transaction deleted");
+                  toast.success(result.message ?? t.finance.actions.deleted);
                   setOpen(false);
-                } else toast.error(result.message ?? "The transaction couldn't be deleted.");
+                } else toast.error(result.message ?? t.finance.actions.deleteFailed);
               })
             }
           >
-            Delete
+            {t.common.actions.delete}
           </Button>
         </>
       }

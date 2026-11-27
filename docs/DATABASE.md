@@ -19,6 +19,7 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `20261126001100_role_from_app_metadata.sql` | Applique `app_metadata.role` (invitation) quand Supabase l'écrit, uniquement sur un profil encore en attente |
 | `20261126001200_team_member_for_profiles.sql` | Crée automatiquement la fiche « membre d'équipe » de tout compte qui reçoit un rôle (nom et avatar synchronisés) |
 | `20261126001300_market_snapshots.sql` | `market_snapshots` : rang et joueurs de chaque jeu des classements Roblox, un relevé par jour (écrit uniquement par la tâche quotidienne) |
+| `20261127000100_ai.sql` | Claude : colonnes `ai_assistant_enabled` et `ai_monthly_budget_usd` sur `studio_settings` (modifiables par l'**Owner seulement**, trigger `guard_ai_settings`) ; `ai_usage` (une ligne par requête à Claude, coût estimé — lecture Owner) ; `idea_runs` et `weekly_ideas` (idées hebdomadaires Steam → Roblox, en anglais et en français — lecture Viewer+, écriture par la clé secrète uniquement) |
 | `20261126001500_game_payouts.sql` | `game_payouts` : Robux mensuels par jeu de **Creator Rewards** et **Roblox Plus**, saisis depuis le Creator Hub (aucune API Roblox ne les fournit) ; lecture Viewer+, saisie Admin+ |
 | `20261126001400_notifications_for_work.sql` | `profiles.notification_prefs` + triggers qui notifient un membre quand quelqu’un d’autre lui assigne une tâche ou l’ajoute à un projet (désactivable dans *Settings → Notifications*) |
 

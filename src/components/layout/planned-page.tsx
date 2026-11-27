@@ -1,5 +1,6 @@
 import { CircleDashed } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { getT } from "@/i18n/server";
 
 type PlannedPageProps = {
   /** Milestone that delivers this page, e.g. "Milestone C". */
@@ -11,9 +12,10 @@ type PlannedPageProps = {
 /**
  * Temporary scaffold shown on pages whose content lands in a later milestone.
  * States plainly what is coming instead of showing decorative UI.
- * Each page replaces this component when it is built.
+ * Each page replaces this component when it is built. Server Component.
  */
-export function PlannedPage({ milestone, sections }: PlannedPageProps) {
+export async function PlannedPage({ milestone, sections }: PlannedPageProps) {
+  const t = await getT();
   return (
     <Card className="border-dashed">
       <div className="flex flex-col gap-5 p-6 md:flex-row md:items-start md:gap-10">
@@ -22,10 +24,8 @@ export function PlannedPage({ milestone, sections }: PlannedPageProps) {
             <CircleDashed className="size-3" aria-hidden />
             {milestone}
           </span>
-          <p className="mt-3 text-sm font-medium text-fg">This page is being built</p>
-          <p className="mt-1 text-xs leading-relaxed text-fg-3">
-            The structure is in place. The sections listed here will be delivered in {milestone}.
-          </p>
+          <p className="mt-3 text-sm font-medium text-fg">{t.designSystem.plannedPage.title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-fg-3">{t.designSystem.plannedPage.body(milestone)}</p>
         </div>
         <ul className="grid flex-1 gap-2 sm:grid-cols-2">
           {sections.map((section) => (

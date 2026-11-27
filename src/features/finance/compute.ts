@@ -45,6 +45,7 @@ export type FinanceSummary = {
   revenuePerGame: { name: string; revenue: number }[];
 };
 
+/** Bucket of revenue without a game (the page shows t.finance.charts.noGame instead). */
 export const NO_GAME_LABEL = "Not linked to a game";
 
 /** "2026-11" shifted by n months → "2026-08". */

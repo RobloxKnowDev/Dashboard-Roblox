@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 import { settingsSections } from "./sections";
 
 function NavList({ activeSlug }: { activeSlug: string | null }) {
+  const t = useT();
   return (
-    <nav aria-label="Settings">
+    <nav aria-label={t.nav.items.settings.title}>
       <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {settingsSections.map((section) => {
           const active = section.slug === activeSlug;
@@ -24,7 +26,7 @@ function NavList({ activeSlug }: { activeSlug: string | null }) {
                 )}
               >
                 <Icon className={cn("size-4", active ? "text-accent" : "text-fg-3")} aria-hidden />
-                {section.title}
+                {t.settings.sections[section.slug].title}
               </Link>
             </li>
           );

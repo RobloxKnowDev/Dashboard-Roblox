@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { getT } from "@/i18n/server";
 import type { AppRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +27,7 @@ export const listAccounts = cache(async (): Promise<Account[] | null> => {
     supabase.from("team_members").select("id, profile_id").not("profile_id", "is", null),
   ]);
   if (error) return null;
+  const t = await getT();
 
   const lastSignIn = new Map<string, string | null>();
   try {
@@ -38,7 +40,7 @@ export const listAccounts = cache(async (): Promise<Account[] | null> => {
 
   return data.map((p) => ({
     id: p.id,
-    name: p.full_name.trim() || (p.email ?? "").split("@")[0] || "Member",
+    name: p.full_name.trim() || (p.email ?? "").split("@")[0] || t.settings.members.fallbackName,
     email: p.email ?? "",
     avatarUrl: p.avatar_url,
     role: p.role,

@@ -2,11 +2,11 @@ import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { AccessDenied, PendingAccess } from "@/components/feedback/access";
 import { signOut } from "@/features/auth/actions";
+import { getFormat } from "@/i18n/server";
 import { markAllNotificationsRead } from "@/features/notifications/actions";
 import type { AppRole } from "@/lib/auth/roles";
 import { checkAccess, getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { formatRelative } from "@/lib/utils/format";
 import { NotificationCenter } from "./notification-center";
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
@@ -42,6 +42,7 @@ export async function SessionNotifications() {
 
   await connection();
   const now = new Date();
+  const { formatRelative } = await getFormat();
   const notifications = (data ?? []).map((n) => ({
     id: n.id,
     title: n.title,

@@ -10,6 +10,7 @@ import {
   thumbnailStats,
 } from "@/features/games/acquisition-compute";
 import { parseGameTab } from "@/features/games/tabs";
+import { messages } from "@/i18n/messages";
 import type { BreakdownGroup } from "@/lib/integrations/roblox/analytics";
 
 const pts = (...values: number[]) => values.map((value, i) => ({ date: `2026-11-0${i + 1}`, value }));
@@ -21,6 +22,14 @@ describe("acquisition sources", () => {
     expect(sourceLabel("ContinueToPlay")).toBe("Continue playing");
     expect(sourceLabel("Others")).toBe("Other");
     expect(sourceLabel("TodaysPicks")).toBe("Todays picks");
+  });
+
+  it("uses the labels it is given (interface language)", () => {
+    const fr = messages.fr.games.acquisition.sources;
+    expect(sourceLabel("Search", fr)).toBe(fr.Search);
+    expect(sourceLabel("Others", fr)).toBe(fr.other);
+    const rows = sourceRows([group("Search", 5), group("X", 1), group("Y", 1), group("Z", 1)], [], fr);
+    expect(rows.map((r) => r.label)).toEqual([fr.Search, "X", "Y", fr.other]);
   });
 
   it("joins reach and plays per source, sorted by reach, with a stable color per source", () => {

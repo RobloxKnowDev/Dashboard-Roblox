@@ -4,6 +4,7 @@ import { Construction } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 export type Availability = "Phase 2" | "Phase 3" | "Coming soon";
@@ -17,7 +18,8 @@ export function ComingSoonButton({
   children,
   ...props
 }: Omit<ButtonProps, "disabled" | "onClick"> & { availability?: Availability }) {
-  const label = availability === "Coming soon" ? "Coming soon" : `Available in ${availability}`;
+  const t = useT();
+  const label = availability === "Coming soon" ? t.common.comingSoon.soon : t.common.comingSoon.availableIn(t.common.comingSoon.phases[availability]);
   return (
     <Tooltip content={label}>
       {/* Disabled buttons don't receive pointer/focus events, so the wrapper carries the tooltip. */}
@@ -44,6 +46,7 @@ export function ComingSoonPanel({
   className?: string;
   children?: ReactNode;
 }) {
+  const t = useT();
   return (
     <div
       className={cn(
@@ -61,7 +64,7 @@ export function ComingSoonPanel({
         {description ? <p className="mt-1 text-xs leading-relaxed text-fg-3">{description}</p> : null}
       </div>
       <span className="rounded-xs border border-line-strong bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-fg-3">
-        {availability}
+        {t.common.comingSoon.phases[availability]}
       </span>
       {children}
     </div>

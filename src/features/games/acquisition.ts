@@ -1,5 +1,7 @@
 import "server-only";
 import { parseRange, type RangeConfig } from "@/features/shared/range";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
 import { getDailyBreakdown, getDailyMetric, type BreakdownResult, type DailyPoint, type MetricResult } from "@/lib/integrations/roblox/analytics";
 import { getAssetImages } from "@/lib/integrations/roblox/public";
 import { newAndReturning, sourceRows, thumbnailStats, type SourceRow, type ThumbnailStat } from "./acquisition-compute";
@@ -26,9 +28,9 @@ function split(result: MetricResult, mid: string): MetricSeries {
 const groupsOf = (result: BreakdownResult) => (result.status === "ok" ? result.groups : []);
 const failed = (...results: { status: string }[]) => results.some((r) => r.status === "error");
 
-/** The range actually shown, and whether the requested one was shortened. */
-function capRange(range: RangeConfig, max: "30d" | "90d"): { range: RangeConfig; capped: boolean } {
-  const limit = parseRange(max);
+/** The range actually shown (labels in the interface language), and whether the requested one was shortened. */
+function capRange(range: RangeConfig, max: "30d" | "90d", locale: Locale): { range: RangeConfig; capped: boolean } {
+  const limit = parseRange(max, locale);
   return range.days > limit.days ? { range: limit, capped: true } : { range, capped: false };
 }
 
@@ -59,8 +61,14 @@ export type GameAcquisition = {
   failed: { sources: boolean; conversion: boolean; bounce: boolean; newReturning: boolean };
 };
 
-export async function getGameAcquisition(universeId: number, requested: RangeConfig, today: string): Promise<GameAcquisition> {
-  const { range, capped } = capRange(requested, ACQUISITION_MAX_RANGE);
+/** `locale`: language of the source labels and of the capped range label. */
+export async function getGameAcquisition(
+  universeId: number,
+  requested: RangeConfig,
+  today: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<GameAcquisition> {
+  const { range, capped } = capRange(requested, ACQUISITION_MAX_RANGE, locale);
   const { start, mid, end } = analyticsWindow(range, today);
 
   // Previous period only for the three rates whose change is displayed.
@@ -79,7 +87,7 @@ export async function getGameAcquisition(universeId: number, requested: RangeCon
     status: overallStatus([reached, played, ctr, qptr, reco, b60, b180, dau]),
     range,
     capped,
-    sources: sourceRows(groupsOf(reached), groupsOf(played)),
+    sources: sourceRows(groupsOf(reached), groupsOf(played), messages[locale].games.acquisition.sources),
     impressionCtr: split(ctr, mid),
     qualifiedPtr: split(qptr, mid),
     recoPtr: reco.status === "ok" ? reco.points : [],
@@ -107,8 +115,14 @@ export type GameThumbnails = {
   incomplete: boolean;
 };
 
-export async function getGameThumbnails(universeId: number, requested: RangeConfig, today: string): Promise<GameThumbnails> {
-  const { range, capped } = capRange(requested, THUMBNAIL_MAX_RANGE);
+/** `locale`: language of the capped range label. */
+export async function getGameThumbnails(
+  universeId: number,
+  requested: RangeConfig,
+  today: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<GameThumbnails> {
+  const { range, capped } = capRange(requested, THUMBNAIL_MAX_RANGE, locale);
   const { mid, end } = analyticsWindow(range, today);
 
   const [impressions, ptr] = await Promise.all([

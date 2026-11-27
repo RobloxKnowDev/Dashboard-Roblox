@@ -1,0 +1,88 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ChartSkeleton, ListSkeleton } from "@/components/feedback/states";
+import { PageContainer, PageHeader } from "@/components/layout/page-header";
+import { RequireRole } from "@/components/layout/session-widgets";
+import { Skeleton } from "@/components/ui/primitives";
+import { getT } from "@/i18n/server";
+import { checkAccess } from "@/lib/auth/session";
+import {
+  AddTransactionAction,
+  FinanceCharts,
+  FinanceKpis,
+  RobloxEarnings,
+  TransactionsSection,
+} from "@/features/finance/sections";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.finance.page.metaTitle };
+}
+
+async function HeaderAction() {
+  const access = await checkAccess("admin");
+  if (access.status !== "allowed") return null;
+  return <AddTransactionAction />;
+}
+
+export default async function FinancePage() {
+  const t = await getT();
+  return (
+    <PageContainer>
+      <PageHeader
+        title={t.finance.page.title}
+        eyebrow={t.finance.page.eyebrow}
+        description={t.finance.page.description}
+        actions={
+          <Suspense fallback={null}>
+            <HeaderAction />
+          </Suspense>
+        }
+      />
+      <RequireRole min="admin">
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3" role="status" aria-label={t.finance.page.loadingKpis}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} className="h-[108px] rounded-lg" />
+              ))}
+            </div>
+          }
+        >
+          <FinanceKpis />
+        </Suspense>
+
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {Array.from({ length: 4 }, (_, i) => (
+                <ChartSkeleton key={i} />
+              ))}
+            </div>
+          }
+        >
+          <FinanceCharts />
+        </Suspense>
+
+        <section aria-labelledby="transactions-heading" className="space-y-3">
+          <h2 id="transactions-heading" className="text-sm font-semibold text-fg">
+            {t.finance.page.transactions}
+          </h2>
+          <Suspense
+            fallback={
+              <div className="rounded-lg border border-line bg-surface">
+                <ListSkeleton rows={6} />
+              </div>
+            }
+          >
+            <TransactionsSection />
+          </Suspense>
+        </section>
+
+        <Suspense fallback={<Skeleton className="h-48 rounded-lg" />}>
+          <RobloxEarnings />
+        </Suspense>
+      </RequireRole>
+    </PageContainer>
+  );
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { useT } from "@/i18n/client";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { formatCompact } from "@/lib/utils/format";
 import { useChartView } from "./chart-card";
@@ -43,8 +44,9 @@ export function BarChart({
   stacked = false,
   formatValue = formatCompact,
   label,
-  categoryLabel = "Category",
+  categoryLabel,
 }: BarChartProps) {
+  const t = useT();
   const view = useChartView();
   const hydrated = useHydrated();
   // Category labels are shortened to the width each bar gets (phones); the
@@ -62,7 +64,7 @@ export function BarChart({
 
   if (view === "table") {
     return (
-      <ChartDataTable data={data} categoryKey="category" categoryLabel={categoryLabel} series={series} formatValue={formatValue} />
+      <ChartDataTable data={data} categoryKey="category" categoryLabel={categoryLabel ?? t.common.chart.category} series={series} formatValue={formatValue} />
     );
   }
 

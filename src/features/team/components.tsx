@@ -3,30 +3,37 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { PROJECT_STATUS } from "@/features/shared/status";
-import { ROLE_LABELS } from "@/lib/auth/roles";
-import { formatDate } from "@/lib/utils/format";
+import { getI18n, getT } from "@/i18n/server";
 import type { TeamMember } from "./data";
 
-const ACCESS: Record<string, { label: string; tone: BadgeTone; icon: typeof Shield }> = {
-  owner: { label: ROLE_LABELS.owner, tone: "accent", icon: ShieldCheck },
-  admin: { label: ROLE_LABELS.admin, tone: "info", icon: Shield },
-  developer: { label: ROLE_LABELS.developer, tone: "neutral", icon: Code },
-  viewer: { label: ROLE_LABELS.viewer, tone: "neutral", icon: Eye },
-  pending: { label: "Pending approval", tone: "warning", icon: Clock },
-  none: { label: "No account", tone: "neutral", icon: UserRound },
+type AccessKey = "owner" | "admin" | "developer" | "viewer" | "pending" | "none";
+
+/** Labels: t.common.roles[role], or t.team.access.pending / .none. */
+const ACCESS: Record<AccessKey, { tone: BadgeTone; icon: typeof Shield }> = {
+  owner: { tone: "accent", icon: ShieldCheck },
+  admin: { tone: "info", icon: Shield },
+  developer: { tone: "neutral", icon: Code },
+  viewer: { tone: "neutral", icon: Eye },
+  pending: { tone: "warning", icon: Clock },
+  none: { tone: "neutral", icon: UserRound },
 };
 
-export function AccessBadge({ access }: { access: TeamMember["access"] }) {
-  const config = ACCESS[access ?? "pending"] ?? ACCESS.none!;
+export async function AccessBadge({ access }: { access: TeamMember["access"] }) {
+  const t = await getT();
+  const key: AccessKey = access ?? "pending";
+  const config = ACCESS[key] ?? ACCESS.none;
+  const label = key === "pending" || key === "none" ? t.team.access[key] : t.common.roles[key];
   const Icon = config.icon;
   return (
     <Badge tone={config.tone} icon={<Icon aria-hidden />}>
-      {config.label}
+      {label}
     </Badge>
   );
 }
 
-export function MemberCards({ members }: { members: TeamMember[] }) {
+export async function MemberCards({ members }: { members: TeamMember[] }) {
+  const { t, f } = await getI18n();
+  const c = t.team.card;
   return (
     <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {members.map((m) => (
@@ -39,32 +46,32 @@ export function MemberCards({ members }: { members: TeamMember[] }) {
               <Avatar name={m.name} src={m.avatarUrl} size="lg" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-fg group-hover:text-accent">{m.name}</p>
-                <p className="truncate text-xs text-fg-3">{m.studioRole || "No job title"}</p>
+                <p className="truncate text-xs text-fg-3">{m.studioRole || c.noJobTitle}</p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <AccessBadge access={m.access} />
-                {m.status === "inactive" ? <Badge dot>Inactive</Badge> : null}
+                {m.status === "inactive" ? <Badge dot>{c.inactive}</Badge> : null}
               </div>
             </div>
 
             <dl className="grid grid-cols-3 gap-2 rounded-md border border-line bg-surface-2/40 px-3 py-2.5 text-center">
               <div>
-                <dt className="text-[11px] text-fg-3">Projects</dt>
+                <dt className="text-[11px] text-fg-3">{c.projects}</dt>
                 <dd className="text-sm font-semibold tabular text-fg">{m.projects.length}</dd>
               </div>
               <div>
-                <dt className="text-[11px] text-fg-3">Open tasks</dt>
+                <dt className="text-[11px] text-fg-3">{c.openTasks}</dt>
                 <dd className="text-sm font-semibold tabular text-fg">{m.tasks.open}</dd>
               </div>
               <div>
-                <dt className="text-[11px] text-fg-3">Done</dt>
+                <dt className="text-[11px] text-fg-3">{c.done}</dt>
                 <dd className="text-sm font-semibold tabular text-fg">{m.tasks.done}</dd>
               </div>
             </dl>
 
             <div className="mt-auto flex min-w-0 flex-wrap items-center gap-1.5">
               {m.projects.length === 0 ? (
-                <span className="text-xs text-fg-3">No projects yet</span>
+                <span className="text-xs text-fg-3">{c.noProjects}</span>
               ) : (
                 <>
                   {m.projects.slice(0, 3).map((p) => (
@@ -75,7 +82,7 @@ export function MemberCards({ members }: { members: TeamMember[] }) {
                   {m.projects.length > 3 ? <span className="text-xs text-fg-3">+{m.projects.length - 3}</span> : null}
                 </>
               )}
-              <span className="ml-auto text-[11px] text-fg-3">Since {formatDate(m.joinedAt)}</span>
+              <span className="ml-auto text-[11px] text-fg-3">{c.since(f.formatDate(m.joinedAt))}</span>
             </div>
           </Link>
         </li>

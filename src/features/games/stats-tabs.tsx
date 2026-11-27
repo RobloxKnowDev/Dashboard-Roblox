@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 import { DEFAULT_GAME_TAB, GAME_TABS, parseGameTab, type GameTab } from "./tabs";
 
@@ -15,8 +16,9 @@ function PendingHint() {
 }
 
 function TabRow({ active, hrefFor }: { active: GameTab | null; hrefFor: (tab: GameTab) => string }) {
+  const t = useT();
   return (
-    <nav aria-label="Game statistics" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+    <nav aria-label={t.games.tabs.ariaLabel} className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
       <ul className="flex items-center gap-5 border-b border-line">
         {GAME_TABS.map((tab) => {
           const current = tab.value === active;
@@ -31,7 +33,7 @@ function TabRow({ active, hrefFor }: { active: GameTab | null; hrefFor: (tab: Ga
                 aria-current={current ? "page" : undefined}
                 className={cn(TAB_CLASS, current && "border-accent text-fg")}
               >
-                {tab.label}
+                {t.games.tabs[tab.value]}
                 <PendingHint />
               </Link>
             </li>

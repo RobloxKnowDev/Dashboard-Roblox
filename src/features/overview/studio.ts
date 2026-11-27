@@ -6,6 +6,8 @@ import { getDevexRate, listGames } from "@/features/games/data";
 import { listPayouts } from "@/features/games/payouts";
 import { addSeries, payoutSeries } from "@/features/games/payouts-compute";
 import { parseRange } from "@/features/shared/range";
+import type { Locale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
 import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
 import { getRobloxGames } from "@/lib/integrations/roblox/public";
 
@@ -26,8 +28,8 @@ const avg = (points: DailyPoint[]) => (points.length ? sumOf(points) / points.le
 
 export type StudioMetrics = Awaited<ReturnType<typeof loadStudioMetrics>>;
 
-async function loadStudioMetrics(rangeKey: string, today: string) {
-  const range = parseRange(rangeKey);
+async function loadStudioMetrics(rangeKey: string, today: string, locale: Locale = "en") {
+  const range = parseRange(rangeKey, locale);
   const games = await listGames();
   if (games === null) return { status: "error" as const };
   const tracked = games.filter((g) => g.status !== "archived");
@@ -63,7 +65,7 @@ async function loadStudioMetrics(rangeKey: string, today: string) {
   const growth = visits.map((p) => ({ date: p.date, value: (running += p.value) }));
 
   const alerts: GameAlert[] = withAnalytics.flatMap((e) =>
-    computeGameAlerts({ gameName: e.game.name, dau: e.analytics.dau, revenue: e.analytics.revenue, d1: e.analytics.d1 }),
+    computeGameAlerts({ gameName: e.game.name, dau: e.analytics.dau, revenue: e.analytics.revenue, d1: e.analytics.d1 }, messages[locale]),
   );
 
   return {

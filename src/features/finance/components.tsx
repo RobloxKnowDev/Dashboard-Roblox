@@ -7,92 +7,92 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { SearchInput } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useFormat, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
-import { formatCurrency, formatDate, formatRobux } from "@/lib/utils/format";
 import type { FinanceTransaction } from "./compute";
-import { CATEGORY_LABELS, type TransactionInput } from "./schemas";
+import type { TransactionInput } from "./schemas";
 import { DeleteTransactionButton, EditTransactionButton, type TransactionFormOptions } from "./transaction-form";
 
 type Filter = "all" | "revenue" | "expense";
 
-function toInput(t: FinanceTransaction): TransactionInput {
+function toInput(tx: FinanceTransaction): TransactionInput {
   return {
-    type: t.type,
-    category: t.category,
-    amount: String(t.amount),
-    robuxAmount: t.robuxAmount === null ? "" : String(t.robuxAmount),
-    occurredOn: t.occurredOn,
-    description: t.description ?? "",
-    gameId: t.gameId ?? "",
-    projectId: t.projectId ?? "",
+    type: tx.type,
+    category: tx.category,
+    amount: String(tx.amount),
+    robuxAmount: tx.robuxAmount === null ? "" : String(tx.robuxAmount),
+    occurredOn: tx.occurredOn,
+    description: tx.description ?? "",
+    gameId: tx.gameId ?? "",
+    projectId: tx.projectId ?? "",
   };
 }
 
-function describe(t: FinanceTransaction): string {
-  return t.description || CATEGORY_LABELS[t.category];
-}
-
 export function TransactionsTable({ transactions, options }: { transactions: FinanceTransaction[]; options: TransactionFormOptions }) {
+  const t = useT();
+  const f = useFormat();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const categoryLabel = (tx: FinanceTransaction) => t.finance.categories[tx.category];
+  const describe = (tx: FinanceTransaction) => tx.description || categoryLabel(tx);
 
   const q = query.trim().toLowerCase();
-  const rows = transactions.filter((t) => {
-    if (filter !== "all" && t.type !== filter) return false;
+  const rows = transactions.filter((tx) => {
+    if (filter !== "all" && tx.type !== filter) return false;
     if (!q) return true;
-    return `${t.description ?? ""} ${CATEGORY_LABELS[t.category]} ${t.gameName ?? ""} ${t.projectName ?? ""}`.toLowerCase().includes(q);
+    return `${tx.description ?? ""} ${categoryLabel(tx)} ${tx.gameName ?? ""} ${tx.projectName ?? ""}`.toLowerCase().includes(q);
   });
 
   const columns: Column<FinanceTransaction>[] = [
     {
       id: "date",
-      header: "Date",
-      sortValue: (t) => t.occurredOn,
+      header: t.finance.table.colDate,
+      sortValue: (tx) => tx.occurredOn,
       className: "w-32",
-      cell: (t) => <span className="whitespace-nowrap tabular text-fg-2">{formatDate(t.occurredOn)}</span>,
+      cell: (tx) => <span className="whitespace-nowrap tabular text-fg-2">{f.formatDate(tx.occurredOn)}</span>,
     },
     {
       id: "description",
-      header: "Description",
-      sortValue: (t) => describe(t).toLowerCase(),
-      cell: (t) => (
+      header: t.finance.table.colDescription,
+      sortValue: (tx) => describe(tx).toLowerCase(),
+      cell: (tx) => (
         <div className="min-w-0">
-          <p className="max-w-sm truncate text-fg">{describe(t)}</p>
-          {t.gameName || t.projectName ? (
-            <p className="max-w-sm truncate text-xs text-fg-3">{[t.gameName, t.projectName].filter(Boolean).join(" · ")}</p>
+          <p className="max-w-sm truncate text-fg">{describe(tx)}</p>
+          {tx.gameName || tx.projectName ? (
+            <p className="max-w-sm truncate text-xs text-fg-3">{[tx.gameName, tx.projectName].filter(Boolean).join(" · ")}</p>
           ) : null}
         </div>
       ),
     },
     {
       id: "category",
-      header: "Category",
-      sortValue: (t) => CATEGORY_LABELS[t.category],
-      cell: (t) => (
+      header: t.finance.table.colCategory,
+      sortValue: (tx) => categoryLabel(tx),
+      cell: (tx) => (
         <Badge
-          tone={t.type === "revenue" ? "good" : "neutral"}
-          icon={t.type === "revenue" ? <ArrowDownLeft aria-hidden /> : <ArrowUpRight aria-hidden />}
+          tone={tx.type === "revenue" ? "good" : "neutral"}
+          icon={tx.type === "revenue" ? <ArrowDownLeft aria-hidden /> : <ArrowUpRight aria-hidden />}
         >
-          {CATEGORY_LABELS[t.category]}
+          {categoryLabel(tx)}
         </Badge>
       ),
     },
     {
       id: "robux",
-      header: "Robux",
+      header: t.finance.table.colRobux,
       align: "right",
-      sortValue: (t) => t.robuxAmount,
-      cell: (t) => <span className="tabular text-fg-3">{t.robuxAmount === null ? "—" : formatRobux(t.robuxAmount)}</span>,
+      sortValue: (tx) => tx.robuxAmount,
+      cell: (tx) => <span className="tabular text-fg-3">{tx.robuxAmount === null ? "—" : f.formatRobux(tx.robuxAmount)}</span>,
     },
     {
       id: "amount",
-      header: "Amount",
+      header: t.finance.table.colAmount,
       align: "right",
-      sortValue: (t) => (t.type === "revenue" ? t.amount : -t.amount),
-      cell: (t) => (
-        <span className={cn("whitespace-nowrap font-medium tabular", t.type === "revenue" ? "text-good" : "text-fg")}>
-          {t.type === "revenue" ? "+" : "−"}
-          {formatCurrency(t.amount, { compact: false, cents: true })}
+      sortValue: (tx) => (tx.type === "revenue" ? tx.amount : -tx.amount),
+      cell: (tx) => (
+        <span className={cn("whitespace-nowrap font-medium tabular", tx.type === "revenue" ? "text-good" : "text-fg")}>
+          {tx.type === "revenue" ? "+" : "−"}
+          {f.formatCurrency(tx.amount, { compact: false, cents: true })}
         </span>
       ),
     },
@@ -101,10 +101,10 @@ export function TransactionsTable({ transactions, options }: { transactions: Fin
       header: "",
       align: "right",
       className: "w-24",
-      cell: (t) => (
+      cell: (tx) => (
         <div className="flex justify-end">
-          <EditTransactionButton options={options} transaction={{ id: t.id, values: toInput(t) }} label={describe(t)} />
-          <DeleteTransactionButton transactionId={t.id} label={describe(t)} />
+          <EditTransactionButton options={options} transaction={{ id: tx.id, values: toInput(tx) }} label={describe(tx)} />
+          <DeleteTransactionButton transactionId={tx.id} label={describe(tx)} />
         </div>
       ),
     },
@@ -114,18 +114,18 @@ export function TransactionsTable({ transactions, options }: { transactions: Fin
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SegmentedControl
-          aria-label="Transaction type"
+          aria-label={t.finance.table.filterLabel}
           value={filter}
           onValueChange={setFilter}
           options={[
-            { value: "all", label: "All" },
-            { value: "revenue", label: "Revenue" },
-            { value: "expense", label: "Expenses" },
+            { value: "all", label: t.finance.table.all },
+            { value: "revenue", label: t.finance.table.revenue },
+            { value: "expense", label: t.finance.table.expenses },
           ]}
         />
         <SearchInput
-          aria-label="Search transactions"
-          placeholder="Search transactions…"
+          aria-label={t.finance.table.searchLabel}
+          placeholder={t.finance.table.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full sm:w-64"
@@ -135,10 +135,10 @@ export function TransactionsTable({ transactions, options }: { transactions: Fin
         <DataTable
           columns={columns}
           rows={rows}
-          getRowId={(t) => t.id}
+          getRowId={(tx) => tx.id}
           pageSize={15}
-          caption="Transactions"
-          empty={<EmptyState compact icon={Receipt} title="No transactions match" description="Try another filter or search." />}
+          caption={t.finance.table.caption}
+          empty={<EmptyState compact icon={Receipt} title={t.finance.table.noMatchTitle} description={t.finance.table.noMatchDescription} />}
         />
       </div>
     </div>

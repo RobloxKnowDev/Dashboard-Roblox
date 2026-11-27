@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { useT } from "@/i18n/client";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { formatCompact, formatShortDate } from "@/lib/utils/format";
 import { useChartView } from "./chart-card";
@@ -42,6 +43,7 @@ export function TimeSeriesChart({
 }: TimeSeriesChartProps) {
   const view = useChartView();
   const hydrated = useHydrated();
+  const t = useT();
   const gradientPrefix = useId().replace(/:/g, "");
 
   if (view === "table") {
@@ -49,7 +51,7 @@ export function TimeSeriesChart({
       <ChartDataTable
         data={data}
         categoryKey="date"
-        categoryLabel="Date"
+        categoryLabel={t.common.chart.date}
         series={series}
         formatValue={formatValue}
         formatCategory={formatLabel}

@@ -1,3 +1,5 @@
+import { INTL_LOCALE, LOCALES } from "@/i18n/config";
+import { messages, type Messages } from "@/i18n/messages";
 import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
 
 export type GameAlert = {
@@ -16,7 +18,13 @@ type AlertInput = {
 
 const avg = (points: DailyPoint[]) => (points.length ? points.reduce((a, p) => a + p.value, 0) / points.length : null);
 const sum = (points: DailyPoint[]) => points.reduce((a, p) => a + p.value, 0);
-const pct = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+
+/** "40.0%" (fr: "40,0 %") — one decimal, in the language of the dictionary. */
+function percentFormatter(t: Messages) {
+  const locale = LOCALES.find((l) => messages[l] === t) ?? "en";
+  const format = new Intl.NumberFormat(INTL_LOCALE[locale], { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (ratio: number) => format.format(ratio);
+}
 
 /** Thresholds are deliberately simple and explained in each alert's text. */
 export const ALERT_THRESHOLDS = {
@@ -26,9 +34,15 @@ export const ALERT_THRESHOLDS = {
   minDauForRevenueAlert: 50,
 };
 
-/** Alerts derived from real analytics for one game (pure, unit-tested). */
-export function computeGameAlerts({ gameName, dau, revenue, d1 }: AlertInput): GameAlert[] {
+/**
+ * Alerts derived from real analytics for one game (pure, unit-tested).
+ * Texts come from `t` (the dictionary of the interface language: getT() /
+ * getRequestT()); English when omitted.
+ */
+export function computeGameAlerts({ gameName, dau, revenue, d1 }: AlertInput, t: Messages = messages.en): GameAlert[] {
   const alerts: GameAlert[] = [];
+  const text = t.games.alerts;
+  const pct = percentFormatter(t);
 
   const d1Avg = avg(d1.current);
   if (d1Avg !== null && d1Avg < ALERT_THRESHOLDS.d1Warning) {
@@ -36,8 +50,8 @@ export function computeGameAlerts({ gameName, dau, revenue, d1 }: AlertInput): G
     alerts.push({
       id: `${gameName}-d1`,
       severity: critical ? "critical" : "warning",
-      title: `Day-1 retention is ${pct(d1Avg)}`,
-      detail: `${gameName} · fewer than ${critical ? 3 : 8} in 100 new players come back the next day`,
+      title: text.d1Title(pct(d1Avg)),
+      detail: text.d1Detail(gameName, critical ? 3 : 8),
     });
   }
 
@@ -49,8 +63,8 @@ export function computeGameAlerts({ gameName, dau, revenue, d1 }: AlertInput): G
       alerts.push({
         id: `${gameName}-dau`,
         severity: "warning",
-        title: `Daily players down ${pct(-change)}`,
-        detail: `${gameName} · ${Math.round(dauNow)} per day vs ${Math.round(dauBefore)} the previous period`,
+        title: text.dauTitle(pct(-change)),
+        detail: text.dauDetail(gameName, String(Math.round(dauNow)), String(Math.round(dauBefore))),
       });
     }
   }
@@ -59,8 +73,8 @@ export function computeGameAlerts({ gameName, dau, revenue, d1 }: AlertInput): G
     alerts.push({
       id: `${gameName}-revenue`,
       severity: "info",
-      title: "No revenue this period",
-      detail: `${gameName} · ${Math.round(dauNow ?? 0)} daily players but no Robux earned`,
+      title: text.revenueTitle,
+      detail: text.revenueDetail(gameName, String(Math.round(dauNow ?? 0))),
     });
   }
 

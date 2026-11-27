@@ -3,7 +3,7 @@ import { Sparkline } from "@/components/charts/sparkline";
 import { SourceBadge } from "@/components/feedback/demo-badge";
 import type { DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
-import { formatDelta } from "@/lib/utils/format";
+import { FormattedDelta } from "./formatted-delta";
 
 type StatCardProps = {
   /** Sentence case, no trailing colon: "Total revenue". */
@@ -77,7 +77,7 @@ export function StatCard({
               )}
             >
               <DeltaIcon className="size-3.5" aria-hidden />
-              {formatDelta(delta)}
+              <FormattedDelta value={delta} />
             </span>
             {deltaLabel ? <span className="truncate text-fg-3">{deltaLabel}</span> : null}
           </p>

@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { getRequestT } from "@/i18n/server";
 import { fieldErrors, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -12,9 +13,10 @@ import { payoutFormSchema } from "./payout-schema";
  * field removes that source for the month. Administrators and owners.
  */
 export async function savePayouts(gameId: string, input: unknown): Promise<ActionResult> {
+  const t = await getRequestT();
   const access = await checkAccess("admin");
-  if (access.status !== "allowed") return { ok: false, message: "Only owners and administrators can record payouts." };
-  if (!z.uuid().safeParse(gameId).success) return { ok: false, message: "Invalid game." };
+  if (access.status !== "allowed") return { ok: false, message: t.games.payouts.adminOnly };
+  if (!z.uuid().safeParse(gameId).success) return { ok: false, message: t.games.payouts.invalidGame };
   const parsed = payoutFormSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
   const { month, creatorRewards, robloxPlus } = parsed.data;
@@ -32,8 +34,8 @@ export async function savePayouts(gameId: string, input: unknown): Promise<Actio
         : await supabase
             .from("game_payouts")
             .upsert({ game_id: gameId, source, month: monthDate, robux: Number(value), created_by: access.user.id }, { onConflict: "game_id,source,month" });
-    if (error) return { ok: false, message: "The payouts couldn't be saved. Try again." };
+    if (error) return { ok: false, message: t.games.payouts.saveFailed };
   }
   refresh();
-  return { ok: true, message: "Payouts saved" };
+  return { ok: true, message: t.games.payouts.saved };
 }

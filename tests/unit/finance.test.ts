@@ -90,6 +90,14 @@ describe("transaction validation", () => {
     expect(parseAmount("abc")).toBeNull();
   });
 
+  it("reads a decimal comma (French input) without mistaking thousands separators", () => {
+    expect(parseAmount("49,99")).toBe(49.99);
+    expect(parseAmount("1 250,5")).toBe(1250.5);
+    expect(parseAmount("1,250")).toBe(1250);
+    expect(parseAmount("1,250,000")).toBe(1250000);
+    expect(parseAmount("1.250,50")).toBeNull();
+  });
+
   const valid = { ...emptyTransaction, amount: "100", occurredOn: "2026-11-26" };
 
   it("accepts a valid revenue", () => {

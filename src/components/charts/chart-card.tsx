@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { SourceBadge } from "@/components/feedback/demo-badge";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { DataSource } from "@/lib/data/source";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 type ChartView = "chart" | "table";
@@ -32,6 +33,7 @@ type ChartCardProps = {
  */
 export function ChartCard({ title, description, source, actions, className, children }: ChartCardProps) {
   const [view, setView] = useState<ChartView>("chart");
+  const t = useT();
   const nextView = view === "chart" ? "table" : "chart";
   return (
     <Card className={cn("flex flex-col", className)}>
@@ -42,11 +44,11 @@ export function ChartCard({ title, description, source, actions, className, chil
           <>
             <SourceBadge source={source} />
             {actions}
-            <Tooltip content={nextView === "table" ? "Show as table" : "Show as chart"}>
+            <Tooltip content={nextView === "table" ? t.common.actions.showAsTable : t.common.actions.showAsChart}>
               <button
                 type="button"
                 onClick={() => setView(nextView)}
-                aria-label={nextView === "table" ? `Show ${title} as table` : `Show ${title} as chart`}
+                aria-label={nextView === "table" ? t.common.actions.showTitleAsTable(title) : t.common.actions.showTitleAsChart(title)}
                 aria-pressed={view === "table"}
                 className="rounded-md p-1.5 text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg"
               >

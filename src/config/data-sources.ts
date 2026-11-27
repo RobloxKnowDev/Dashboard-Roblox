@@ -23,9 +23,9 @@ export const dataSources = {
   market: "live", // Roblox public charts + daily snapshots
 
   // Demo until their integration ships
-  weeklyIdeas: "demo", // AI-generated top 5
+  weeklyIdeas: "live", // Steam trends checked against Roblox, written by Claude (weekly)
   agents: "demo", // agent status + events ingestion
-  assistant: "demo", // Claude-powered assistant
+  assistant: "live", // Claude (falls back to demo answers without ANTHROPIC_API_KEY)
 } as const satisfies Record<string, DataSource>;
 
 export type DataDomain = keyof typeof dataSources;

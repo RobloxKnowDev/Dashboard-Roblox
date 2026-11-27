@@ -4,6 +4,7 @@ import { CircleCheck, CircleExclamationPoint, Eye, EyeOff } from "lucide-react";
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { describedBy } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 export function AuthHeading({ title, description }: { title: string; description?: string }) {
@@ -34,6 +35,7 @@ export function FormMessage({ tone, children }: { tone: "error" | "success"; chi
 
 /** Password input with a show/hide toggle. */
 export function PasswordInput({ id, invalid, className, ...props }: ComponentProps<"input"> & { id: string; invalid?: boolean }) {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -49,7 +51,7 @@ export function PasswordInput({ id, invalid, className, ...props }: ComponentPro
         type="button"
         onClick={() => setVisible((v) => !v)}
         className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-fg-3 transition-colors hover:text-fg"
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t.auth.password.hide : t.auth.password.show}
         aria-pressed={visible}
       >
         {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}

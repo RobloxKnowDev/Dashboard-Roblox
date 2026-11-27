@@ -72,6 +72,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ai_usage": {
+                  Row: {
+                    "cache_read_tokens": number,"cache_write_tokens": number,"cost_usd": number,"created_at": string,"feature": string,"id": string,"input_tokens": number,"model": string,"output_tokens": number,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cache_read_tokens"?: number,"cache_write_tokens"?: number,"cost_usd"?: number,"created_at"?: string,"feature": string,"id"?: string,"input_tokens"?: number,"model": string,"output_tokens"?: number,"user_id"?: string | null
+                  }
+                  Update: {
+                    "cache_read_tokens"?: number,"cache_write_tokens"?: number,"cost_usd"?: number,"created_at"?: string,"feature"?: string,"id"?: string,"input_tokens"?: number,"model"?: string,"output_tokens"?: number,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ai_usage_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"assistant_conversations": {
                   Row: {
                     "created_at": string,"id": string,"title": string,"updated_at": string,"user_id": string
@@ -250,6 +270,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"idea_runs": {
+                  Row: {
+                    "candidates": NonNullable<Json>,"cost_usd": number,"created_at": string,"error": string | null,"finished_at": string | null,"id": string,"model": string | null,"started_by": string | null,"status": string,"trigger": string,"week_of": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "candidates"?: NonNullable<Json>,"cost_usd"?: number,"created_at"?: string,"error"?: string | null,"finished_at"?: string | null,"id"?: string,"model"?: string | null,"started_by"?: string | null,"status"?: string,"trigger": string,"week_of": string
+                  }
+                  Update: {
+                    "candidates"?: NonNullable<Json>,"cost_usd"?: number,"created_at"?: string,"error"?: string | null,"finished_at"?: string | null,"id"?: string,"model"?: string | null,"started_by"?: string | null,"status"?: string,"trigger"?: string,"week_of"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "idea_runs_started_by_fkey"
+      columns: ["started_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"integrations": {
                   Row: {
                     "config": NonNullable<Json>,"created_at": string,"id": string,"last_error": string | null,"last_sync_at": string | null,"provider": Database["public"]['Enums']["integration_provider"],"status": Database["public"]['Enums']["integration_status"],"updated_at": string,"updated_by": string | null
@@ -372,14 +412,14 @@ isOneToOne: false
                   ]
                 },"studio_settings": {
                   Row: {
-                    "created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
+                    "ai_assistant_enabled": boolean,"ai_monthly_budget_usd": number,"created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -459,6 +499,26 @@ isOneToOne: true
       columns: ["watchlist_id"]
 isOneToOne: false
       referencedRelation: "game_watchlist"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"weekly_ideas": {
+                  Row: {
+                    "content": NonNullable<Json>,"created_at": string,"id": string,"rank": number,"roblox_check": NonNullable<Json>,"run_id": string,"score": number | null,"steam": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content": NonNullable<Json>,"created_at"?: string,"id"?: string,"rank": number,"roblox_check"?: NonNullable<Json>,"run_id": string,"score"?: number | null,"steam"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"rank"?: number,"roblox_check"?: NonNullable<Json>,"run_id"?: string,"score"?: number | null,"steam"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "weekly_ideas_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "idea_runs"
       referencedColumns: ["id"]
     }
                   ]

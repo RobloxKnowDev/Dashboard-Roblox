@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { describedBy, Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { useMessage, useT } from "@/i18n/client";
 import { savePayouts } from "./payout-actions";
 import { payoutFormSchema, type PayoutFormInput } from "./payout-schema";
 
@@ -21,6 +22,8 @@ function previousMonth(): string {
 }
 
 export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId: string; gameName: string; initial?: PayoutFormInput; trigger?: ReactNode }) {
+  const t = useT();
+  const msg = useMessage();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const { register, handleSubmit, formState, setError, reset } = useForm<PayoutFormInput>({
@@ -40,12 +43,12 @@ export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId
         trigger ?? (
           <Button variant="secondary">
             <Plus aria-hidden />
-            Record payouts
+            {t.games.payouts.record}
           </Button>
         )
       }
-      title={`Payouts — ${gameName}`}
-      description="Robux for the month, from Creator Hub → your experience → Monetization. Leave a field empty to remove it."
+      title={t.games.payouts.formTitle(gameName)}
+      description={t.games.payouts.formDescription}
     >
       <form
         noValidate
@@ -54,7 +57,7 @@ export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId
           startTransition(async () => {
             const result = await savePayouts(gameId, values);
             if (result.ok) {
-              toast.success(result.message ?? "Saved");
+              toast.success(result.message ?? t.games.payouts.saved);
               setOpen(false);
               return;
             }
@@ -63,7 +66,7 @@ export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId
           }),
         )}
       >
-        <Field htmlFor="p-month" label="Month" required error={errors.month?.message} className="sm:col-span-2">
+        <Field htmlFor="p-month" label={t.games.payouts.month} required error={msg(errors.month?.message)} className="sm:col-span-2">
           <Input
             id="p-month"
             type="month"
@@ -74,21 +77,19 @@ export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId
             {...register("month")}
           />
         </Field>
-        <Field htmlFor="p-creator" label="Creator Rewards (Robux)" error={errors.creatorRewards?.message}>
+        <Field htmlFor="p-creator" label={t.games.payouts.creatorRewardsField} error={msg(errors.creatorRewards?.message)}>
           <Input id="p-creator" inputMode="numeric" placeholder="0" autoFocus aria-invalid={!!errors.creatorRewards} {...register("creatorRewards")} />
         </Field>
-        <Field htmlFor="p-plus" label="Roblox Plus (Robux)" error={errors.robloxPlus?.message}>
+        <Field htmlFor="p-plus" label={t.games.payouts.robloxPlusField} error={msg(errors.robloxPlus?.message)}>
           <Input id="p-plus" inputMode="numeric" placeholder="0" aria-invalid={!!errors.robloxPlus} {...register("robloxPlus")} />
         </Field>
-        <p className="text-xs leading-relaxed text-fg-3 sm:col-span-2">
-          For the current month, enter the total so far and update it later. On daily charts, a month is spread evenly over its days.
-        </p>
+        <p className="text-xs leading-relaxed text-fg-3 sm:col-span-2">{t.games.payouts.formNote}</p>
         <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
-            Save payouts
+            {t.games.payouts.save}
           </Button>
         </div>
       </form>
@@ -97,11 +98,12 @@ export function PayoutFormModal({ gameId, gameName, initial, trigger }: { gameId
 }
 
 export function EditPayoutButton(props: { gameId: string; gameName: string; initial: PayoutFormInput; label: string }) {
+  const t = useT();
   return (
     <PayoutFormModal
       {...props}
       trigger={
-        <Button variant="ghost" size="icon-sm" aria-label={`Edit payouts for ${props.label}`}>
+        <Button variant="ghost" size="icon-sm" aria-label={t.games.payouts.editLabel(props.label)}>
           <Pencil />
         </Button>
       }

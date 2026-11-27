@@ -11,9 +11,3 @@ export const chatHistorySchema = z
 
 export type ChatMessage = z.infer<typeof chatHistorySchema>[number];
 
-export const SUGGESTIONS = [
-  "How did revenue evolve over the last 30 days?",
-  "Which game has the best retention?",
-  "What should the team focus on this week?",
-  "Suggest 3 game ideas based on current trends",
-] as const;

@@ -6,6 +6,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/feedback/states";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 export type NotificationItem = {
@@ -29,6 +30,7 @@ type NotificationCenterProps = {
  * table, live — RLS returns only the signed-in user's rows).
  */
 export function NotificationCenter({ notifications = [], markAllRead }: NotificationCenterProps) {
+  const t = useT();
   const unread = notifications.filter((n) => !n.read).length;
   const [pending, startTransition] = useTransition();
 
@@ -36,14 +38,14 @@ export function NotificationCenter({ notifications = [], markAllRead }: Notifica
     if (!markAllRead) return;
     startTransition(async () => {
       const result = await markAllRead();
-      if (!result.ok) toast.error("Notifications couldn't be updated. Try again.");
+      if (!result.ok) toast.error(t.shell.notifications.updateFailed);
     });
   }
   return (
     <Popover>
       <PopoverTrigger
         className="relative rounded-md p-2 text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg data-[state=open]:bg-surface-2 data-[state=open]:text-fg"
-        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-label={unread > 0 ? t.shell.notifications.labelWithUnread(unread) : t.shell.notifications.title}
       >
         <Bell className="size-4" />
         {unread > 0 ? (
@@ -52,7 +54,7 @@ export function NotificationCenter({ notifications = [], markAllRead }: Notifica
       </PopoverTrigger>
       <PopoverContent className="w-[22rem] p-0">
         <header className="flex items-center justify-between border-b border-line px-4 py-3">
-          <h2 className="text-[13px] font-semibold text-fg">Notifications</h2>
+          <h2 className="text-[13px] font-semibold text-fg">{t.shell.notifications.title}</h2>
           <button
             type="button"
             disabled={unread === 0 || !markAllRead || pending}
@@ -60,15 +62,15 @@ export function NotificationCenter({ notifications = [], markAllRead }: Notifica
             className="inline-flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-fg disabled:pointer-events-none disabled:opacity-40"
           >
             <CheckCheck className="size-3.5" aria-hidden />
-            Mark all read
+            {t.shell.notifications.markAllRead}
           </button>
         </header>
         {notifications.length === 0 ? (
           <EmptyState
             compact
             icon={BellOff}
-            title="You're all caught up"
-            description="Task assignments, agent errors and game alerts will appear here."
+            title={t.shell.notifications.emptyTitle}
+            description={t.shell.notifications.emptyDescription}
           />
         ) : (
           <ul className="max-h-96 overflow-y-auto py-1">

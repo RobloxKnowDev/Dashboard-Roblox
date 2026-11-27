@@ -12,7 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
+import { LanguageMenuItems } from "./language-switcher";
+import { useT } from "@/i18n/client";
+import type { AppRole } from "@/lib/auth/roles";
 
 export type CurrentUser = {
   name: string;
@@ -29,10 +31,11 @@ type UserMenuProps = {
 };
 
 export function UserMenu({ user, signOut }: UserMenuProps) {
+  const t = useT();
   if (!user) {
     return (
       <Badge tone="neutral" className="h-6 px-2">
-        Not signed in
+        {t.shell.userMenu.notSignedIn}
       </Badge>
     );
   }
@@ -41,7 +44,7 @@ export function UserMenu({ user, signOut }: UserMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-surface-2 data-[state=open]:bg-surface-2"
-        aria-label="Account menu"
+        aria-label={t.shell.userMenu.accountMenu}
       >
         <Avatar name={user.name} src={user.avatarUrl} size="sm" />
         <span className="hidden max-w-32 truncate text-[13px] font-medium text-fg-2 md:block">{user.name}</span>
@@ -56,22 +59,24 @@ export function UserMenu({ user, signOut }: UserMenuProps) {
           </span>
         </DropdownMenuLabel>
         <div className="px-2 pb-2">
-          {user.role ? <Badge tone="accent">{ROLE_LABELS[user.role]}</Badge> : <Badge tone="warning">Pending approval</Badge>}
+          {user.role ? <Badge tone="accent">{t.common.roles[user.role]}</Badge> : <Badge tone="warning">{t.shell.userMenu.pendingApproval}</Badge>}
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
-            <User aria-hidden /> Profile
+            <User aria-hidden /> {t.shell.userMenu.profile}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings">
-            <Settings aria-hidden /> Settings
+            <Settings aria-hidden /> {t.shell.userMenu.settings}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <LanguageMenuItems />
+        <DropdownMenuSeparator />
         <DropdownMenuItem destructive onSelect={() => void signOut?.()} disabled={!signOut}>
-          <LogOut aria-hidden /> Sign out
+          <LogOut aria-hidden /> {t.shell.userMenu.signOut}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

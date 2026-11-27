@@ -2,9 +2,10 @@ import { CircleExclamationPoint, Inbox, LoaderCircle, type LucideIcon } from "lu
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import { Skeleton } from "@/components/ui/primitives";
+import { Msg } from "@/i18n/msg";
 
 type StateProps = {
-  title: string;
+  title: ReactNode;
   description?: ReactNode;
   icon?: LucideIcon;
   /** Call-to-action slot (a Button). */
@@ -43,8 +44,8 @@ export function EmptyState({ title, description, icon: Icon = Inbox, action, cla
 
 /** Something failed — always say what, and offer a way out. */
 export function ErrorState({
-  title = "Something went wrong",
-  description = "The data couldn't be loaded. Try again in a moment.",
+  title = <Msg k="common.states.errorTitle" />,
+  description = <Msg k="common.states.errorDescription" />,
   action,
   className,
   compact,
@@ -71,7 +72,7 @@ export function ErrorState({
 }
 
 /** Inline spinner + label, for actions in progress. */
-export function LoadingState({ label = "Loading…", className }: { label?: string; className?: string }) {
+export function LoadingState({ label = <Msg k="common.states.loading" />, className }: { label?: ReactNode; className?: string }) {
   return (
     <div role="status" className={cn("flex items-center justify-center gap-2 py-10 text-xs text-fg-3", className)}>
       <LoaderCircle className="size-4 animate-spin" aria-hidden />
@@ -83,7 +84,10 @@ export function LoadingState({ label = "Loading…", className }: { label?: stri
 /** Skeleton shaped like a card with a chart — used as Suspense fallback. */
 export function ChartSkeleton({ className, height = 240 }: { className?: string; height?: number }) {
   return (
-    <div className={cn("rounded-lg border border-line bg-surface p-5", className)} role="status" aria-label="Loading chart">
+    <div className={cn("rounded-lg border border-line bg-surface p-5", className)} role="status">
+      <span className="sr-only">
+        <Msg k="common.states.loadingChart" />
+      </span>
       <Skeleton className="h-3.5 w-32" />
       <Skeleton className="mt-2 h-3 w-48" />
       <Skeleton className="mt-5 w-full" style={{ height }} />
@@ -94,7 +98,10 @@ export function ChartSkeleton({ className, height = 240 }: { className?: string;
 /** Whole-page skeleton shown while the session is verified. */
 export function PageSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 md:px-8 md:py-8" role="status" aria-label="Loading page">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 md:px-8 md:py-8" role="status">
+      <span className="sr-only">
+        <Msg k="common.states.loadingPage" />
+      </span>
       <div className="space-y-2">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-7 w-56" />
@@ -113,7 +120,10 @@ export function PageSkeleton() {
 /** Skeleton for a list or table — used as Suspense fallback. */
 export function ListSkeleton({ rows = 5, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("space-y-3 p-5", className)} role="status" aria-label="Loading">
+    <div className={cn("space-y-3 p-5", className)} role="status">
+      <span className="sr-only">
+        <Msg k="common.states.loading" />
+      </span>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex items-center gap-3">
           <Skeleton className="size-8 rounded-full" />

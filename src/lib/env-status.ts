@@ -6,9 +6,19 @@ import "server-only";
  * build-time environment would be reported.
  */
 
+/** What each variable is for; the label is t.settings.api.purposes[id]. */
+export type EnvVarId =
+  | "supabaseUrl"
+  | "supabasePublishableKey"
+  | "siteUrl"
+  | "supabaseSecretKey"
+  | "robloxKeys"
+  | "cronSecret"
+  | "anthropicKey";
+
 export type EnvVarStatus = {
+  id: EnvVarId;
   name: string;
-  purpose: string;
   scope: "public" | "server";
   required: boolean;
   configured: boolean;
@@ -24,32 +34,31 @@ export function robloxKeyCount(): number {
 }
 
 export function environmentStatus(): EnvVarStatus[] {
-  const keys = robloxKeyCount();
   return [
-    { name: "NEXT_PUBLIC_SUPABASE_URL", purpose: "Supabase project URL", scope: "public", required: true, configured: set(process.env.NEXT_PUBLIC_SUPABASE_URL) },
+    { id: "supabaseUrl", name: "NEXT_PUBLIC_SUPABASE_URL", scope: "public", required: true, configured: set(process.env.NEXT_PUBLIC_SUPABASE_URL) },
     {
+      id: "supabasePublishableKey",
       name: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      purpose: "Supabase key for the browser (RLS applies)",
       scope: "public",
       required: true,
       configured: set(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
     },
-    { name: "NEXT_PUBLIC_SITE_URL", purpose: "Links in authentication emails", scope: "public", required: true, configured: set(process.env.NEXT_PUBLIC_SITE_URL) },
+    { id: "siteUrl", name: "NEXT_PUBLIC_SITE_URL", scope: "public", required: true, configured: set(process.env.NEXT_PUBLIC_SITE_URL) },
     {
+      id: "supabaseSecretKey",
       name: "SUPABASE_SECRET_KEY",
-      purpose: "Account creation and the daily snapshot job",
       scope: "server",
       required: true,
       configured: set(process.env.SUPABASE_SECRET_KEY),
     },
     {
+      id: "robloxKeys",
       name: "ROBLOX_OPEN_CLOUD_API_KEY (+ _2 … _5)",
-      purpose: keys > 0 ? `Roblox analytics — ${keys} ${keys === 1 ? "key" : "keys"} configured` : "Roblox analytics (DAU, revenue, retention)",
       scope: "server",
       required: false,
-      configured: keys > 0,
+      configured: robloxKeyCount() > 0,
     },
-    { name: "CRON_SECRET", purpose: "Protects the daily snapshot job", scope: "server", required: true, configured: set(process.env.CRON_SECRET) },
-    { name: "ANTHROPIC_API_KEY", purpose: "Claude for the AI Assistant (not connected yet)", scope: "server", required: false, configured: set(process.env.ANTHROPIC_API_KEY) },
+    { id: "cronSecret", name: "CRON_SECRET", scope: "server", required: true, configured: set(process.env.CRON_SECRET) },
+    { id: "anthropicKey", name: "ANTHROPIC_API_KEY", scope: "server", required: false, configured: set(process.env.ANTHROPIC_API_KEY) },
   ];
 }

@@ -4,30 +4,29 @@ import { BarChart, type CategoryRow } from "@/components/charts/bar-chart";
 import { ChartCard } from "@/components/charts/chart-card";
 import { TimeSeriesChart, type TimeSeriesRow } from "@/components/charts/time-series-chart";
 import { EmptyState } from "@/components/feedback/states";
+import { useFormat, useT } from "@/i18n/client";
 import type { DataSource } from "@/lib/data/source";
-import {
-  formatCompact,
-  formatCurrency,
-  formatDate,
-  formatMonth,
-  formatMonthYear,
-  formatPercent,
-  formatPrecisePercent,
-  formatRobux,
-  formatShortDate,
-} from "@/lib/utils/format";
+import type { Formatters } from "@/lib/utils/format";
 
 /** Value formats, by name — functions can't cross the server/client boundary. */
 export type ValueFormat = "compact" | "robux" | "usd" | "percent" | "rate" | "minutes";
 
-const FORMATTERS: Record<ValueFormat, (value: number) => string> = {
-  compact: formatCompact,
-  robux: formatRobux,
-  usd: (v) => formatCurrency(v, { compact: v >= 10_000 }),
-  percent: formatPercent,
-  rate: formatPrecisePercent,
-  minutes: (v) => `${v.toFixed(1)} min`,
-};
+function valueFormatter(f: Formatters, format: ValueFormat): (value: number) => string {
+  switch (format) {
+    case "compact":
+      return f.formatCompact;
+    case "robux":
+      return f.formatRobux;
+    case "usd":
+      return (v) => f.formatCurrency(v, { compact: v >= 10_000 });
+    case "percent":
+      return f.formatPercent;
+    case "rate":
+      return f.formatPrecisePercent;
+    case "minutes":
+      return (v) => `${f.formatNumber(Math.round(v * 10) / 10)} min`;
+  }
+}
 
 type Common = {
   title: string;
@@ -52,21 +51,23 @@ export function MetricChart({
   granularity?: "day" | "month";
   variant?: "area" | "line";
 }) {
+  const f = useFormat();
+  const t = useT();
   const dates =
     granularity === "month"
-      ? { formatDate: formatMonth, formatLabel: formatMonthYear }
-      : { formatDate: formatShortDate, formatLabel: formatDate };
+      ? { formatDate: f.formatMonth, formatLabel: f.formatMonthYear }
+      : { formatDate: f.formatShortDate, formatLabel: f.formatDate };
   return (
     <ChartCard title={common.title} description={common.description} source={common.source}>
       {rows.length === 0 ? (
-        <EmptyState compact title="No data for this period" description={common.emptyMessage ?? "Roblox hasn't reported values for these days yet."} />
+        <EmptyState compact title={t.common.states.noDataPeriod} description={common.emptyMessage ?? t.common.states.noDataYet} />
       ) : (
         <TimeSeriesChart
           label={common.label}
           data={rows}
           series={series}
           variant={variant}
-          formatValue={FORMATTERS[common.format]}
+          formatValue={valueFormatter(f, common.format)}
           {...dates}
         />
       )}
@@ -86,10 +87,12 @@ export function MetricBarChart({
   stacked?: boolean;
   categoryLabel?: string;
 }) {
+  const f = useFormat();
+  const t = useT();
   return (
     <ChartCard title={common.title} description={common.description} source={common.source}>
       {rows.length === 0 ? (
-        <EmptyState compact title="No data for this period" description={common.emptyMessage} />
+        <EmptyState compact title={t.common.states.noDataPeriod} description={common.emptyMessage} />
       ) : (
         <BarChart
           label={common.label}
@@ -97,7 +100,7 @@ export function MetricBarChart({
           series={series}
           stacked={stacked}
           categoryLabel={categoryLabel}
-          formatValue={FORMATTERS[common.format]}
+          formatValue={valueFormatter(f, common.format)}
         />
       )}
     </ChartCard>

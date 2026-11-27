@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Badge, StatusDot } from "@/components/ui/badge";
 import { GAME_STATUS } from "@/features/shared/status";
 import { likeRatio, type RobloxGameInfo } from "@/lib/integrations/roblox/public";
+import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/utils/cn";
-import { formatCompact, formatNumber, formatPercent } from "@/lib/utils/format";
 import type { GameRow } from "./data";
 
 export function GameIcon({ src, name, size = 56 }: { src: string | null | undefined; name: string; size?: number }) {
@@ -47,7 +47,8 @@ type GameCardProps = {
   dau: { value: number | null; status: "ok" | "unauthorized" | "not_configured" | "error" };
 };
 
-export function GameCard({ game, roblox, dau }: GameCardProps) {
+export async function GameCard({ game, roblox, dau }: GameCardProps) {
+  const { t, f } = await getI18n();
   const status = GAME_STATUS[game.status];
   const rating = roblox ? likeRatio(roblox) : null;
 
@@ -62,11 +63,11 @@ export function GameCard({ game, roblox, dau }: GameCardProps) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="truncate text-sm font-semibold text-fg">{roblox?.name ?? game.name}</h3>
             <Badge tone={status.tone} dot className="shrink-0">
-              {status.label}
+              {t.common.status.game[game.status]}
             </Badge>
           </div>
           <p className="mt-0.5 truncate text-xs text-fg-3">{roblox?.genre ?? game.genre ?? "—"}</p>
-          <p className="mt-1.5 font-mono text-[11px] text-fg-3">Universe {game.universe_id}</p>
+          <p className="mt-1.5 font-mono text-[11px] text-fg-3">{t.games.card.universe(String(game.universe_id))}</p>
         </div>
       </div>
 
@@ -74,32 +75,33 @@ export function GameCard({ game, roblox, dau }: GameCardProps) {
         <div className="min-w-0">
           <dt className="flex items-center gap-1.5 truncate text-[11px] text-fg-3">
             <StatusDot tone={roblox && roblox.playing > 0 ? "good" : "neutral"} pulse={!!roblox && roblox.playing > 0} />
-            Playing
+            {t.games.card.playing}
           </dt>
-          <dd className="mt-0.5 text-sm font-semibold text-fg tabular">{roblox ? formatNumber(roblox.playing) : "—"}</dd>
+          <dd className="mt-0.5 text-sm font-semibold text-fg tabular">{roblox ? f.formatNumber(roblox.playing) : "—"}</dd>
         </div>
-        <Stat label="Visits" value={roblox ? formatCompact(roblox.visits) : "—"} />
-        <Stat label="Favorites" value={roblox ? formatCompact(roblox.favorites) : "—"} />
-        <Stat label="Rating" value={rating === null ? "—" : formatPercent(rating)} />
+        <Stat label={t.games.card.visits} value={roblox ? f.formatCompact(roblox.visits) : "—"} />
+        <Stat label={t.games.card.favorites} value={roblox ? f.formatCompact(roblox.favorites) : "—"} />
+        <Stat label={t.games.card.rating} value={rating === null ? "—" : f.formatPercent(rating)} />
       </dl>
 
       <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-xs">
         {dau.status === "ok" ? (
           <span className="text-fg-3">
-            Daily active users <span className="font-semibold text-fg tabular">{dau.value === null ? "—" : formatNumber(Math.round(dau.value))}</span>
+            {t.games.card.dau}{" "}
+            <span className="font-semibold text-fg tabular">{dau.value === null ? "—" : f.formatNumber(Math.round(dau.value))}</span>
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 text-fg-3">
             <LockKeyhole className="size-3" aria-hidden />
             {dau.status === "unauthorized"
-              ? "Analytics not authorized for this game"
+              ? t.games.card.analyticsUnauthorized
               : dau.status === "not_configured"
-                ? "Analytics key not configured"
-                : "Analytics unavailable right now"}
+                ? t.games.card.analyticsNotConfigured
+                : t.games.card.analyticsError}
           </span>
         )}
         <span className="inline-flex items-center gap-0.5 text-fg-3 transition-colors group-hover:text-accent">
-          Details
+          {t.common.actions.details}
           <ChevronRight className="size-3.5" aria-hidden />
         </span>
       </div>

@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select } from "@/components/ui/select";
 import { statusOptions, TASK_PRIORITY, TASK_STATUS } from "@/features/shared/status";
+import { useFormat, useT } from "@/i18n/client";
+import type { Messages } from "@/i18n/messages";
 import { cn } from "@/lib/utils/cn";
-import { formatShortDate } from "@/lib/utils/format";
+import type { Formatters } from "@/lib/utils/format";
 import { deleteTask, setTaskStatus } from "./actions";
 import type { TaskInput } from "./schemas";
 import { TaskFormModal, type TaskFormOptions } from "./task-form";
@@ -40,33 +42,34 @@ export type TaskRowData = {
 type Permissions = { canEdit: boolean; canDeleteAny: boolean; userId: string };
 
 function StatusCell({ task, canEdit }: { task: TaskRowData; canEdit: boolean }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const meta = TASK_STATUS[task.status];
-  if (!canEdit) return <Badge tone={meta.tone}>{meta.label}</Badge>;
+  if (!canEdit) return <Badge tone={meta.tone}>{t.common.status.task[task.status]}</Badge>;
   return (
     <Select
-      aria-label={`Status of ${task.title}`}
+      aria-label={t.tasks.table.statusOf(task.title)}
       value={task.status}
       disabled={pending}
       className="h-7 w-32 text-xs"
-      options={statusOptions(TASK_STATUS)}
+      options={statusOptions(TASK_STATUS, t.common.status.task)}
       onValueChange={(next) =>
         startTransition(async () => {
           const result = await setTaskStatus(task.id, next);
-          if (!result.ok) toast.error(result.message ?? "The status couldn't be changed.");
+          if (!result.ok) toast.error(result.message ?? t.tasks.actions.statusFailed);
         })
       }
     />
   );
 }
 
-function dueCell(task: TaskRowData, today: string) {
+function dueCell(task: TaskRowData, today: string, t: Messages, f: Formatters) {
   if (!task.dueDate) return <span className="text-fg-3">—</span>;
   const overdue = task.dueDate < today && task.status !== "done" && task.status !== "cancelled";
   return (
-    <span className={cn("tabular", overdue ? "font-medium text-critical" : "text-fg-2")} title={overdue ? "Overdue" : undefined}>
-      {formatShortDate(task.dueDate)}
-      {overdue ? <span className="sr-only"> (overdue)</span> : null}
+    <span className={cn("tabular", overdue ? "font-medium text-critical" : "text-fg-2")} title={overdue ? t.tasks.table.overdue : undefined}>
+      {f.formatShortDate(task.dueDate)}
+      {overdue ? <span className="sr-only">{t.tasks.table.overdueSr}</span> : null}
     </span>
   );
 }
@@ -103,9 +106,12 @@ export function TaskTable({
   options,
   newTaskDefaults,
   hideProject,
-  emptyTitle = "No tasks here",
-  emptyDescription = "Tasks matching this view will show up here.",
+  emptyTitle,
+  emptyDescription,
 }: TaskTableProps) {
+  const t = useT();
+  const f = useFormat();
+  const c = t.tasks.table;
   const [editing, setEditing] = useState<TaskRowData | null>(null);
   const [creating, setCreating] = useState(false);
   const [, startTransition] = useTransition();
@@ -115,22 +121,22 @@ export function TaskTable({
   function remove(task: TaskRowData) {
     startTransition(async () => {
       const result = await deleteTask(task.id);
-      if (result.ok) toast.success(result.message ?? "Task deleted");
-      else toast.error(result.message ?? "The task couldn't be deleted.");
+      if (result.ok) toast.success(result.message ?? t.tasks.actions.deleted);
+      else toast.error(result.message ?? t.tasks.actions.deleteFailed);
     });
   }
 
   const columns: Column<TaskRowData>[] = [
     {
       id: "title",
-      header: "Task",
-      sortValue: (t) => t.title.toLowerCase(),
-      cell: (t) => (
+      header: c.task,
+      sortValue: (task) => task.title.toLowerCase(),
+      cell: (task) => (
         <div className="min-w-0 max-w-md">
-          <p className={cn("truncate font-medium", t.status === "done" ? "text-fg-3 line-through" : "text-fg")}>{t.title}</p>
-          {!hideProject && t.project ? (
-            <Link href={`/projects/${t.project.id}`} className="truncate text-xs text-fg-3 hover:text-accent">
-              {t.project.name}
+          <p className={cn("truncate font-medium", task.status === "done" ? "text-fg-3 line-through" : "text-fg")}>{task.title}</p>
+          {!hideProject && task.project ? (
+            <Link href={`/projects/${task.project.id}`} className="truncate text-xs text-fg-3 hover:text-accent">
+              {task.project.name}
             </Link>
           ) : null}
         </div>
@@ -138,30 +144,30 @@ export function TaskTable({
     },
     {
       id: "assignee",
-      header: "Assignee",
-      sortValue: (t) => t.assignee?.name ?? "~",
-      cell: (t) =>
-        t.assignee ? (
+      header: c.assignee,
+      sortValue: (task) => task.assignee?.name ?? "~",
+      cell: (task) =>
+        task.assignee ? (
           <span className="flex items-center gap-2">
-            <Avatar name={t.assignee.name} src={t.assignee.avatarUrl} size="xs" />
-            <span className="truncate">{t.assignee.name}</span>
+            <Avatar name={task.assignee.name} src={task.assignee.avatarUrl} size="xs" />
+            <span className="truncate">{task.assignee.name}</span>
           </span>
         ) : (
-          <span className="text-fg-3">Unassigned</span>
+          <span className="text-fg-3">{c.unassigned}</span>
         ),
     },
     {
       id: "priority",
-      header: "Priority",
-      sortValue: (t) => TASK_PRIORITY[t.priority].rank,
-      cell: (t) => (
-        <Badge tone={TASK_PRIORITY[t.priority].tone} dot>
-          {TASK_PRIORITY[t.priority].label}
+      header: c.priority,
+      sortValue: (task) => TASK_PRIORITY[task.priority].rank,
+      cell: (task) => (
+        <Badge tone={TASK_PRIORITY[task.priority].tone} dot>
+          {t.common.status.priority[task.priority]}
         </Badge>
       ),
     },
-    { id: "status", header: "Status", sortValue: (t) => t.status, cell: (t) => <StatusCell task={t} canEdit={permissions.canEdit} /> },
-    { id: "due", header: "Due", sortValue: (t) => t.dueDate, cell: (t) => dueCell(t, today) },
+    { id: "status", header: c.status, sortValue: (task) => task.status, cell: (task) => <StatusCell task={task} canEdit={permissions.canEdit} /> },
+    { id: "due", header: c.due, sortValue: (task) => task.dueDate, cell: (task) => dueCell(task, today, t, f) },
   ];
 
   if (permissions.canEdit) {
@@ -170,26 +176,26 @@ export function TaskTable({
       header: "",
       align: "right",
       className: "w-12",
-      cell: (t) => {
-        const canDelete = permissions.canDeleteAny || t.createdBy === permissions.userId;
+      cell: (task) => {
+        const canDelete = permissions.canDeleteAny || task.createdBy === permissions.userId;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${t.title}`}>
+              <Button variant="ghost" size="icon-sm" aria-label={c.actionsFor(task.title)}>
                 <Ellipsis />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => setEditing(t)}>
+              <DropdownMenuItem onSelect={() => setEditing(task)}>
                 <Pencil aria-hidden />
-                Edit
+                {t.common.actions.edit}
               </DropdownMenuItem>
               {canDelete ? (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem destructive onSelect={() => remove(t)}>
+                  <DropdownMenuItem destructive onSelect={() => remove(task)}>
                     <Trash2 aria-hidden />
-                    Delete
+                    {t.common.actions.delete}
                   </DropdownMenuItem>
                 </>
               ) : null}
@@ -206,7 +212,7 @@ export function TaskTable({
         <div className="flex justify-end">
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus aria-hidden />
-            New task
+            {c.newTask}
           </Button>
         </div>
       ) : null}
@@ -214,10 +220,10 @@ export function TaskTable({
         <DataTable
           columns={columns}
           rows={tasks}
-          getRowId={(t) => t.id}
-          caption="Tasks"
+          getRowId={(task) => task.id}
+          caption={c.caption}
           pageSize={20}
-          empty={<EmptyState icon={ListTodo} title={emptyTitle} description={emptyDescription} />}
+          empty={<EmptyState icon={ListTodo} title={emptyTitle ?? c.emptyTitle} description={emptyDescription ?? c.emptyDescription} />}
         />
       </div>
       <TaskFormModal open={creating} onOpenChange={setCreating} options={options} defaults={newTaskDefaults} />

@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/cn";
+import { useT } from "@/i18n/client";
 import { Logo } from "./logo";
 import { SidebarCollapsedContext } from "./sidebar-context";
 
@@ -39,6 +40,7 @@ function useCollapsed(): [boolean, () => void] {
  */
 export function Sidebar({ nav }: { nav: ReactNode }) {
   const [collapsed, toggle] = useCollapsed();
+  const t = useT();
   return (
     <aside
       className={cn(
@@ -47,7 +49,7 @@ export function Sidebar({ nav }: { nav: ReactNode }) {
       )}
     >
       <div className={cn("flex h-14 shrink-0 items-center", collapsed ? "justify-center" : "px-4")}>
-        <Link href="/overview" className="rounded-md" aria-label="Go to overview">
+        <Link href="/overview" className="rounded-md" aria-label={t.shell.sidebar.goToOverview}>
           <Logo collapsed={collapsed} />
         </Link>
       </div>
@@ -57,12 +59,12 @@ export function Sidebar({ nav }: { nav: ReactNode }) {
       </div>
 
       <div className={cn("flex h-12 shrink-0 items-center border-t border-line", collapsed ? "justify-center" : "justify-between px-4")}>
-        {collapsed ? null : <span className="font-mono text-[10px] uppercase tracking-wider text-fg-3">Phase 1 · v0.1</span>}
-        <Tooltip content={collapsed ? "Expand sidebar" : "Collapse sidebar"} side="right">
+        {collapsed ? null : <span className="font-mono text-[10px] uppercase tracking-wider text-fg-3">{t.shell.sidebar.version}</span>}
+        <Tooltip content={collapsed ? t.shell.sidebar.expand : t.shell.sidebar.collapse} side="right">
           <button
             type="button"
             onClick={toggle}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t.shell.sidebar.expand : t.shell.sidebar.collapse}
             aria-expanded={!collapsed}
             className="rounded-md p-1.5 text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg"
           >

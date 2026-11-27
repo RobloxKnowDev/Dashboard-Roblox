@@ -4,23 +4,27 @@ import { ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { findNavItem, navigation } from "@/config/navigation";
+import { useT } from "@/i18n/client";
 import { CommandPaletteTrigger } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 
 function Breadcrumb() {
   const pathname = usePathname();
+  const t = useT();
   const item = findNavItem(pathname);
   const section = navigation.find((s) => s.items.some((i) => i.href === item?.href));
   if (!item || !section) return null;
+  const sectionTitle = t.nav.sections[section.key];
+  const itemTitle = t.nav.items[item.key].title;
   return (
-    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-[13px] md:flex">
-      {section.title !== item.title ? (
+    <nav aria-label={t.shell.breadcrumb} className="hidden min-w-0 items-center gap-1.5 text-[13px] md:flex">
+      {sectionTitle !== itemTitle ? (
         <>
-          <span className="truncate text-fg-3">{section.title}</span>
+          <span className="truncate text-fg-3">{sectionTitle}</span>
           <ChevronRight className="size-3.5 shrink-0 text-fg-4" aria-hidden />
         </>
       ) : null}
-      <span className="truncate font-medium text-fg-2">{item.title}</span>
+      <span className="truncate font-medium text-fg-2">{itemTitle}</span>
     </nav>
   );
 }

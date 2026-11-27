@@ -5,8 +5,11 @@
  * Pure functions, unit-tested.
  */
 
+import { messages, type Messages } from "@/i18n/messages";
+
 export type PayoutSource = "creator_rewards" | "roblox_plus";
 
+/** Labels are Roblox program names — the same in every language. */
 export const PAYOUT_SOURCES: { key: PayoutSource; label: string }[] = [
   { key: "creator_rewards", label: "Creator Rewards" },
   { key: "roblox_plus", label: "Roblox Plus" },
@@ -99,17 +102,20 @@ export function alignSeries(a: Point[], b: Point[]): { a: Point[]; b: Point[] } 
   return { a: dates.map((date) => ({ date, value: ma.get(date) ?? 0 })), b: dates.map((date) => ({ date, value: mb.get(date) ?? 0 })) };
 }
 
-/** Chart rows/series for revenue: game sales, plus rewards when any were recorded. */
-export function revenueChart(sales: Point[], rewards: Point[]) {
+/**
+ * Chart rows/series for revenue: game sales, plus rewards when any were recorded.
+ * Series labels: pass t.games.revenueChart (English when omitted).
+ */
+export function revenueChart(sales: Point[], rewards: Point[], labels: Messages["games"]["revenueChart"] = messages.en.games.revenueChart) {
   if (rewards.length === 0) {
-    return { rows: sales.map((p) => ({ date: p.date, sales: p.value })), series: [{ key: "sales", label: "Robux" }] };
+    return { rows: sales.map((p) => ({ date: p.date, sales: p.value })), series: [{ key: "sales", label: labels.robux }] };
   }
   const { a, b } = alignSeries(sales, rewards);
   return {
     rows: a.map((p, i) => ({ date: p.date, sales: p.value, rewards: b[i]?.value ?? 0 })),
     series: [
-      { key: "sales", label: "Game sales" },
-      { key: "rewards", label: "Creator Rewards + Roblox Plus (est.)" },
+      { key: "sales", label: labels.sales },
+      { key: "rewards", label: labels.rewards },
     ],
   };
 }

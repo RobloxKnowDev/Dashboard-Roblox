@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getRequestT } from "@/i18n/server";
 import { publicEnv } from "@/lib/env";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { createClient } from "@/lib/supabase/server";
@@ -30,13 +31,14 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
   });
 
   if (error) {
+    const t = await getRequestT();
     if (error.status === 429) {
-      return { status: "error", message: "Too many attempts. Wait a few minutes and try again." };
+      return { status: "error", message: t.auth.errors.tooManyAttempts };
     }
     if (error.code === "email_not_confirmed") {
-      return { status: "error", message: "This account hasn't been confirmed yet. Check your inbox." };
+      return { status: "error", message: t.auth.errors.notConfirmed };
     }
-    return { status: "error", message: "Invalid email or password." };
+    return { status: "error", message: t.auth.errors.invalidCredentials };
   }
 
   redirect(safeNextPath(parsed.data.next));
@@ -58,14 +60,12 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
     redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
   });
 
+  const t = await getRequestT();
   if (error?.status === 429) {
-    return { status: "error", message: "Too many requests. Wait a few minutes before asking for another link." };
+    return { status: "error", message: t.auth.errors.tooManyRequests };
   }
 
-  return {
-    status: "success",
-    message: "If an account exists for this address, a reset link is on its way. It expires in one hour.",
-  };
+  return { status: "success", message: t.auth.errors.resetSent };
 }
 
 /** Sets a new password for the user signed in through a recovery link. */
@@ -78,21 +78,22 @@ export async function updatePassword(_prev: FormState, formData: FormData): Prom
     return { status: "error", fieldErrors: fieldErrorsOf(parsed.error) };
   }
 
+  const t = await getRequestT();
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) {
-    return { status: "error", message: "Your reset link has expired. Ask for a new one." };
+    return { status: "error", message: t.auth.errors.resetExpired };
   }
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
     if (error.code === "same_password") {
-      return { status: "error", fieldErrors: { password: "Choose a password different from your current one." } };
+      return { status: "error", fieldErrors: { password: t.auth.errors.samePassword } };
     }
     if (error.code === "weak_password") {
-      return { status: "error", fieldErrors: { password: "This password is too weak. Make it longer or less common." } };
+      return { status: "error", fieldErrors: { password: t.auth.errors.weakPassword } };
     }
-    return { status: "error", message: "The password couldn't be updated. Try again." };
+    return { status: "error", message: t.auth.errors.updateFailed };
   }
 
   redirect("/overview");

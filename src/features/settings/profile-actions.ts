@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { getRequestT } from "@/i18n/server";
 import { fieldErrors, type ActionResult } from "@/lib/action-result";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -12,14 +13,15 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
   const parsed = profileSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
 
+  const t = await getRequestT();
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
     .update({ full_name: parsed.data.fullName, avatar_url: parsed.data.avatarUrl || null })
     .eq("id", user.id);
-  if (error) return { ok: false, message: "Your profile couldn't be saved. Try again." };
+  if (error) return { ok: false, message: t.settings.profile.saveFailed };
   refresh();
-  return { ok: true, message: "Profile updated" };
+  return { ok: true, message: t.settings.profile.saved };
 }
 
 export async function changePassword(input: unknown): Promise<ActionResult> {
@@ -27,15 +29,16 @@ export async function changePassword(input: unknown): Promise<ActionResult> {
   const parsed = passwordChangeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
 
+  const t = await getRequestT();
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
-    if (error.code === "same_password") return { ok: false, fieldErrors: { password: "Choose a password different from your current one." } };
-    if (error.code === "weak_password") return { ok: false, fieldErrors: { password: "This password is too weak." } };
+    if (error.code === "same_password") return { ok: false, fieldErrors: { password: t.auth.errors.samePassword } };
+    if (error.code === "weak_password") return { ok: false, fieldErrors: { password: t.settings.profile.weakPassword } };
     if (error.code === "reauthentication_needed") {
-      return { ok: false, message: "For security, sign out and sign back in before changing your password." };
+      return { ok: false, message: t.settings.profile.reauthenticate };
     }
-    return { ok: false, message: "The password couldn't be changed. Try again." };
+    return { ok: false, message: t.settings.profile.passwordFailed };
   }
-  return { ok: true, message: "Password changed" };
+  return { ok: true, message: t.settings.profile.passwordChanged };
 }

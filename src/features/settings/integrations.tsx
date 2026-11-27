@@ -5,10 +5,11 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { listGames } from "@/features/games/data";
 import { getStudioMetrics } from "@/features/overview/studio";
+import { getI18n } from "@/i18n/server";
 import { environmentStatus, robloxKeyCount } from "@/lib/env-status";
 import { getRobloxGames } from "@/lib/integrations/roblox/public";
+import { getAssistantMode } from "@/features/assistant/provider";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils/format";
 
 /*
  * LIVE status of every connection, computed on each visit. Shows whether a
@@ -16,9 +17,9 @@ import { formatDate } from "@/lib/utils/format";
  */
 
 type Status = { label: string; tone: BadgeTone; icon: LucideIcon };
-const OK = (label = "Connected"): Status => ({ label, tone: "good", icon: CircleCheck });
+const OK = (label: string): Status => ({ label, tone: "good", icon: CircleCheck });
 const WARN = (label: string): Status => ({ label, tone: "warning", icon: TriangleExclamationPoint });
-const OFF = (label = "Not connected"): Status => ({ label, tone: "neutral", icon: CircleDashed });
+const OFF = (label: string): Status => ({ label, tone: "neutral", icon: CircleDashed });
 
 function IntegrationCard({
   icon: Icon,
@@ -68,8 +69,12 @@ async function lastSnapshotDay(): Promise<string | null> {
 
 export async function IntegrationsOverview() {
   await connection();
+  const { t, f } = await getI18n();
+  const s = t.integrations.status;
+  const val = t.integrations.values;
   const today = new Date().toISOString().slice(0, 10);
   const env = Object.fromEntries(environmentStatus().map((v) => [v.name, v.configured]));
+  const assistantMode = await getAssistantMode(new Date());
   const keys = robloxKeyCount();
 
   const games = (await listGames())?.filter((g) => g.status !== "archived") ?? [];
@@ -84,60 +89,84 @@ export async function IntegrationsOverview() {
   const snapshotAge = lastSnapshot ? Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${lastSnapshot}T00:00:00Z`)) / 86_400_000) : null;
 
   const analyticsStatus =
-    keys === 0 ? OFF("No key") : games.length === 0 ? WARN("No games") : readable === games.length ? OK() : readable > 0 ? WARN("Partial") : WARN("No access");
+    keys === 0
+      ? OFF(s.noKey)
+      : games.length === 0
+        ? WARN(s.noGames)
+        : readable === games.length
+          ? OK(s.connected)
+          : readable > 0
+            ? WARN(s.partial)
+            : WARN(s.noAccess);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <IntegrationCard
         icon={Gamepad2}
-        name="Roblox public stats"
-        description="Players online, visits, favorites, ratings and the Roblox charts. No key needed."
-        status={roblox === null ? WARN("Unreachable") : OK()}
+        name={t.integrations.robloxPublic.name}
+        description={t.integrations.robloxPublic.description}
+        status={roblox === null ? WARN(s.unreachable) : OK(s.connected)}
         details={[
-          { label: "Games tracked", value: games.length },
-          { label: "Used by", value: "My Games, Overview, Discover" },
+          { label: t.integrations.robloxPublic.gamesTracked, value: games.length },
+          {
+            label: t.integrations.robloxPublic.usedBy,
+            value: [t.nav.items.games.title, t.nav.items.overview.title, t.nav.items.discover.title].join(", "),
+          },
         ]}
       />
       <IntegrationCard
         icon={ChartLine}
-        name="Roblox Open Cloud analytics"
-        description="DAU, revenue, retention and playtime, read with your Open Cloud API keys (one per Roblox group)."
+        name={t.integrations.analytics.name}
+        description={t.integrations.analytics.description}
         status={analyticsStatus}
         details={[
-          { label: "API keys configured", value: keys },
-          { label: "Games readable", value: games.length ? `${readable} of ${games.length}` : "—" },
-          ...(unauthorized.length ? [{ label: "Not readable", value: unauthorized.join(", ") }] : []),
+          { label: t.integrations.analytics.keys, value: keys },
+          { label: t.integrations.analytics.readable, value: games.length ? val.readableOf(readable, games.length) : "—" },
+          ...(unauthorized.length ? [{ label: t.integrations.analytics.notReadable, value: unauthorized.join(", ") }] : []),
         ]}
       />
       <IntegrationCard
         icon={CalendarClock}
-        name="Daily snapshots"
-        description="A scheduled job records the Roblox charts, your watchlist and your games every day at 06:00 UTC to build history."
-        status={!env.CRON_SECRET || !env.SUPABASE_SECRET_KEY ? WARN("Setup incomplete") : snapshotAge !== null && snapshotAge <= 1 ? OK("Running") : WARN("No recent run")}
+        name={t.integrations.snapshots.name}
+        description={t.integrations.snapshots.description}
+        status={
+          !env.CRON_SECRET || !env.SUPABASE_SECRET_KEY
+            ? WARN(s.setupIncomplete)
+            : snapshotAge !== null && snapshotAge <= 1
+              ? OK(s.running)
+              : WARN(s.noRecentRun)
+        }
         details={[
-          { label: "Last snapshot", value: lastSnapshot ? formatDate(lastSnapshot) : "Never" },
-          { label: "Job secret", value: env.CRON_SECRET ? "Configured" : "Missing" },
-          { label: "Server key", value: env.SUPABASE_SECRET_KEY ? "Configured" : "Missing" },
+          { label: t.integrations.snapshots.last, value: lastSnapshot ? f.formatDate(lastSnapshot) : val.never },
+          { label: t.integrations.snapshots.jobSecret, value: env.CRON_SECRET ? val.configured : val.missing },
+          { label: t.integrations.snapshots.serverKey, value: env.SUPABASE_SECRET_KEY ? val.configured : val.missing },
         ]}
       />
       <IntegrationCard
         icon={Sparkles}
-        name="Claude (AI Assistant)"
-        description="Answers questions about your studio from your real data. The assistant runs in demo mode until it's connected."
-        status={OFF()}
+        name={t.integrations.claude.name}
+        description={t.integrations.claude.description}
+        status={env.ANTHROPIC_API_KEY ? OK(s.connected) : OFF(s.noKey)}
         details={[
-          { label: "API key", value: env.ANTHROPIC_API_KEY ? "Configured" : "Not configured" },
-          { label: "Assistant mode", value: "Demo" },
+          { label: t.integrations.claude.apiKey, value: env.ANTHROPIC_API_KEY ? val.configured : val.notConfigured },
+          {
+            label: t.integrations.claude.mode,
+            value: !env.ANTHROPIC_API_KEY ? val.demo : assistantMode === "live" ? val.live : assistantMode === "disabled" ? val.off : val.paused,
+          },
+          { label: t.integrations.claude.models, value: "Haiku 5.5 · Opus 5.5" },
         ]}
       />
       <IntegrationCard
         icon={Database}
-        name="Supabase"
-        description="Database, authentication and access rules (row-level security) for every page."
-        status={OK()}
+        name={t.integrations.supabase.name}
+        description={t.integrations.supabase.description}
+        status={OK(s.connected)}
         details={[
-          { label: "Public keys", value: env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ? "Configured" : "Missing" },
-          { label: "Secret key", value: env.SUPABASE_SECRET_KEY ? "Configured" : "Missing" },
+          {
+            label: t.integrations.supabase.publicKeys,
+            value: env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ? val.configured : val.missing,
+          },
+          { label: t.integrations.supabase.secretKey, value: env.SUPABASE_SECRET_KEY ? val.configured : val.missing },
         ]}
       />
     </div>

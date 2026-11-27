@@ -11,8 +11,9 @@ import { Progress } from "@/components/ui/primitives";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { MetricChart } from "@/features/shared/metric-chart";
 import { parseRange } from "@/features/shared/range";
+import { getI18n } from "@/i18n/server";
 import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
-import { formatCompact, formatPercent, formatPrecisePercent } from "@/lib/utils/format";
+import type { Formatters } from "@/lib/utils/format";
 import { bestThumbnail, MAX_THUMBNAIL_SERIES, mergePoints, overallQualifiedPtr } from "./acquisition-compute";
 import { getGameAcquisition, getGameThumbnails } from "./acquisition";
 import { avgOf, deltaOf, sumOf } from "./analytics";
@@ -28,31 +29,32 @@ function RangeNote({ children }: { children: ReactNode }) {
   );
 }
 
-const FAILED_MESSAGE = "Roblox limits how much data the API key can read per minute. Refresh in a minute.";
-
 /** Some queries failed — almost always Roblox's (unpublished) data-point budget. */
-function RateLimitNote() {
+function RateLimitNote({ text }: { text: string }) {
   return (
     <p role="status" className="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-xs text-warning">
       <TriangleExclamationPoint className="mt-px size-3.5 shrink-0" aria-hidden />
-      <span>Some figures couldn&apos;t load: Roblox limits how much data the API key can read per minute. Refresh the page in a minute.</span>
+      <span>{text}</span>
     </p>
   );
 }
 
-const pct = (value: number | null) => (value === null ? "—" : formatPrecisePercent(value));
+const percentOrDash = (f: Formatters) => (value: number | null) => (value === null ? "—" : f.formatPrecisePercent(value));
 
 /* ───────────────────────────── Acquisition ───────────────────────────── */
 
 export async function GameAcquisitionSection({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const game = await loadGame(params);
-  const requested = parseRange((await searchParams).range);
+  const { t, f, locale } = await getI18n();
+  const requested = parseRange((await searchParams).range, locale);
   await connection();
   const today = new Date().toISOString().slice(0, 10);
-  const data = await getGameAcquisition(game.universe_id, requested, today);
+  const data = await getGameAcquisition(game.universe_id, requested, today, locale);
 
   if (data.status !== "ok") return <AnalyticsUnavailable status={data.status} universeId={game.universe_id} />;
 
+  const a = t.games.acquisition;
+  const pct = percentOrDash(f);
   const { range, sources } = data;
   const reachTotal = sources.reduce((acc, s) => acc + s.reachedTotal, 0);
   const playedTotal = sources.reduce((acc, s) => acc + s.playedTotal, 0);
@@ -68,57 +70,61 @@ export async function GameAcquisitionSection({ params, searchParams }: { params:
 
   return (
     <div className="space-y-4">
-      {data.capped ? <RangeNote>Acquisition covers the last 90 days at most — showing the last 90 days.</RangeNote> : null}
-      {anyFailed ? <RateLimitNote /> : null}
+      {data.capped ? <RangeNote>{a.capped}</RangeNote> : null}
+      {anyFailed ? <RateLimitNote text={a.rateLimit} /> : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Players reached" value={formatCompact(reachTotal)} source="live" icon={Eye} hint={`Saw the game, ${range.label}`} />
+        <StatCard label={a.reached} value={f.formatCompact(reachTotal)} source="live" icon={Eye} hint={a.reachedHint(range.label)} />
         <StatCard
-          label="Impression CTR"
+          label={a.ctr}
           value={pct(ctrNow)}
           source="live"
           icon={MousePointerClick}
           delta={deltaOf(ctrNow, avgOf(data.impressionCtr.previous))}
           deltaLabel={range.comparison}
-          hint="Viewers who clicked the game"
+          hint={a.ctrHint}
         />
         <StatCard
-          label="Qualified play-through"
+          label={a.qptr}
           value={pct(qptrNow)}
           source="live"
           icon={Target}
           delta={deltaOf(qptrNow, avgOf(data.qualifiedPtr.previous))}
           deltaLabel={range.comparison}
-          hint="Viewers who stayed to play"
+          hint={a.qptrHint}
         />
         <StatCard
-          label="First-play bounce"
-          value={bounceNow === null ? "—" : formatPercent(bounceNow)}
+          label={a.bounce}
+          value={bounceNow === null ? "—" : f.formatPercent(bounceNow)}
           source="live"
           icon={DoorOpen}
           delta={deltaOf(bounceNow, avgOf(data.bounce60.previous))}
           deltaLabel={range.comparison}
           upIsGood={false}
-          hint="Left within 60 s · home recs"
+          hint={a.bounceHint}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className="flex flex-col xl:col-span-2">
-          <CardHeader title="Acquisition by source" description={`Totals, ${range.label}`} actions={<SourceBadge source="live" />} />
+          <CardHeader title={a.bySourceTitle} description={a.bySourceDescription(range.label)} actions={<SourceBadge source="live" />} />
           <div className="mt-3 flex-1">
             {sources.length === 0 ? (
-              <EmptyState compact title={failed.sources ? "Couldn't load right now" : "No data for this period"} description={failed.sources ? FAILED_MESSAGE : "Roblox hasn't reported acquisition sources for these days yet."} />
+              <EmptyState
+                compact
+                title={failed.sources ? a.couldntLoad : t.common.states.noDataPeriod}
+                description={failed.sources ? a.failedMessage : a.noSources}
+              />
             ) : (
               <Table>
-                <caption className="sr-only">Players reached and players who played, by acquisition source, {range.label}</caption>
+                <caption className="sr-only">{a.tableCaption(range.label)}</caption>
                 <THead>
                   <TR>
-                    <TH>Source</TH>
-                    <TH className="text-right">Reached</TH>
-                    <TH className="text-right">Share</TH>
-                    <TH className="text-right">Played</TH>
-                    <TH className="text-right">Play rate</TH>
+                    <TH>{a.colSource}</TH>
+                    <TH className="text-right">{a.colReached}</TH>
+                    <TH className="text-right">{a.colShare}</TH>
+                    <TH className="text-right">{a.colPlayed}</TH>
+                    <TH className="text-right">{a.colPlayRate}</TH>
                   </TR>
                 </THead>
                 <TBody>
@@ -130,92 +136,88 @@ export async function GameAcquisitionSection({ params, searchParams }: { params:
                           {s.label}
                         </span>
                       </TD>
-                      <TD className="text-right tabular">{formatCompact(s.reachedTotal)}</TD>
-                      <TD className="text-right tabular text-fg-3">{reachTotal > 0 ? formatPercent(s.reachedTotal / reachTotal) : "—"}</TD>
-                      <TD className="text-right tabular">{formatCompact(s.playedTotal)}</TD>
-                      <TD className="text-right tabular">{s.playRate === null ? <span className="text-fg-3">—</span> : formatPrecisePercent(s.playRate)}</TD>
+                      <TD className="text-right tabular">{f.formatCompact(s.reachedTotal)}</TD>
+                      <TD className="text-right tabular text-fg-3">{reachTotal > 0 ? f.formatPercent(s.reachedTotal / reachTotal) : "—"}</TD>
+                      <TD className="text-right tabular">{f.formatCompact(s.playedTotal)}</TD>
+                      <TD className="text-right tabular">{s.playRate === null ? <span className="text-fg-3">—</span> : f.formatPrecisePercent(s.playRate)}</TD>
                     </TR>
                   ))}
                 </TBody>
               </Table>
             )}
           </div>
-          <p className="border-t border-line px-5 py-3 text-xs text-fg-3">
-            {formatCompact(playedTotal)} players started a session. “—”: plays that don&apos;t start from an impression (links, teleports…).
-          </p>
+          <p className="border-t border-line px-5 py-3 text-xs text-fg-3">{a.playedFootnote(f.formatCompact(playedTotal))}</p>
         </Card>
 
         <MetricChart
-          title="Reach by source"
-          description="Daily unique players who saw the game, by where they saw it"
-          label={`Daily unique players who saw the game, by source, ${range.label}`}
+          title={a.reachTitle}
+          description={a.reachDescription}
+          label={a.reachLabel(range.label)}
           format="compact"
           variant="line"
           rows={rowsOf(Object.fromEntries(sources.map((s) => [s.key, s.reached])))}
           series={sourceSeries}
-          emptyMessage={failed.sources ? FAILED_MESSAGE : "Roblox hasn't reported impressions for this period."}
+          emptyMessage={failed.sources ? a.failedMessage : a.reachEmpty}
           {...common}
         />
         <MetricChart
-          title="Players by source"
-          description="Daily unique players who started a session, by source"
-          label={`Daily unique players who started a session, by source, ${range.label}`}
+          title={a.playersTitle}
+          description={a.playersDescription}
+          label={a.playersLabel(range.label)}
           format="compact"
           variant="line"
           rows={rowsOf(Object.fromEntries(sources.map((s) => [s.key, s.played])))}
           series={sourceSeries}
-          emptyMessage={failed.sources ? FAILED_MESSAGE : undefined}
+          emptyMessage={failed.sources ? a.failedMessage : undefined}
           {...common}
         />
         <MetricChart
-          title="Conversion"
-          description="Viewers who clicked, played a qualified session, or played from home recommendations"
-          label={`Impression click-through, qualified play-through and home-recommendation play-through rates, ${range.label}`}
+          title={a.conversionTitle}
+          description={a.conversionDescription}
+          label={a.conversionLabel(range.label)}
           format="percent"
           variant="line"
           rows={rowsOf({ ctr: data.impressionCtr.current, qptr: data.qualifiedPtr.current, reco: data.recoPtr })}
           series={[
-            { key: "ctr", label: "Impression CTR" },
-            { key: "qptr", label: "Qualified play-through" },
-            { key: "reco", label: "Home recs play-through" },
+            { key: "ctr", label: a.ctr },
+            { key: "qptr", label: a.qptr },
+            { key: "reco", label: a.recoSeries },
           ]}
-          emptyMessage={failed.conversion ? FAILED_MESSAGE : undefined}
+          emptyMessage={failed.conversion ? a.failedMessage : undefined}
           {...common}
         />
         <MetricChart
-          title="First-play bounce rate"
-          description="First plays from home recommendations that ended early — lower is better"
-          label={`Share of first plays from home recommendations lasting under 60 seconds and 1 to 3 minutes, ${range.label}`}
+          title={a.bounceTitle}
+          description={a.bounceDescription}
+          label={a.bounceLabel(range.label)}
           format="percent"
           variant="line"
           rows={rowsOf({ b60: data.bounce60.current, b180: data.bounce180 })}
           series={[
-            { key: "b60", label: "Left within 60 s" },
-            { key: "b180", label: "Left after 1–3 min" },
+            { key: "b60", label: a.b60 },
+            { key: "b180", label: a.b180 },
           ]}
-          emptyMessage={failed.bounce ? FAILED_MESSAGE : "Roblox reports this once the game gets players from home recommendations."}
+          emptyMessage={failed.bounce ? a.failedMessage : a.bounceEmpty}
           {...common}
         />
         <div className="xl:col-span-2">
           <MetricChart
-            title="New and returning players"
-            description={activeTotal > 0 ? `${formatPercent(newTotal / activeTotal)} of daily players were new, ${range.label}` : "Daily active users, new vs returning"}
-            label={`Daily active users split into new and returning players, ${range.label}`}
+            title={a.newReturningTitle}
+            description={activeTotal > 0 ? a.newShare(f.formatPercent(newTotal / activeTotal), range.label) : a.newReturningDescription}
+            label={a.newReturningLabel(range.label)}
             format="compact"
             variant="line"
             rows={rowsOf({ new: data.newPlayers, returning: data.returningPlayers })}
             series={[
-              { key: "new", label: "New" },
-              { key: "returning", label: "Returning" },
+              { key: "new", label: a.newSeries },
+              { key: "returning", label: a.returningSeries },
             ]}
-            emptyMessage={failed.newReturning ? FAILED_MESSAGE : undefined}
+            emptyMessage={failed.newReturning ? a.failedMessage : undefined}
             {...common}
           />
         </div>
       </div>
-      <p className="text-[11px] text-fg-3">
-        Roblox Analytics · daily unique players, summed over the period · about one day behind, refreshed hourly.
-      </p>
+      <p className="text-[11px] text-fg-3">{a.footnote}</p>
     </div>
   );
 }
@@ -224,18 +226,21 @@ export async function GameAcquisitionSection({ params, searchParams }: { params:
 
 export async function GameThumbnailsSection({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const game = await loadGame(params);
-  const requested = parseRange((await searchParams).range);
+  const { t, f, locale } = await getI18n();
+  const requested = parseRange((await searchParams).range, locale);
   await connection();
   const today = new Date().toISOString().slice(0, 10);
-  const data = await getGameThumbnails(game.universe_id, requested, today);
+  const data = await getGameThumbnails(game.universe_id, requested, today, locale);
 
   if (data.status !== "ok") return <AnalyticsUnavailable status={data.status} universeId={game.universe_id} />;
 
+  const th = t.games.thumbnails;
+  const pct = percentOrDash(f);
   const { range, thumbnails } = data;
   const note = (
     <>
-      {data.capped ? <RangeNote>Roblox keeps thumbnail data for 30 days — showing the last 30 days.</RangeNote> : null}
-      {data.incomplete ? <RateLimitNote /> : null}
+      {data.capped ? <RangeNote>{th.capped}</RangeNote> : null}
+      {data.incomplete ? <RateLimitNote text={t.games.acquisition.rateLimit} /> : null}
     </>
   );
 
@@ -246,119 +251,115 @@ export async function GameThumbnailsSection({ params, searchParams }: { params: 
         <Card>
           <EmptyState
             icon={Images}
-            title={data.incomplete ? "Couldn't load right now" : "No thumbnail data for this period"}
-            description={
-              data.incomplete
-                ? FAILED_MESSAGE
-                : "Roblox reports impressions per thumbnail for the last 30 days, once the game's thumbnails are shown to players."
-            }
+            title={data.incomplete ? t.games.acquisition.couldntLoad : th.emptyTitle}
+            description={data.incomplete ? t.games.acquisition.failedMessage : th.emptyDescription}
           />
         </Card>
       </div>
     );
   }
 
-  const total = thumbnails.reduce((acc, t) => acc + t.impressions, 0);
-  const shown = thumbnails.filter((t) => t.impressions > 0).length;
+  const total = thumbnails.reduce((acc, item) => acc + item.impressions, 0);
+  const shown = thumbnails.filter((item) => item.impressions > 0).length;
   const best = bestThumbnail(thumbnails);
   const own = thumbnails.slice(0, MAX_THUMBNAIL_SERIES);
   const rest = thumbnails.slice(MAX_THUMBNAIL_SERIES);
-  const chartSeries: Record<string, DailyPoint[]> = Object.fromEntries(own.map((t) => [`t${t.rank}`, t.daily]));
-  if (rest.length > 0) chartSeries.other = mergePoints(rest.map((t) => t.daily));
+  const chartSeries: Record<string, DailyPoint[]> = Object.fromEntries(own.map((item) => [`t${item.rank}`, item.daily]));
+  if (rest.length > 0) chartSeries.other = mergePoints(rest.map((item) => item.daily));
 
   return (
     <div className="space-y-4">
       {note}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Thumbnail impressions" value={formatCompact(total)} source="live" icon={Eye} hint={`All thumbnails, ${range.label}`} />
+        <StatCard label={th.impressions} value={f.formatCompact(total)} source="live" icon={Eye} hint={th.impressionsHint(range.label)} />
         <StatCard
-          label="Thumbnails shown"
+          label={th.shown}
           value={String(shown)}
           source="live"
           icon={Images}
-          hint={shown > 1 ? "Roblox rotates them per player" : "A single thumbnail is in use"}
+          hint={shown > 1 ? th.shownRotating : th.shownSingle}
         />
         <StatCard
-          label="Qualified play-through"
+          label={t.games.acquisition.qptr}
           value={pct(overallQualifiedPtr(thumbnails))}
           source="live"
           icon={Target}
-          hint="Weighted by impressions"
+          hint={th.qptrHint}
         />
         <StatCard
-          label="Best thumbnail"
+          label={th.best}
           value={best ? `#${best.rank}` : "—"}
           source="live"
           icon={Trophy}
-          hint={best ? `${pct(best.qualifiedPtr)} qualified play-through` : "Needs two thumbnails with enough impressions"}
+          hint={best ? th.bestHint(pct(best.qualifiedPtr)) : th.bestNone}
         />
       </div>
 
       <MetricChart
-        title="Impressions by thumbnail"
-        description={`Daily impressions of each thumbnail, ${range.label}`}
-        label={`Daily impressions per thumbnail, ${range.label}`}
+        title={th.chartTitle}
+        description={th.chartDescription(range.label)}
+        label={th.chartLabel(range.label)}
         format="compact"
         variant="line"
         rows={rowsOf(chartSeries)}
         series={[
-          ...own.map((t) => ({ key: `t${t.rank}`, label: `Thumbnail #${t.rank}`, color: t.color })),
-          ...(rest.length > 0 ? [{ key: "other", label: "Other thumbnails", color: rest[0]?.color }] : []),
+          ...own.map((item) => ({ key: `t${item.rank}`, label: th.thumbnail(item.rank), color: item.color })),
+          ...(rest.length > 0 ? [{ key: "other", label: th.otherThumbnails, color: rest[0]?.color }] : []),
         ]}
         source="live"
         granularity="day"
       />
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Thumbnails">
-        {thumbnails.map((t) => (
-          <li key={t.assetId}>
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={th.listLabel}>
+        {thumbnails.map((item) => (
+          <li key={item.assetId}>
             <Card className="overflow-hidden">
               <div className="relative aspect-video bg-surface-2">
-                {t.imageUrl ? (
-                  <Image src={t.imageUrl} alt={`Thumbnail #${t.rank}`} fill unoptimized sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+                {item.imageUrl ? (
+                  <Image src={item.imageUrl} alt={th.thumbnail(item.rank)} fill unoptimized sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
                 ) : (
                   <div className="flex size-full items-center justify-center text-fg-3">
                     <ImageOff className="size-6" aria-hidden />
-                    <span className="sr-only">Image unavailable</span>
+                    <span className="sr-only">{th.imageUnavailable}</span>
                   </div>
                 )}
               </div>
               <div className="space-y-3 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-fg">
-                    <span aria-hidden className="size-2 shrink-0 rounded-[2px]" style={{ backgroundColor: t.color }} />
-                    Thumbnail #{t.rank}
+                    <span aria-hidden className="size-2 shrink-0 rounded-[2px]" style={{ backgroundColor: item.color }} />
+                    {th.thumbnail(item.rank)}
                   </h3>
-                  {best?.assetId === t.assetId ? (
+                  {best?.assetId === item.assetId ? (
                     <Badge tone="good" icon={<Trophy aria-hidden />}>
-                      Best conversion
+                      {th.bestConversion}
                     </Badge>
                   ) : null}
                 </div>
                 <dl className="grid grid-cols-3 gap-3">
                   <div className="min-w-0">
-                    <dt className="truncate text-[11px] text-fg-3">Impressions</dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{formatCompact(t.impressions)}</dd>
+                    <dt className="truncate text-[11px] text-fg-3">{th.colImpressions}</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{f.formatCompact(item.impressions)}</dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="truncate text-[11px] text-fg-3">Share</dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{formatPercent(t.share)}</dd>
+                    <dt className="truncate text-[11px] text-fg-3">{th.colShare}</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{f.formatPercent(item.share)}</dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="truncate text-[11px] text-fg-3" title="Qualified play-through rate">
-                      Qualified PTR
+                    <dt className="truncate text-[11px] text-fg-3" title={th.colQptrTitle}>
+                      {th.colQptr}
                     </dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{pct(t.qualifiedPtr)}</dd>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-fg tabular">{pct(item.qualifiedPtr)}</dd>
                   </div>
                 </dl>
-                <Progress value={t.share * 100} label={`Thumbnail #${t.rank} share of impressions`} />
-                <p className="font-mono text-[11px] text-fg-3">Asset {t.assetId}</p>
+                <Progress value={item.share * 100} label={th.shareLabel(item.rank)} />
+                <p className="font-mono text-[11px] text-fg-3">{th.asset(item.assetId)}</p>
               </div>
             </Card>
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-fg-3">Roblox Analytics · thumbnail data kept 30 days · about one day behind, refreshed hourly.</p>
+      <p className="text-[11px] text-fg-3">{th.footnote}</p>
     </div>
   );
 }

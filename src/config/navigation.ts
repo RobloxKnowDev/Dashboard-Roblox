@@ -15,20 +15,23 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import type { Messages } from "@/i18n/messages";
 import type { AppRole } from "@/lib/auth/roles";
 
+export type NavItemKey = keyof Messages["nav"]["items"];
+export type NavSectionKey = keyof Messages["nav"]["sections"];
+
 export type NavItem = {
-  title: string;
+  /** Title and search keywords live in the dictionaries: t.nav.items[key]. */
+  key: NavItemKey;
   href: string;
   icon: LucideIcon;
-  /** Extra words that should match this page in the global search. */
-  keywords?: string[];
   /** Minimum role required to see the page. Defaults to any signed-in member. */
   minRole?: AppRole;
 };
 
 export type NavSection = {
-  title: string;
+  key: NavSectionKey;
   items: NavItem[];
 };
 
@@ -37,44 +40,38 @@ export type NavSection = {
  * palette (global search) and page-level access checks.
  */
 export const navigation: NavSection[] = [
+  { key: "overview", items: [{ key: "overview", href: "/overview", icon: LayoutDashboard }] },
   {
-    title: "Overview",
-    items: [{ title: "Overview", href: "/overview", icon: LayoutDashboard, keywords: ["home", "dashboard", "kpi"] }],
-  },
-  {
-    title: "Market Intelligence",
+    key: "market",
     items: [
-      { title: "Roblox Discover", href: "/discover", icon: Compass, keywords: ["trending", "popular", "market"] },
-      { title: "Weekly Releases", href: "/discover/releases", icon: Rocket, keywords: ["new games", "launches"] },
-      { title: "Game Ideas", href: "/discover/ideas", icon: Lightbulb, keywords: ["concepts", "inspiration"] },
-      { title: "Watchlist", href: "/discover/watchlist", icon: Eye, keywords: ["tracked games", "competitors"] },
+      { key: "discover", href: "/discover", icon: Compass },
+      { key: "releases", href: "/discover/releases", icon: Rocket },
+      { key: "ideas", href: "/discover/ideas", icon: Lightbulb },
+      { key: "watchlist", href: "/discover/watchlist", icon: Eye },
     ],
   },
   {
-    title: "Development",
+    key: "development",
     items: [
-      { title: "My Games", href: "/games", icon: Gamepad2, keywords: ["universe", "experiences"] },
-      { title: "Projects", href: "/projects", icon: FolderKanban, keywords: ["roadmap"] },
-      { title: "Tasks", href: "/tasks", icon: ListTodo, keywords: ["todo", "issues"] },
-      { title: "AI Agents", href: "/agents", icon: Bot, keywords: ["automation", "monitoring"] },
+      { key: "games", href: "/games", icon: Gamepad2 },
+      { key: "projects", href: "/projects", icon: FolderKanban },
+      { key: "tasks", href: "/tasks", icon: ListTodo },
+      { key: "agents", href: "/agents", icon: Bot },
     ],
   },
   {
-    title: "Business",
+    key: "business",
     items: [
-      { title: "Finance", href: "/finance", icon: Wallet, keywords: ["revenue", "expenses", "profit", "devex"], minRole: "admin" },
-      { title: "Team", href: "/team", icon: Users, keywords: ["members", "people"] },
+      { key: "finance", href: "/finance", icon: Wallet, minRole: "admin" },
+      { key: "team", href: "/team", icon: Users },
     ],
   },
+  { key: "intelligence", items: [{ key: "assistant", href: "/assistant", icon: Sparkles }] },
   {
-    title: "Intelligence",
-    items: [{ title: "AI Assistant", href: "/assistant", icon: Sparkles, keywords: ["chat", "claude", "ask"] }],
-  },
-  {
-    title: "System",
+    key: "system",
     items: [
-      { title: "Settings", href: "/settings", icon: Settings, keywords: ["preferences", "profile", "security"] },
-      { title: "Integrations", href: "/integrations", icon: Plug, keywords: ["roblox", "claude", "api"], minRole: "admin" },
+      { key: "settings", href: "/settings", icon: Settings },
+      { key: "integrations", href: "/integrations", icon: Plug, minRole: "admin" },
     ],
   },
 ];

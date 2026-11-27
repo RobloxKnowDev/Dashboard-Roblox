@@ -17,8 +17,10 @@ Nom et logo provisoires (« Dashboard ») — ils se changent uniquement dans `s
 | Icônes | lucide-react 1.x (attention : certains noms ont changé, ex. `TriangleExclamationPoint`, `Funnel`, `LoaderCircle`) |
 | Tests | Playwright (E2E), Vitest (unitaires) |
 | Hébergement | Vercel + domaine personnalisé |
+| Langues | Interface **anglais + français** (dictionnaires maison, `next/root-params`) — voir §9 |
+| IA | Claude via le SDK officiel `@anthropic-ai/sdk` — assistant (Haiku 5.5) et idées hebdomadaires (Opus 5.5) |
 
-Choix de langue : interface en anglais, documentation en français. Devise de référence : USD (montants Robux stockés à part).
+Interface bilingue (anglais / français), documentation en français. Devise de référence : USD (montants Robux stockés à part).
 
 ## 2. Principes
 
@@ -34,12 +36,18 @@ Choix de langue : interface en anglais, documentation en français. Devise de r�
 ```
 src/
 ├─ app/
-│  ├─ (app)/                 espace privé : layout sidebar + topbar, une page par section
-│  │  ├─ overview/  discover/{,releases,ideas,watchlist}/  games/  projects/  tasks/
-│  │  ├─ agents/  finance/  team/  assistant/  integrations/
-│  │  ├─ settings/{general,profile,members,permissions,integrations,api,notifications,security}/
-│  │  └─ design-system/      référence interne de tous les composants
-│  ├─ layout.tsx  globals.css
+│  ├─ [lang]/                langue de l'interface (en | fr), choisie par le proxy — §9
+│  │  ├─ layout.tsx          layout racine (html lang, polices, I18nProvider)
+│  │  ├─ (auth)/             connexion, mot de passe oublié/réinitialisation
+│  │  └─ (app)/              espace privé : layout sidebar + topbar, une page par section
+│  │     ├─ overview/  discover/{,releases,ideas,watchlist}/  games/  projects/  tasks/
+│  │     ├─ agents/  finance/  team/  assistant/  integrations/
+│  │     ├─ settings/{general,profile,members,permissions,integrations,api,ai,notifications,security}/
+│  │     └─ design-system/   référence interne de tous les composants
+│  ├─ api/cron/              daily-snapshot, weekly-ideas (CRON_SECRET)
+│  ├─ auth/                  callbacks e-mail (non localisés)
+│  └─ globals.css
+├─ i18n/           langues : config, dictionnaires messages/{en,fr}, accès serveur/client
 ├─ components/
 │  ├─ ui/          primitives du design system (Button, Input, Select, Modal, Table, DataTable…)
 │  ├─ charts/      graphiques Recharts thématisés + vue tableau accessible
@@ -72,7 +80,7 @@ Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 
 | Réel (Supabase / API Roblox) | Démo jusqu'à l'intégration |
 |---|---|
-| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Top 5 idées IA, agents IA, assistant (réponses d’exemple ; les conversations de démo ne sont pas enregistrées) |
+| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Agents IA ; l'assistant tant qu'`ANTHROPIC_API_KEY` n'est pas défini (réponses d'exemple, rien n'est enregistré) |
 
 **Revenu d’un jeu** = ventes (métrique `DailyRevenue` de Roblox Analytics : game passes, developer products, serveurs privés, commissions avatar — vérifié via la ventilation `RevenueSource`) **+ Creator Rewards + Roblox Plus** (saisis chaque mois). Ce total alimente la page du jeu, l’Overview et l’estimation Roblox de Finance ; les alertes de revenu utilisent les ventes seules.
 
@@ -122,8 +130,12 @@ Garanties :
 | Creator Rewards et Roblox Plus | Robux versés par Roblox en plus des ventes du jeu | **Aucune API** (vérifié) : saisie mensuelle par jeu sur la page du jeu (table `game_payouts`) ; sur les périodes en jours, chaque mois est réparti au prorata des jours (estimation signalée « est. ») | ✅ jalon D |
 | Roblox Open Cloud — Analytics Query API | DAU, revenus (Robux), visites, pic de joueurs (28 j), session moyenne, rétention J1/J7/J30 ; **acquisition** (joueurs touchés et joueurs ayant joué par source, taux de clic, qualified play-through, nouveaux/revenants) ; **first play bounce rate** (0–60 s et 61–180 s, joueurs venus des recommandations) ; **miniatures** (impressions et qualified play-through par miniature, 30 j max) | Clé(s) API avec `universe.analytics:read` : `ROBLOX_OPEN_CLOUD_API_KEY`, puis `_2`…`_5` si les jeux sont dans plusieurs groupes (chaque jeu utilise automatiquement la clé qui fonctionne) ; cache 1 h ; sans autorisation → message explicatif | ✅ jalon C, acquisition et miniatures ajoutées après D |
 | Roblox Ads (campagnes sponsorisées) | Impressions, clics, dépense par campagne | Les métriques `SponsoredAds*` sont lisibles avec la clé actuelle, mais le nom et le statut des campagnes demandent la permission `ad.campaign:read` (refusée aujourd'hui) | Mis de côté à la demande du studio |
-| Claude (Anthropic) | Assistant connecté aux données du dashboard | Interface prête (jalon D) avec un fournisseur **démo** ; le branchement se fait dans `src/features/assistant/provider.ts` : `ANTHROPIC_API_KEY` côté serveur, SDK officiel, streaming, outils en lecture seule respectant les droits de l'utilisateur | 2 |
-| Tâche quotidienne (Vercel Cron) | Classements Roblox, watchlist, statistiques publiques des jeux → historique | `/api/cron/daily-snapshot` à 06:00 UTC, protégée par `CRON_SECRET`, écrit avec `SUPABASE_SECRET_KEY` | ✅ jalon D |
+| Claude (Anthropic) — assistant | Réponses à partir des vraies données du studio : 8 outils en lecture seule (vue studio, stats d'un jeu + acquisition, finances, projets, tâches, équipe, classements Roblox, idées) | **Claude Haiku 5.5** (choix du studio : tous les rôles y ont accès), effort bas, boucle d'outils du SDK (`toolRunner`, 6 tours max). Les outils s'exécutent avec la session de l'utilisateur : la RLS décide de ce qu'il voit (la Finance reste Admin+). Conversations enregistrées par utilisateur (`assistant_conversations`). Sans `ANTHROPIC_API_KEY` → mode démo | ✅ |
+| Claude — idées de jeux hebdomadaires | Top 5 d'idées inspirées des tendances **Steam**, chacune **vérifiée sur Roblox** avant d'être proposée, + liste « Déjà sur Roblox » | Chaque lundi 07:00 UTC (`/api/cron/weekly-ideas`, `CRON_SECRET`) et bouton « Générer maintenant » (Owner, `after()`). Pipeline `features/ideas/pipeline.ts` : collecte Steam → **Claude Opus 5.5** choisit ≤ 12 jeux adaptables et écrit les recherches Roblox → recherche Roblox (même moteur que l'app) + visites → Opus 5.5 juge « existe / similaire / libre » et rédige le Top 5 en anglais **et** en français. Repli serveur en cas de refus (`fallbacks: "default"`). ≈ 0,30–0,60 $ par génération | ✅ |
+| Steam (API publiques, sans clé) | Jeux les plus joués, nouveautés populaires, top SteamSpy 14 j, fiche de chaque jeu (genres, prix, sortie, avis), joueurs en ligne | `lib/integrations/steam.ts`. Le store Steam renvoie « Access Denied » quelques minutes après ~150 requêtes rapprochées : 90 fiches max, 2 à la fois, pause de 250 ms, arrêt après 5 refus. L'API des notes d'avis refuse les appels automatisés (seul le nombre d'avis est gardé) ; la page « top releases » n'est plus mise à jour depuis 2025 (ignorée si > 4 mois) | ✅ |
+| Recherche Roblox | Vérifier qu'une idée n'existe pas déjà | `lib/integrations/roblox/search.ts` (`omni-search`, publique) : joueurs en ligne, votes ; sponsorisés exclus | ✅ |
+| Coût et garde-fous IA | — | Chaque requête est journalisée dans `ai_usage` avec un coût estimé (tarifs publics). *Réglages → IA* (Owner) : activer/couper l'assistant, **budget mensuel** (20 $ par défaut) au-delà duquel l'assistant et les générations manuelles s'arrêtent, consommation du mois | ✅ |
+| Tâches planifiées (Vercel Cron) | Classements Roblox, watchlist, statistiques publiques des jeux → historique ; idées de jeux | `/api/cron/daily-snapshot` à 06:00 UTC et `/api/cron/weekly-ideas` le lundi à 07:00 UTC (`maxDuration` 300 s), protégées par `CRON_SECRET`, écrivent avec `SUPABASE_SECRET_KEY` | ✅ |
 
 ### Page d'un jeu : onglets de statistiques
 
@@ -144,4 +156,14 @@ L’état de chaque connexion est visible en direct dans *Integrations* (Admin+)
 | C | My Games (Roblox en direct + analytics), Projects (cartes/tableau, membres), Tasks (4 vues, filtres), AI Agents (démo), Overview sur données réelles, Settings → Profile | ✅ |
 | D | Discover (classements Roblox réels, sorties récentes, watchlist, idées, tâche quotidienne), Finance (transactions, 6 KPI, 4 graphiques, estimation Roblox séparée), Team (fiches, projets, tâches, activité ; membres sans compte), Settings → Members (création de comptes, rôles), AI Assistant (interface, mode démo), Settings (General, Notifications, Security, API, Integrations), Integrations (état en direct), notifications « tâche assignée » / « ajouté à un projet » | ✅ |
 | D+ | Page jeu : onglets Acquisition (sources, conversion, first play bounce rate, nouveaux/revenants) et Thumbnails ; passe mobile (champs à 16 px sur écrans tactiles, fenêtres à la hauteur visible, sélecteurs défilants, titres de cartes qui passent à la ligne, assistant utilisable sur téléphone) | ✅ |
+| D++ | Interface **anglais/français** (sélecteur dans le menu du compte et Réglages → Profil), **Claude connecté** (assistant Haiku 5.5 sur les vraies données, idées hebdomadaires Steam → Roblox avec Opus 5.5, Réglages → IA pour l'Owner) | ✅ |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |
+
+## 9. Langues (anglais / français)
+
+- **Aucune langue dans l'adresse.** Le proxy (`src/proxy.ts`) choisit la langue — cookie `lang` (choix de l'utilisateur), sinon la langue du navigateur — et **réécrit** chaque page vers `/[lang]/…` : toutes les pages vivent sous `src/app/[lang]/` et sont prérendues une fois par langue (`generateStaticParams` du layout racine). Une adresse `/fr/…` partagée est mémorisée puis redirigée vers l'adresse sans préfixe. Les routes `/api` et `/auth` ne sont pas localisées.
+- **Textes** : `src/i18n/messages/{en,fr}/<domaine>.ts`. L'anglais est le **type de référence** : une clé manquante ou en trop en français fait échouer le typecheck. Valeurs : chaînes, ou fonctions pour les textes à variables.
+- **Accès** : composants serveur → `await getT()`, `await getFormat()`, `await getI18n()` (`src/i18n/server.ts`, via `next/root-params`) ; composants client → `useT()`, `useFormat()`, `useLocale()` ; composants partagés → `<Msg k="…" />` ; Server Actions et routes → `getRequestT()` (cookie). Les messages Zod sont des **clés** (`"auth.validation.emailRequired"`) traduites à l'affichage par `useMessage()`.
+- **Formats** : `createFormat(locale)` (`src/lib/utils/format.ts`) — dates, nombres, devises et pourcentages au format de la langue (fr : « 26 nov. 2026 », « 1 234,5 $ »). Les montants saisis acceptent la virgule décimale.
+- **Changer de langue** : Server Action `setLocale` (pose le cookie, ce qui vide le cache du routeur), puis `router.refresh()`.
+- **Règle** : aucun texte d'interface en dur — tout passe par les dictionnaires. Les données (noms de jeux, de projets…) ne sont jamais traduites ; l'IA écrit ses idées dans les deux langues.

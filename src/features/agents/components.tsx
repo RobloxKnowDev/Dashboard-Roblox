@@ -12,15 +12,17 @@ import {
 import Link from "next/link";
 import { Badge, StatusDot } from "@/components/ui/badge";
 import { AGENT_STATUS } from "@/features/shared/status";
+import type { Messages } from "@/i18n/messages";
+import { getI18n, getT } from "@/i18n/server";
 import { DEMO_NOW } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
-import { formatRelative, formatTime } from "@/lib/utils/format";
 import { demoTime, type DemoAgent, type DemoAgentEvent } from "./demo";
 
 export const AGENT_STATUS_ORDER = ["working", "waiting", "error", "completed", "offline"] as const;
 
 /** Status overview tiles — each one filters the list. */
-export function AgentStatusOverview({ agents, active }: { agents: DemoAgent[]; active: string | null }) {
+export async function AgentStatusOverview({ agents, active }: { agents: DemoAgent[]; active: string | null }) {
+  const t = await getT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {AGENT_STATUS_ORDER.map((status) => {
@@ -40,7 +42,7 @@ export function AgentStatusOverview({ agents, active }: { agents: DemoAgent[]; a
           >
             <span className="flex items-center gap-2 text-xs font-medium text-fg-2">
               <StatusDot tone={meta.tone} pulse={meta.pulse && count > 0} />
-              {meta.label}
+              {t.common.status.agent[status]}
             </span>
             <span className="mt-2 block text-2xl font-semibold text-fg tabular">{count}</span>
           </Link>
@@ -50,14 +52,16 @@ export function AgentStatusOverview({ agents, active }: { agents: DemoAgent[]; a
   );
 }
 
-function duration(fromMinutesAgo: number, toMinutesAgo: number): string {
+function duration(fromMinutesAgo: number, toMinutesAgo: number, t: Messages): string {
+  const d = t.agents.duration;
   const minutes = Math.max(0, fromMinutesAgo - toMinutesAgo);
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return d.minutes(minutes);
   const hours = Math.floor(minutes / 60);
-  return hours < 48 ? `${hours} h ${minutes % 60} min` : `${Math.floor(hours / 24)} days`;
+  return hours < 48 ? d.hours(hours, minutes % 60) : d.days(Math.floor(hours / 24));
 }
 
-export function AgentCard({ agent }: { agent: DemoAgent }) {
+export async function AgentCard({ agent }: { agent: DemoAgent }) {
+  const { t, f, locale } = await getI18n();
   const meta = AGENT_STATUS[agent.status];
   const last = agent.events.at(-1);
   return (
@@ -74,45 +78,46 @@ export function AgentCard({ agent }: { agent: DemoAgent }) {
           <p className="truncate text-xs text-fg-3">{agent.project}</p>
         </div>
         <Badge tone={meta.tone} icon={<StatusDot tone={meta.tone} pulse={meta.pulse} />}>
-          {meta.label}
+          {t.common.status.agent[agent.status]}
         </Badge>
       </div>
-      <p className="mt-3 text-[13px] text-fg-2">{agent.mission}</p>
+      <p className="mt-3 text-[13px] text-fg-2">{agent.missions[locale]}</p>
       {last ? (
         <p className={cn("mt-3 line-clamp-2 rounded-md border px-2.5 py-2 text-xs", last.type === "error" ? "border-critical/25 bg-critical/10 text-critical" : "border-line bg-surface-2/50 text-fg-3")}>
-          {last.message}
+          {last.messages[locale]}
         </p>
       ) : null}
       <dl className="mt-auto grid grid-cols-3 gap-2 pt-4 text-[11px]">
         <div>
-          <dt className="text-fg-3">Started</dt>
-          <dd className="mt-0.5 text-fg-2">{formatRelative(demoTime(agent.startedMinutesAgo), DEMO_NOW)}</dd>
+          <dt className="text-fg-3">{t.agents.card.started}</dt>
+          <dd className="mt-0.5 text-fg-2">{f.formatRelative(demoTime(agent.startedMinutesAgo), DEMO_NOW)}</dd>
         </div>
         <div>
-          <dt className="text-fg-3">Last activity</dt>
-          <dd className="mt-0.5 text-fg-2">{formatRelative(demoTime(agent.lastActivityMinutesAgo), DEMO_NOW)}</dd>
+          <dt className="text-fg-3">{t.agents.card.lastActivity}</dt>
+          <dd className="mt-0.5 text-fg-2">{f.formatRelative(demoTime(agent.lastActivityMinutesAgo), DEMO_NOW)}</dd>
         </div>
         <div>
-          <dt className="text-fg-3">Running for</dt>
-          <dd className="mt-0.5 text-fg-2">{duration(agent.startedMinutesAgo, agent.lastActivityMinutesAgo)}</dd>
+          <dt className="text-fg-3">{t.agents.card.runningFor}</dt>
+          <dd className="mt-0.5 text-fg-2">{duration(agent.startedMinutesAgo, agent.lastActivityMinutesAgo, t)}</dd>
         </div>
       </dl>
     </Link>
   );
 }
 
-const EVENT_STYLE: Record<DemoAgentEvent["type"], { icon: LucideIcon; label: string; box: string }> = {
-  started: { icon: Play, label: "Started", box: "border-info/25 bg-info/10 text-info" },
-  progress: { icon: CircleDot, label: "Progress", box: "border-accent/25 bg-accent-soft text-accent" },
-  waiting: { icon: Hourglass, label: "Waiting", box: "border-warning/25 bg-warning/10 text-warning" },
-  completed: { icon: CircleCheck, label: "Completed", box: "border-good/25 bg-good/10 text-good" },
-  error: { icon: CircleExclamationPoint, label: "Error", box: "border-critical/25 bg-critical/10 text-critical" },
-  log: { icon: FileText, label: "Log", box: "border-line-strong bg-surface-2 text-fg-3" },
-  status_change: { icon: Power, label: "Status", box: "border-line-strong bg-surface-2 text-fg-3" },
+const EVENT_STYLE: Record<DemoAgentEvent["type"], { icon: LucideIcon; box: string }> = {
+  started: { icon: Play, box: "border-info/25 bg-info/10 text-info" },
+  progress: { icon: CircleDot, box: "border-accent/25 bg-accent-soft text-accent" },
+  waiting: { icon: Hourglass, box: "border-warning/25 bg-warning/10 text-warning" },
+  completed: { icon: CircleCheck, box: "border-good/25 bg-good/10 text-good" },
+  error: { icon: CircleExclamationPoint, box: "border-critical/25 bg-critical/10 text-critical" },
+  log: { icon: FileText, box: "border-line-strong bg-surface-2 text-fg-3" },
+  status_change: { icon: Power, box: "border-line-strong bg-surface-2 text-fg-3" },
 };
 
 /** Vertical event history, newest first. */
-export function AgentTimeline({ events }: { events: DemoAgentEvent[] }) {
+export async function AgentTimeline({ events }: { events: DemoAgentEvent[] }) {
+  const { t, f, locale } = await getI18n();
   const ordered = [...events].sort((a, b) => a.minutesAgo - b.minutesAgo);
   return (
     <ol className="relative space-y-1 before:absolute before:bottom-4 before:left-[27px] before:top-4 before:w-px before:bg-line">
@@ -126,12 +131,12 @@ export function AgentTimeline({ events }: { events: DemoAgentEvent[] }) {
               <Icon className="size-3.5" aria-hidden />
             </span>
             <div className="min-w-0 flex-1 pt-1">
-              <p className="text-[13px] text-fg">{event.message}</p>
+              <p className="text-[13px] text-fg">{event.messages[locale]}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-fg-3">
-                <span className="font-medium text-fg-2">{style.label}</span>·
+                <span className="font-medium text-fg-2">{t.agents.events[event.type]}</span>·
                 <Clock className="size-3" aria-hidden />
                 <time dateTime={time.toISOString()}>
-                  {formatTime(time)} · {formatRelative(time, DEMO_NOW)}
+                  {f.formatTime(time)} · {f.formatRelative(time, DEMO_NOW)}
                 </time>
               </p>
             </div>

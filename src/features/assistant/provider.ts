@@ -1,27 +1,16 @@
 import "server-only";
-import type { DataSource } from "@/lib/data/source";
-import { demoReply } from "./demo";
-import type { ChatMessage } from "./types";
+import { aiBlockReason } from "@/lib/ai/usage";
 
 /**
- * Where assistant answers come from. Phase 1 ships the DEMO provider only;
- * connecting Claude means adding a provider here (Anthropic SDK, server-side
- * ANTHROPIC_API_KEY, studio context from Supabase) and returning it from
- * getAssistantProvider(). The chat UI and the Server Action don't change.
+ * Where assistant answers come from:
+ * - "live": Claude (claude.ts) — needs ANTHROPIC_API_KEY, the assistant
+ *   switched on by an owner, and the monthly AI budget not reached;
+ * - "demo": illustrative answers (demo.ts) when no API key is configured.
  */
-export interface AssistantProvider {
-  readonly source: DataSource;
-  reply(history: ChatMessage[]): Promise<string>;
-}
+export type AssistantMode = "live" | "demo" | "disabled" | "budget";
 
-const demoProvider: AssistantProvider = {
-  source: "demo",
-  async reply(history) {
-    const question = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
-    return demoReply(question);
-  },
-};
-
-export function getAssistantProvider(): AssistantProvider {
-  return demoProvider;
+export async function getAssistantMode(now: Date): Promise<AssistantMode> {
+  const reason = await aiBlockReason(now, "assistant");
+  if (reason === "not_configured") return "demo";
+  return reason ?? "live";
 }

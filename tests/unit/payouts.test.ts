@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addSeries, dailyPayouts, payoutSeries, recentMonths, revenueChart, spreadDays, toMonthly, type PayoutRow } from "@/features/games/payouts-compute";
 import { payoutFormSchema } from "@/features/games/payout-schema";
+import { messages } from "@/i18n/messages";
 
 const today = "2026-11-26";
 const rows: PayoutRow[] = [
@@ -52,6 +53,9 @@ describe("payout spreading", () => {
       { date: "a", sales: 5, rewards: 0 },
       { date: "b", sales: 0, rewards: 2 },
     ]);
+    expect(chart.series.map((s) => s.label)).toEqual([messages.en.games.revenueChart.sales, messages.en.games.revenueChart.rewards]);
+    const fr = revenueChart([{ date: "a", value: 5 }], [{ date: "b", value: 2 }], messages.fr.games.revenueChart);
+    expect(fr.series.map((s) => s.label)).toEqual([messages.fr.games.revenueChart.sales, messages.fr.games.revenueChart.rewards]);
   });
 
   it("lists the last 12 months, current first", () => {

@@ -11,6 +11,7 @@ import { describedBy, Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useMessage, useT } from "@/i18n/client";
 import { deleteMember, saveMember } from "./actions";
 import { emptyMember, memberSchema, type MemberInput } from "./schemas";
 
@@ -24,6 +25,9 @@ type MemberFormModalProps = {
 };
 
 export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
+  const t = useT();
+  const msg = useMessage();
+  const c = t.team.form;
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -36,7 +40,7 @@ export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
     startTransition(async () => {
       const result = await saveMember(values, member?.id);
       if (result.ok) {
-        toast.success(result.message ?? "Saved");
+        toast.success(result.message ?? c.saved);
         setOpen(false);
         if (!editing && result.data) router.push(`/team/${result.data.id}`);
         return;
@@ -57,32 +61,28 @@ export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
         trigger ?? (
           <Button variant="primary">
             <UserPlus aria-hidden />
-            Add member
+            {c.add}
           </Button>
         )
       }
-      title={editing ? "Edit member" : "Add member"}
-      description={
-        editing
-          ? "Job title, status and avatar shown on the team page."
-          : "For people without an account (freelancers, contractors). They can be assigned projects and tasks. To give someone sign-in access, create an account in Settings → Members."
-      }
+      title={editing ? c.edit : c.add}
+      description={editing ? c.editIntro : c.addIntro}
     >
       <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           htmlFor="m-name"
-          label="Name"
+          label={c.name}
           required
-          error={errors.displayName?.message}
-          hint={member?.hasAccount ? "Synced from their profile when they change it." : undefined}
+          error={msg(errors.displayName?.message)}
+          hint={member?.hasAccount ? c.nameSynced : undefined}
           className="sm:col-span-2"
         >
           <Input id="m-name" autoFocus aria-invalid={!!errors.displayName} aria-describedby={describedBy("m-name")} {...register("displayName")} />
         </Field>
-        <Field htmlFor="m-title" label="Job title" error={errors.studioRole?.message} hint="e.g. Builder, Scripter, UI artist">
+        <Field htmlFor="m-title" label={c.jobTitle} error={msg(errors.studioRole?.message)} hint={c.jobTitleHint}>
           <Input id="m-title" aria-invalid={!!errors.studioRole} {...register("studioRole")} />
         </Field>
-        <Field htmlFor="m-status" label="Status">
+        <Field htmlFor="m-status" label={c.status}>
           <Controller
             control={control}
             name="status"
@@ -92,25 +92,25 @@ export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
                 value={field.value}
                 onValueChange={field.onChange}
                 options={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
+                  { value: "active", label: c.statuses.active },
+                  { value: "inactive", label: c.statuses.inactive },
                 ]}
               />
             )}
           />
         </Field>
-        <Field htmlFor="m-joined" label="Joined" required error={errors.joinedAt?.message}>
+        <Field htmlFor="m-joined" label={c.joined} required error={msg(errors.joinedAt?.message)}>
           <Input id="m-joined" type="date" aria-invalid={!!errors.joinedAt} {...register("joinedAt")} />
         </Field>
-        <Field htmlFor="m-avatar" label="Avatar" error={errors.avatarUrl?.message} hint="Optional https:// image link.">
+        <Field htmlFor="m-avatar" label={c.avatar} error={msg(errors.avatarUrl?.message)} hint={c.avatarHint}>
           <Input id="m-avatar" type="url" placeholder="https://…" aria-invalid={!!errors.avatarUrl} {...register("avatarUrl")} />
         </Field>
         <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
-            {editing ? "Save changes" : "Add member"}
+            {editing ? t.common.actions.saveChanges : c.add}
           </Button>
         </div>
       </form>
@@ -119,13 +119,14 @@ export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
 }
 
 export function EditMemberButton(props: Required<Pick<MemberFormModalProps, "member">>) {
+  const t = useT();
   return (
     <MemberFormModal
       {...props}
       trigger={
         <Button variant="secondary">
           <Pencil aria-hidden />
-          Edit
+          {t.common.actions.edit}
         </Button>
       }
     />
@@ -133,6 +134,8 @@ export function EditMemberButton(props: Required<Pick<MemberFormModalProps, "mem
 }
 
 export function DeleteMemberButton({ memberId, name }: { memberId: string; name: string }) {
+  const t = useT();
+  const c = t.team.delete;
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -142,16 +145,16 @@ export function DeleteMemberButton({ memberId, name }: { memberId: string; name:
       onOpenChange={setOpen}
       size="sm"
       trigger={
-        <Button variant="ghost" size="icon" aria-label={`Delete ${name}`}>
+        <Button variant="ghost" size="icon" aria-label={c.label(name)}>
           <Trash2 />
         </Button>
       }
-      title="Delete this member?"
-      description={`${name} will be removed from the team. Their tasks become unassigned and they leave their projects.`}
+      title={c.title}
+      description={c.description(name)}
       footer={
         <>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button
             variant="danger"
@@ -160,14 +163,14 @@ export function DeleteMemberButton({ memberId, name }: { memberId: string; name:
               startTransition(async () => {
                 const result = await deleteMember(memberId);
                 if (result.ok) {
-                  toast.success(result.message ?? "Member deleted");
+                  toast.success(result.message ?? t.team.actions.deleted);
                   setOpen(false);
                   router.push("/team");
-                } else toast.error(result.message ?? "The member couldn't be deleted.");
+                } else toast.error(result.message ?? t.team.actions.deleteFailed);
               })
             }
           >
-            Delete member
+            {c.confirm}
           </Button>
         </>
       }

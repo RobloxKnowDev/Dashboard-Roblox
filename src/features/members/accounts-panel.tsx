@@ -15,17 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
-import { formatDate, formatRelative } from "@/lib/utils/format";
+import { useFormat, useMessage, useT } from "@/i18n/client";
+import type { Messages } from "@/i18n/messages";
+import type { AppRole } from "@/lib/auth/roles";
 import { changeRole, createAccount, deleteAccount, revokeAccess } from "./actions";
 import type { Account } from "./data";
 import { createAccountSchema, emptyAccount, grantableRoles, type CreateAccountInput } from "./schemas";
 
-const roleOptions = (roles: readonly AppRole[]) => roles.map((r) => ({ value: r, label: ROLE_LABELS[r] }));
+const roleOptions = (roles: readonly AppRole[], labels: Messages["common"]["roles"]) => roles.map((r) => ({ value: r, label: labels[r] }));
 
 /* ─────────────────────────── Create account ─────────────────────────── */
 
 function CopyButton({ value, label }: { value: string; label: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <Button
@@ -39,12 +41,15 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       }}
     >
       {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-      {copied ? "Copied" : "Copy"}
+      {copied ? t.settings.members.copied : t.settings.members.copy}
     </Button>
   );
 }
 
 export function CreateAccountModal({ managerRole }: { managerRole: AppRole }) {
+  const t = useT();
+  const msg = useMessage();
+  const m = t.settings.members;
   const [open, setOpen] = useState(false);
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -79,74 +84,70 @@ export function CreateAccountModal({ managerRole }: { managerRole: AppRole }) {
       trigger={
         <Button variant="primary">
           <UserPlus aria-hidden />
-          Create account
+          {m.create}
         </Button>
       }
-      title={created ? "Account created" : "Create account"}
-      description={
-        created
-          ? "Send these sign-in details privately. The password is shown only once."
-          : "No email is sent: you get a temporary password to share with them. They can change it in Settings → Profile."
-      }
+      title={created ? m.created : m.create}
+      description={created ? m.createdDescription : m.createDescription}
     >
       {created ? (
         <div className="space-y-4">
           <dl className="space-y-3 rounded-md border border-line bg-surface-2/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <dt className="text-xs text-fg-3">Email</dt>
+                <dt className="text-xs text-fg-3">{m.email}</dt>
                 <dd className="truncate text-[13px] text-fg">{created.email}</dd>
               </div>
-              <CopyButton value={created.email} label="Copy the email" />
+              <CopyButton value={created.email} label={m.copyEmail} />
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <dt className="text-xs text-fg-3">Temporary password</dt>
+                <dt className="text-xs text-fg-3">{m.temporaryPassword}</dt>
                 <dd className="font-mono text-sm tracking-wide text-fg" data-testid="temporary-password">
                   {created.password}
                 </dd>
               </div>
-              <CopyButton value={created.password} label="Copy the temporary password" />
+              <CopyButton value={created.password} label={m.copyPassword} />
             </div>
           </dl>
           <p className="flex items-start gap-2 text-xs leading-relaxed text-fg-3">
             <KeyRound className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-            They sign in at the login page with these details, then set their own password in Settings → Profile.
+            {m.signInHint}
           </p>
           <div className="flex justify-end border-t border-line pt-4">
             <Button variant="primary" onClick={() => setOpen(false)}>
-              Done
+              {m.done}
             </Button>
           </div>
         </div>
       ) : (
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
-          <Field htmlFor="a-name" label="Name" required error={errors.name?.message}>
+          <Field htmlFor="a-name" label={m.name} required error={msg(errors.name?.message)}>
             <Input id="a-name" autoFocus aria-invalid={!!errors.name} aria-describedby={describedBy("a-name")} {...register("name")} />
           </Field>
-          <Field htmlFor="a-email" label="Email" required error={errors.email?.message}>
+          <Field htmlFor="a-email" label={m.email} required error={msg(errors.email?.message)}>
             <Input id="a-email" type="email" autoComplete="off" aria-invalid={!!errors.email} {...register("email")} />
           </Field>
           <Field
             htmlFor="a-role"
-            label="Role"
-            error={errors.role?.message}
-            hint={managerRole === "owner" ? undefined : "Administrators can create Developer and Viewer accounts."}
+            label={m.role}
+            error={msg(errors.role?.message)}
+            hint={managerRole === "owner" ? undefined : m.adminHint}
           >
             <Controller
               control={control}
               name="role"
               render={({ field }) => (
-                <Select id="a-role" value={field.value} onValueChange={field.onChange} options={roleOptions(grantableRoles(managerRole))} />
+                <Select id="a-role" value={field.value} onValueChange={field.onChange} options={roleOptions(grantableRoles(managerRole), t.common.roles)} />
               )}
             />
           </Field>
           <div className="flex justify-end gap-2 border-t border-line pt-4">
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {t.common.actions.cancel}
             </Button>
             <Button type="submit" variant="primary" loading={pending}>
-              Create account
+              {m.create}
             </Button>
           </div>
         </form>
@@ -168,6 +169,9 @@ export function AccountsPanel({
   viewer: { id: string; role: AppRole };
   nowIso: string;
 }) {
+  const t = useT();
+  const f = useFormat();
+  const m = t.settings.members;
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [pending, startTransition] = useTransition();
   const [approveRole, setApproveRole] = useState<Record<string, AppRole>>({});
@@ -180,9 +184,9 @@ export function AccountsPanel({
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
-        toast.success(result.message ?? "Saved");
+        toast.success(result.message ?? t.settings.toasts.saved);
         after?.();
-      } else toast.error(result.message ?? "Something went wrong.");
+      } else toast.error(result.message ?? t.settings.toasts.failed);
     });
   }
 
@@ -198,7 +202,7 @@ export function AccountsPanel({
           ) : (
             a.name
           )}
-          {a.id === viewer.id ? <span className="ml-1.5 text-xs font-normal text-fg-3">(you)</span> : null}
+          {a.id === viewer.id ? <span className="ml-1.5 text-xs font-normal text-fg-3">{m.you}</span> : null}
         </p>
         <p className="truncate text-xs text-fg-3">{a.email}</p>
       </div>
@@ -210,35 +214,35 @@ export function AccountsPanel({
       {pendingAccounts.length > 0 ? (
         <section aria-labelledby="pending-heading" className="space-y-2">
           <h3 id="pending-heading" className="text-sm font-semibold text-fg">
-            Waiting for approval <Badge tone="warning">{pendingAccounts.length}</Badge>
+            {m.waiting} <Badge tone="warning">{pendingAccounts.length}</Badge>
           </h3>
-          <p className="text-xs text-fg-3">These accounts can sign in but see nothing until an owner assigns a role.</p>
+          <p className="text-xs text-fg-3">{m.waitingHint}</p>
           <div className="overflow-hidden rounded-lg border border-warning/30 bg-surface">
             <Table>
               <TBody>
                 {pendingAccounts.map((a) => (
                   <TR key={a.id}>
                     <TD>{person(a)}</TD>
-                    <TD className="text-xs text-fg-3">Created {formatDate(a.createdAt)}</TD>
+                    <TD className="text-xs text-fg-3">{m.createdOn(f.formatDate(a.createdAt))}</TD>
                     <TD className="text-right">
                       {isOwner ? (
                         <div className="flex items-center justify-end gap-2">
                           <Select
-                            aria-label={`Role for ${a.name}`}
+                            aria-label={m.roleFor(a.name)}
                             value={approveRole[a.id] ?? "viewer"}
                             onValueChange={(v) => setApproveRole((s) => ({ ...s, [a.id]: v as AppRole }))}
-                            options={roleOptions(["owner", "admin", "developer", "viewer"])}
+                            options={roleOptions(["owner", "admin", "developer", "viewer"], t.common.roles)}
                             className="w-36"
                           />
                           <Button size="sm" variant="primary" loading={pending} onClick={() => run(() => changeRole(a.id, approveRole[a.id] ?? "viewer"))}>
-                            Approve
+                            {m.approve}
                           </Button>
-                          <Button variant="ghost" size="icon" aria-label={`Delete ${a.name}`} onClick={() => setConfirm({ kind: "delete", account: a })}>
+                          <Button variant="ghost" size="icon" aria-label={m.deleteName(a.name)} onClick={() => setConfirm({ kind: "delete", account: a })}>
                             <Trash2 />
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-xs text-fg-3">An owner must approve</span>
+                        <span className="text-xs text-fg-3">{m.ownerMustApprove}</span>
                       )}
                     </TD>
                   </TR>
@@ -251,15 +255,15 @@ export function AccountsPanel({
 
       <div className="overflow-hidden rounded-lg border border-line bg-surface">
         <Table>
-          <caption className="sr-only">Accounts</caption>
+          <caption className="sr-only">{m.caption}</caption>
           <THead>
             <TR>
-              <TH>Member</TH>
-              <TH>Role</TH>
-              <TH className="hidden md:table-cell">Last sign-in</TH>
-              <TH className="hidden lg:table-cell">Created</TH>
+              <TH>{m.member}</TH>
+              <TH>{m.role}</TH>
+              <TH className="hidden md:table-cell">{m.lastSignIn}</TH>
+              <TH className="hidden lg:table-cell">{m.createdColumn}</TH>
               <TH className="w-12">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{m.actions}</span>
               </TH>
             </TR>
           </THead>
@@ -272,43 +276,43 @@ export function AccountsPanel({
                   <TD>
                     {editable ? (
                       <Select
-                        aria-label={`Role of ${a.name}`}
+                        aria-label={m.roleOf(a.name)}
                         value={a.role ?? undefined}
                         disabled={pending}
                         onValueChange={(v) => run(() => changeRole(a.id, v as AppRole))}
-                        options={roleOptions(["owner", "admin", "developer", "viewer"])}
+                        options={roleOptions(["owner", "admin", "developer", "viewer"], t.common.roles)}
                         className="w-40"
                       />
                     ) : (
-                      <Badge tone={a.role === "owner" ? "accent" : a.role === "admin" ? "info" : "neutral"}>{a.role ? ROLE_LABELS[a.role] : "—"}</Badge>
+                      <Badge tone={a.role === "owner" ? "accent" : a.role === "admin" ? "info" : "neutral"}>{a.role ? t.common.roles[a.role] : "—"}</Badge>
                     )}
                   </TD>
                   <TD className="hidden text-xs text-fg-3 md:table-cell">
                     {a.lastSignInAt ? (
-                      <time dateTime={a.lastSignInAt} title={formatDate(a.lastSignInAt)}>
-                        {formatRelative(a.lastSignInAt, now)}
+                      <time dateTime={a.lastSignInAt} title={f.formatDate(a.lastSignInAt)}>
+                        {f.formatRelative(a.lastSignInAt, now)}
                       </time>
                     ) : (
-                      "Never"
+                      m.never
                     )}
                   </TD>
-                  <TD className="hidden text-xs text-fg-3 lg:table-cell">{formatDate(a.createdAt)}</TD>
+                  <TD className="hidden text-xs text-fg-3 lg:table-cell">{f.formatDate(a.createdAt)}</TD>
                   <TD className="text-right">
                     {editable ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${a.name}`}>
+                          <Button variant="ghost" size="icon-sm" aria-label={m.actionsFor(a.name)}>
                             <Ellipsis />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onSelect={() => setConfirm({ kind: "revoke", account: a })}>
                             <ShieldOff aria-hidden />
-                            Revoke access
+                            {m.revoke}
                           </DropdownMenuItem>
                           <DropdownMenuItem destructive onSelect={() => setConfirm({ kind: "delete", account: a })}>
                             <Trash2 aria-hidden />
-                            Delete account
+                            {m.deleteAccount}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -320,22 +324,18 @@ export function AccountsPanel({
           </TBody>
         </Table>
       </div>
-      {!isOwner ? <p className="text-xs text-fg-3">Only owners can change roles, revoke access or delete accounts.</p> : null}
+      {!isOwner ? <p className="text-xs text-fg-3">{m.ownersOnly}</p> : null}
 
       <Modal
         open={confirm !== null}
         onOpenChange={(next) => !next && setConfirm(null)}
         size="sm"
-        title={confirm?.kind === "delete" ? `Delete ${confirm.account.name}'s account?` : `Revoke ${confirm?.account.name ?? ""}'s access?`}
-        description={
-          confirm?.kind === "delete"
-            ? "They can no longer sign in. Their team card stays (inactive) so their projects and tasks keep their history. This can't be undone."
-            : "They can still sign in but will see nothing until an owner approves them again."
-        }
+        title={confirm?.kind === "delete" ? m.confirmDeleteTitle(confirm.account.name) : m.confirmRevokeTitle(confirm?.account.name ?? "")}
+        description={confirm?.kind === "delete" ? m.confirmDeleteBody : m.confirmRevokeBody}
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirm(null)}>
-              Cancel
+              {t.common.actions.cancel}
             </Button>
             <Button
               variant="danger"
@@ -346,7 +346,7 @@ export function AccountsPanel({
                 run(() => (confirm.kind === "delete" ? deleteAccount(id) : revokeAccess(id)), () => setConfirm(null));
               }}
             >
-              {confirm?.kind === "delete" ? "Delete account" : "Revoke access"}
+              {confirm?.kind === "delete" ? m.deleteAccount : m.revoke}
             </Button>
           </>
         }

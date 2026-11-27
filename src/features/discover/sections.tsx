@@ -5,29 +5,32 @@ import { connection } from "next/server";
 import { SourceBadge } from "@/components/feedback/demo-badge";
 import { ErrorState } from "@/components/feedback/states";
 import { Card, CardHeader } from "@/components/ui/card";
+import { getI18n, getT } from "@/i18n/server";
 import { checkAccess } from "@/lib/auth/session";
 import type { ChartSortId } from "@/lib/integrations/roblox/explore";
 import { cn } from "@/lib/utils/cn";
-import { formatNumber } from "@/lib/utils/format";
 import { DiscoverFilters, GamesTable, WatchButton, type DiscoverRow } from "./components";
 import { getChart, getRecentReleases, getWatchedUniverseIds, type DiscoverGame } from "./data";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
 
-export const CHART_TABS: { id: ChartSortId; label: string; hint: string }[] = [
-  { id: "top-trending", label: "Trending", hint: "Gaining the most attention right now" },
-  { id: "up-and-coming", label: "Growing", hint: "Rising fast — Roblox's Up-and-Coming chart" },
-  { id: "top-playing-now", label: "Popular", hint: "Most players online right now" },
-  { id: "top-earning", label: "Top earning", hint: "Highest Robux earnings" },
-  { id: "top-rated", label: "Top rated", hint: "Best like ratios" },
-  { id: "most-popular", label: "Most popular", hint: "Most played overall" },
-  { id: "top-revisited", label: "Revisited", hint: "Players keep coming back" },
-  { id: "fun-with-friends", label: "With friends", hint: "Played in groups" },
-];
+/** Charts shown as pills, in order. Labels and hints: t.discover.charts.tabs[id]. */
+export const CHART_TABS = [
+  "top-trending",
+  "up-and-coming",
+  "top-playing-now",
+  "top-earning",
+  "top-rated",
+  "most-popular",
+  "top-revisited",
+  "fun-with-friends",
+] as const satisfies readonly ChartSortId[];
 
-export function parseChart(value: string | undefined): ChartSortId {
-  return CHART_TABS.find((t) => t.id === value)?.id ?? "top-trending";
+type ChartTab = (typeof CHART_TABS)[number];
+
+export function parseChart(value: string | undefined): ChartTab {
+  return CHART_TABS.find((id) => id === value) ?? "top-trending";
 }
 
 function toRow(g: DiscoverGame): DiscoverRow {
@@ -64,22 +67,22 @@ async function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function SourceNote({ hasHistory }: { hasHistory: boolean }) {
+async function SourceNote({ hasHistory }: { hasHistory: boolean }) {
+  const l = (await getT()).discover.charts;
   return (
     <p className="text-[11px] text-fg-3">
-      Live from Roblox&apos;s public charts, refreshed every 15 minutes (sponsored entries excluded).{" "}
-      {hasHistory
-        ? "Evolution comes from the dashboard's daily snapshots."
-        : "The evolution columns fill in from tomorrow — the dashboard records the charts once a day."}
+      {l.sourceNote} {hasHistory ? l.historyNote : l.noHistoryNote}
     </p>
   );
 }
 
 /** Chart pills — plain links, so each chart has its own URL. */
-export function ChartPills({ active, params }: { active: ChartSortId; params: SearchParams }) {
+export async function ChartPills({ active, params }: { active: ChartSortId; params: SearchParams }) {
+  const l = (await getT()).discover.charts;
   return (
-    <nav aria-label="Charts" className="flex flex-wrap gap-1.5">
-      {CHART_TABS.map((tab) => {
+    <nav aria-label={l.navLabel} className="flex flex-wrap gap-1.5">
+      {CHART_TABS.map((id) => {
+        const tab = { id, ...l.tabs[id] };
         const next = new URLSearchParams();
         if (tab.id !== "top-trending") next.set("chart", tab.id);
         const genre = one(params.genre);
@@ -111,11 +114,13 @@ async function ToWatch({ canWatch, watched }: { canWatch: boolean; watched: Set<
   if (growing.status !== "ok") return null;
   const picks = growing.games.filter((g) => g.ageDays !== null && g.ageDays <= 60).slice(0, 4);
   if (picks.length === 0) return null;
+  const { t, f } = await getI18n();
+  const l = t.discover.toWatch;
   return (
     <Card>
       <CardHeader
-        title="Games to watch"
-        description="Created in the last 60 days and already climbing Roblox's Up-and-Coming chart"
+        title={l.title}
+        description={l.description}
         actions={<SourceBadge source="live" />}
       />
       <ul className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -128,9 +133,7 @@ async function ToWatch({ canWatch, watched }: { canWatch: boolean; watched: Set<
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-medium text-fg">{g.name}</p>
-              <p className="truncate text-xs text-fg-3">
-                {formatNumber(g.playerCount)} playing · {g.ageDays} d old
-              </p>
+              <p className="truncate text-xs text-fg-3">{l.meta(f.formatNumber(g.playerCount), g.ageDays ?? 0)}</p>
             </div>
             {canWatch ? <WatchButton universeId={g.universeId} name={g.name} watching={watched.has(g.universeId)} /> : null}
           </li>
@@ -144,7 +147,8 @@ export async function ChartSection({ params }: { params: SearchParams }) {
   const sortId = parseChart(one(params.chart));
   const [chart, access, watched] = await Promise.all([getChart(sortId, await todayIso()), checkAccess("developer"), getWatchedUniverseIds()]);
   if (chart.status !== "ok") {
-    return <ErrorState title="Roblox charts unavailable" description="Roblox didn't answer or changed its charts. This usually resolves itself — try again later." />;
+    const l = (await getT()).discover.charts;
+    return <ErrorState title={l.unavailableTitle} description={l.unavailableDescription} />;
   }
   const canWatch = access.status === "allowed";
   const filtered = applyFilters(chart.games, params);
@@ -161,8 +165,10 @@ export async function ChartSection({ params }: { params: SearchParams }) {
 export async function ReleasesSection({ params }: { params: SearchParams }) {
   const within = one(params.within) === "30" ? 30 : 7;
   const [releases, access, watched] = await Promise.all([getRecentReleases(await todayIso(), within), checkAccess("developer"), getWatchedUniverseIds()]);
+  const t = await getT();
+  const l = t.discover.releases;
   if (releases.status !== "ok") {
-    return <ErrorState title="Roblox charts unavailable" description="Roblox didn't answer or changed its charts. Try again later." />;
+    return <ErrorState title={t.discover.charts.unavailableTitle} description={l.unavailableDescription} />;
   }
   const filtered = applyFilters(releases.games, params);
   return (
@@ -179,10 +185,10 @@ export async function ReleasesSection({ params }: { params: SearchParams }) {
               within === days ? "border-accent/40 bg-accent-soft text-accent" : "border-line text-fg-3 hover:border-line-strong hover:text-fg",
             )}
           >
-            {days === 7 ? "Released this week" : "Released this month"}
+            {days === 7 ? l.thisWeek : l.thisMonth}
           </Link>
         ))}
-        <span className="text-xs text-fg-3">{releases.games.length} experiences found in the charts</span>
+        <span className="text-xs text-fg-3">{l.found(releases.games.length)}</span>
       </div>
       <DiscoverFilters genres={genresOf(releases.games)} />
       <GamesTable
@@ -190,12 +196,9 @@ export async function ReleasesSection({ params }: { params: SearchParams }) {
         watched={[...watched]}
         canWatch={access.status === "allowed"}
         mode="releases"
-        emptyTitle={within === 7 ? "No new release in the charts this week" : "No release this month matches"}
+        emptyTitle={within === 7 ? l.emptyWeek : l.emptyMonth}
       />
-      <p className="text-[11px] text-fg-3">
-        Roblox has no public &quot;new releases&quot; list: these are the experiences created in the last {within} days that already appear in
-        Roblox&apos;s charts — the new games actually getting traction.
-      </p>
+      <p className="text-[11px] text-fg-3">{l.note(within)}</p>
     </div>
   );
 }

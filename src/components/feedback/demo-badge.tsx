@@ -1,13 +1,17 @@
+"use client";
+
 import { FlaskConical } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
+import { useT } from "@/i18n/client";
 
 /**
  * Marks any widget fed by demonstration data. Rendered automatically by
  * components that receive a DataResult with source "demo".
  */
 export function DemoBadge({ className }: { className?: string }) {
+  const t = useT();
   return (
     <span
       className={cn(
@@ -15,10 +19,10 @@ export function DemoBadge({ className }: { className?: string }) {
         "font-mono text-[10px] font-semibold uppercase tracking-wider text-warning",
         className,
       )}
-      title="Demonstration data — not connected to a real source yet"
+      title={t.common.demo.badgeTitle}
     >
       <FlaskConical className="size-3" aria-hidden />
-      Demo
+      {t.common.demo.badge}
     </span>
   );
 }
@@ -30,6 +34,7 @@ export function SourceBadge({ source, className }: { source: DataSource; classNa
 
 /** Page-level notice when most of a page is fed by demo data. */
 export function DemoBanner({ children }: { children?: ReactNode }) {
+  const t = useT();
   return (
     <div
       role="note"
@@ -37,9 +42,8 @@ export function DemoBanner({ children }: { children?: ReactNode }) {
     >
       <FlaskConical className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
       <p>
-        <span className="font-medium text-warning">Demonstration data. </span>
-        {children ??
-          "This section isn't connected to a real source yet. Every figure marked DEMO is illustrative and is never stored or mixed with your real data."}
+        <span className="font-medium text-warning">{t.common.demo.bannerLead} </span>
+        {children ?? t.common.demo.bannerBody}
       </p>
     </div>
   );

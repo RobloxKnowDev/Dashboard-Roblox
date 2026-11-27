@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { describedBy, Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { useT } from "@/i18n/client";
 import { addToWatchlist, removeFromWatchlist, updateWatchNotes } from "./actions";
 
 export function AddToWatchlistButton() {
@@ -14,6 +15,8 @@ export function AddToWatchlistButton() {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
+  const t = useT();
+  const l = t.discover.watchlist.add;
 
   return (
     <Modal
@@ -25,11 +28,11 @@ export function AddToWatchlistButton() {
       trigger={
         <Button variant="primary">
           <Eye aria-hidden />
-          Watch a game
+          {l.trigger}
         </Button>
       }
-      title="Watch a game"
-      description="Any Roblox experience — a competitor, an inspiration. Its stats are recorded every day."
+      title={l.title}
+      description={l.description}
     >
       <form
         noValidate
@@ -39,14 +42,14 @@ export function AddToWatchlistButton() {
           startTransition(async () => {
             const result = await addToWatchlist(value.trim());
             if (result.ok) {
-              toast.success(result.message ?? "Added");
+              toast.success(result.message ?? l.added);
               setValue("");
               setOpen(false);
             } else setError(result.fieldErrors?.universeId ?? result.message);
           });
         }}
       >
-        <Field htmlFor="watch-universe" label="Universe ID" required error={error} hint="Tip: from Roblox Discover, use the Watch button instead.">
+        <Field htmlFor="watch-universe" label={l.universeId} required error={error} hint={l.hint}>
           <Input
             id="watch-universe"
             inputMode="numeric"
@@ -60,10 +63,10 @@ export function AddToWatchlistButton() {
         </Field>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
-            Watch
+            {l.submit}
           </Button>
         </div>
       </form>
@@ -74,14 +77,16 @@ export function AddToWatchlistButton() {
 export function NotesEditor({ id, notes, canEdit }: { id: string; notes: string | null; canEdit: boolean }) {
   const [value, setValue] = useState(notes ?? "");
   const [pending, startTransition] = useTransition();
+  const t = useT();
+  const l = t.discover.watchlist.notes;
   if (!canEdit) return notes ? <p className="whitespace-pre-line text-xs text-fg-2">{notes}</p> : null;
   const dirty = value !== (notes ?? "");
   return (
     <div className="space-y-2">
       <Textarea
-        aria-label="Notes"
+        aria-label={l.label}
         rows={2}
-        placeholder="Why are we watching this game?"
+        placeholder={l.placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="min-h-0 text-xs"
@@ -89,7 +94,7 @@ export function NotesEditor({ id, notes, canEdit }: { id: string; notes: string 
       {dirty ? (
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={() => setValue(notes ?? "")}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button
             size="sm"
@@ -98,12 +103,12 @@ export function NotesEditor({ id, notes, canEdit }: { id: string; notes: string 
             onClick={() =>
               startTransition(async () => {
                 const result = await updateWatchNotes(id, value);
-                if (result.ok) toast.success(result.message ?? "Saved");
-                else toast.error(result.message ?? "Couldn't save the notes.");
+                if (result.ok) toast.success(result.message ?? l.saved);
+                else toast.error(result.message ?? l.failed);
               })
             }
           >
-            Save notes
+            {l.save}
           </Button>
         </div>
       ) : null}
@@ -113,17 +118,18 @@ export function NotesEditor({ id, notes, canEdit }: { id: string; notes: string 
 
 export function RemoveWatchButton({ id, name }: { id: string; name: string }) {
   const [pending, startTransition] = useTransition();
+  const l = useT().discover.watchlist.remove;
   return (
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label={`Stop watching ${name}`}
+      aria-label={l.label(name)}
       loading={pending}
       onClick={() =>
         startTransition(async () => {
           const result = await removeFromWatchlist(id);
-          if (result.ok) toast.success(result.message ?? "Removed");
-          else toast.error(result.message ?? "Couldn't remove it.");
+          if (result.ok) toast.success(result.message ?? l.removed);
+          else toast.error(result.message ?? l.failed);
         })
       }
     >

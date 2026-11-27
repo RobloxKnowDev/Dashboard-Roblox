@@ -23,10 +23,11 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { parseRange, type RangeConfig } from "@/features/shared/range";
 import { MetricChart } from "@/features/shared/metric-chart";
 import { GAME_STATUS } from "@/features/shared/status";
+import { INTL_LOCALE } from "@/i18n/config";
+import { getI18n, getT } from "@/i18n/server";
 import { checkAccess } from "@/lib/auth/session";
 import { getRobloxGames, likeRatio, robloxGameUrl } from "@/lib/integrations/roblox/public";
 import { cn } from "@/lib/utils/cn";
-import { formatCompact, formatCurrency, formatDate, formatMonthYear, formatNumber, formatPercent, formatRobux } from "@/lib/utils/format";
 import { GameStatusSelect, RemoveGameButton } from "./admin-controls";
 import { computeGameAlerts } from "./alerts";
 import { analyticsWindow, avgOf, deltaOf, getGameAnalytics, sumOf, type GameAnalytics } from "./analytics";
@@ -56,7 +57,7 @@ export async function loadGame(params: Params): Promise<GameRow> {
 
 export async function GameHeader({ params }: { params: Params }) {
   const game = await loadGame(params);
-  const [roblox, access] = await Promise.all([getRobloxGames([game.universe_id]), checkAccess("admin")]);
+  const [roblox, access, { t, f }] = await Promise.all([getRobloxGames([game.universe_id]), checkAccess("admin"), getI18n()]);
   const info = roblox?.get(game.universe_id);
   const status = GAME_STATUS[game.status];
   const isAdmin = access.status === "allowed";
@@ -65,7 +66,7 @@ export async function GameHeader({ params }: { params: Params }) {
     <div className="space-y-5">
       <Link href="/games" className="inline-flex items-center gap-1.5 text-xs text-fg-3 transition-colors hover:text-fg">
         <ArrowLeft className="size-3.5" aria-hidden />
-        My Games
+        {t.games.detail.back}
       </Link>
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
@@ -75,16 +76,16 @@ export async function GameHeader({ params }: { params: Params }) {
               <h1 className="truncate font-display text-2xl font-semibold tracking-tight text-fg">{info?.name ?? game.name}</h1>
               {!isAdmin ? (
                 <Badge tone={status.tone} dot>
-                  {status.label}
+                  {t.common.status.game[game.status]}
                 </Badge>
               ) : null}
             </div>
             <p className="mt-1 text-[13px] text-fg-3">
-              {[info?.genre ?? game.genre, info ? `Updated ${formatDate(info.updated)}` : null].filter(Boolean).join(" · ")}
+              {[info?.genre ?? game.genre, info ? t.games.detail.updated(f.formatDate(info.updated)) : null].filter(Boolean).join(" · ")}
             </p>
             <p className="mt-1 font-mono text-[11px] text-fg-3">
-              Universe {game.universe_id}
-              {game.place_id ? ` · Place ${game.place_id}` : ""}
+              {t.games.detail.universe(String(game.universe_id))}
+              {game.place_id ? t.games.detail.place(String(game.place_id)) : ""}
             </p>
           </div>
         </div>
@@ -97,7 +98,7 @@ export async function GameHeader({ params }: { params: Params }) {
               rel="noopener noreferrer"
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:bg-surface-3"
             >
-              Open on Roblox
+              {t.games.detail.openOnRoblox}
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
           ) : null}
@@ -112,39 +113,42 @@ export async function GameHeader({ params }: { params: Params }) {
 
 export async function GameLiveStats({ params }: { params: Params }) {
   const game = await loadGame(params);
-  const roblox = await getRobloxGames([game.universe_id]);
+  const [roblox, { t, f }] = await Promise.all([getRobloxGames([game.universe_id]), getI18n()]);
   const info = roblox?.get(game.universe_id);
   if (!info) {
-    return <ErrorState compact title="Live stats unavailable" description="Roblox couldn't be reached. Refresh in a moment." />;
+    return <ErrorState compact title={t.games.live.unavailableTitle} description={t.games.live.unavailableDescription} />;
   }
   const rating = likeRatio(info);
 
   const items = [
-    { label: "Playing now", value: formatNumber(info.playing), hint: `Up to ${info.maxPlayers} per server` },
-    { label: "Total visits", value: formatCompact(info.visits), hint: `Since ${formatDate(info.created)}` },
-    { label: "Favorites", value: formatCompact(info.favorites), hint: `${formatNumber(info.favorites)} players` },
+    { key: "playing", label: t.games.live.playingNow, value: f.formatNumber(info.playing), hint: t.games.live.playingHint(String(info.maxPlayers)) },
+    { key: "visits", label: t.games.live.totalVisits, value: f.formatCompact(info.visits), hint: t.games.live.visitsHint(f.formatDate(info.created)) },
+    { key: "favorites", label: t.games.live.favorites, value: f.formatCompact(info.favorites), hint: t.games.live.favoritesHint(f.formatNumber(info.favorites)) },
     {
-      label: "Rating",
-      value: rating === null ? "—" : formatPercent(rating),
-      hint: `${formatCompact(info.upVotes ?? 0)} likes · ${formatCompact(info.downVotes ?? 0)} dislikes`,
+      key: "rating",
+      label: t.games.live.rating,
+      value: rating === null ? "—" : f.formatPercent(rating),
+      hint: t.games.live.ratingHint(f.formatCompact(info.upVotes ?? 0), f.formatCompact(info.downVotes ?? 0)),
     },
   ];
 
   return (
-    <section aria-label="Live stats" className="space-y-2">
+    <section aria-label={t.games.live.ariaLabel} className="space-y-2">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {items.map((item) => (
-          <StatCard key={item.label} label={item.label} value={item.value} source="live" hint={item.hint} />
+          <StatCard key={item.key} label={item.label} value={item.value} source="live" hint={item.hint} />
         ))}
       </div>
-      <p className="text-[11px] text-fg-3">Live from Roblox · refreshed every minute.</p>
+      <p className="text-[11px] text-fg-3">{t.games.live.footnote}</p>
     </section>
   );
 }
 
 /* ─────────────────────────── Analytics ─────────────────────────── */
 
-export function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["status"]; universeId: number }) {
+export async function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["status"]; universeId: number }) {
+  const t = await getT();
+  const u = t.games.unavailable;
   if (status === "unauthorized") {
     return (
       <Card className="border-dashed">
@@ -153,21 +157,26 @@ export function AnalyticsUnavailable({ status, universeId }: { status: GameAnaly
             <KeyRound className="size-5" aria-hidden />
           </div>
           <div className="space-y-2 text-[13px] leading-relaxed text-fg-2">
-            <p className="text-sm font-medium text-fg">Analytics aren&apos;t authorized for this game yet</p>
+            <p className="text-sm font-medium text-fg">{u.unauthorizedTitle}</p>
             <p>
-              Your Roblox API key can read analytics for other experiences, but not this one (Universe{" "}
-              <span className="font-mono">{universeId}</span>). To fix it:
+              {u.unauthorizedIntroStart}
+              <span className="font-mono">{universeId}</span>
+              {u.unauthorizedIntroEnd}
             </p>
             <ol className="list-decimal space-y-1 pl-5 text-fg-3">
-              <li>Open Creator Hub → API Keys and edit the key used by the dashboard.</li>
+              <li>{u.step1}</li>
               <li>
-                Under Access Permissions → <span className="font-mono text-fg-2">universe-analytics</span>, add this experience with the{" "}
-                <span className="font-mono text-fg-2">universe.analytics:read</span> operation.
+                {u.step2Start}
+                <span className="font-mono text-fg-2">universe-analytics</span>
+                {u.step2Middle}
+                <span className="font-mono text-fg-2">universe.analytics:read</span>
+                {u.step2End}
               </li>
-              <li>If the game belongs to a group, your role in that group must allow it.</li>
+              <li>{u.step3}</li>
               <li>
-                Games from another group or account can use their own key: add it to the server environment as{" "}
-                <span className="font-mono text-fg-2">ROBLOX_OPEN_CLOUD_API_KEY_2</span> (up to _5). Each game automatically uses the key that works.
+                {u.step4Start}
+                <span className="font-mono text-fg-2">ROBLOX_OPEN_CLOUD_API_KEY_2</span>
+                {u.step4End}
               </li>
             </ol>
           </div>
@@ -177,35 +186,30 @@ export function AnalyticsUnavailable({ status, universeId }: { status: GameAnaly
   }
   return (
     <ErrorState
-      title={status === "not_configured" ? "Analytics key not configured" : "Analytics unavailable right now"}
-      description={
-        status === "not_configured"
-          ? "Add ROBLOX_OPEN_CLOUD_API_KEY to the server environment to see DAU, revenue and retention."
-          : "Roblox didn't answer, or the API key reached its data limit for the minute. Try again in a minute."
-      }
+      title={status === "not_configured" ? u.notConfiguredTitle : u.errorTitle}
+      description={status === "not_configured" ? u.notConfiguredDescription : u.errorDescription}
     />
   );
 }
 
 const ALERT_STYLE = {
-  critical: { icon: CircleExclamationPoint, tone: "critical" as const, label: "Critical", box: "border-critical/25 bg-critical/10 text-critical" },
-  warning: { icon: TriangleExclamationPoint, tone: "warning" as const, label: "Warning", box: "border-warning/25 bg-warning/10 text-warning" },
-  info: { icon: Info, tone: "info" as const, label: "Info", box: "border-info/25 bg-info/10 text-info" },
+  critical: { icon: CircleExclamationPoint, tone: "critical" as const, box: "border-critical/25 bg-critical/10 text-critical" },
+  warning: { icon: TriangleExclamationPoint, tone: "warning" as const, box: "border-warning/25 bg-warning/10 text-warning" },
+  info: { icon: Info, tone: "info" as const, box: "border-info/25 bg-info/10 text-info" },
 };
-
-function revenueHint(robux: number, rate: number) {
-  return `≈ ${formatCurrency(robux * rate)} at the DevEx rate`;
-}
 
 export async function GameAnalyticsSection({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const game = await loadGame(params);
-  const range: RangeConfig = parseRange((await searchParams).range);
+  const { t, f, locale } = await getI18n();
+  const range: RangeConfig = parseRange((await searchParams).range, locale);
   await connection();
   const today = new Date().toISOString().slice(0, 10);
   const [analytics, devexRate, payouts] = await Promise.all([getGameAnalytics(game.universe_id, range, today), getDevexRate(), listPayouts([game.id])]);
 
   if (analytics.status !== "ok") return <AnalyticsUnavailable status={analytics.status} universeId={game.universe_id} />;
 
+  const p = t.games.performance;
+  const per = t.common.granularity[range.granularity];
   const dauNow = avgOf(analytics.dau.current);
   // Revenue = game sales (Roblox Analytics) + Creator Rewards and Roblox Plus (recorded monthly, spread over the days).
   const rewards = payoutSeries(payouts, analyticsWindow(range, today), range.granularity, today);
@@ -216,107 +220,112 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
   const sessionNow = avgOf(analytics.session.current);
   const comparison = range.granularity === "month" ? undefined : range.comparison;
   const common = { source: "live" as const, granularity: range.granularity };
-  const alerts = computeGameAlerts({ gameName: game.name, dau: analytics.dau, revenue: analytics.revenue, d1: analytics.d1 });
+  const alerts = computeGameAlerts({ gameName: game.name, dau: analytics.dau, revenue: analytics.revenue, d1: analytics.d1 }, t);
+  const oneDecimal = (value: number) => value.toLocaleString(INTL_LOCALE[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Daily active users"
-          value={dauNow === null ? "—" : formatNumber(Math.round(dauNow))}
+          label={p.dau}
+          value={dauNow === null ? "—" : f.formatNumber(Math.round(dauNow))}
           source="live"
           icon={Activity}
           delta={deltaOf(dauNow, avgOf(analytics.dau.previous))}
           deltaLabel={comparison}
-          hint={`Daily average, ${range.label}`}
+          hint={p.dauHint(range.label)}
         />
         <StatCard
-          label="Revenue"
-          value={formatRobux(revenueNow)}
+          label={p.revenue}
+          value={f.formatRobux(revenueNow)}
           source="live"
           icon={Coins}
           delta={deltaOf(revenueNow, revenuePrevious)}
           deltaLabel={comparison}
-          hint={rewardsNow > 0 ? `≈ ${formatCurrency(revenueNow * devexRate)} · incl. ${formatRobux(rewardsNow)} rewards` : revenueHint(revenueNow, devexRate)}
+          hint={
+            rewardsNow > 0
+              ? p.revenueHintRewards(f.formatCurrency(revenueNow * devexRate), f.formatRobux(rewardsNow))
+              : p.revenueHint(f.formatCurrency(revenueNow * devexRate))
+          }
         />
         <StatCard
-          label="Day-1 retention"
-          value={d1Now === null ? "—" : formatPercent(d1Now)}
+          label={p.d1}
+          value={d1Now === null ? "—" : f.formatPercent(d1Now)}
           source="live"
           icon={Repeat}
           delta={deltaOf(d1Now, avgOf(analytics.d1.previous))}
           deltaLabel={comparison}
-          hint="Share of new players back the next day"
+          hint={p.d1Hint}
         />
         <StatCard
-          label="Average session"
-          value={sessionNow === null ? "—" : `${sessionNow.toFixed(1)} min`}
+          label={p.session}
+          value={sessionNow === null ? "—" : p.sessionValue(oneDecimal(sessionNow))}
           source="live"
           icon={Clock}
           delta={deltaOf(sessionNow, avgOf(analytics.session.previous))}
           deltaLabel={comparison}
-          hint={`Per session, ${range.label}`}
+          hint={p.sessionHint(range.label)}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <MetricChart
-          title="Player activity"
-          description={`Daily active users, ${range.label}`}
-          label={`Daily active users, ${range.label}`}
+          title={p.activityTitle}
+          description={p.activityDescription(range.label)}
+          label={p.activityDescription(range.label)}
           format="compact"
           variant="line"
           rows={rowsOf({ dau: analytics.dau.current })}
-          series={[{ key: "dau", label: "Daily active users" }]}
+          series={[{ key: "dau", label: p.dau }]}
           {...common}
         />
         <MetricChart
-          title="Revenue"
-          description={`Robux earned per ${range.granularity}, ${range.label}`}
-          label={`Robux earned per ${range.granularity}, ${range.label}: game sales and rewards`}
+          title={p.revenueTitle}
+          description={p.revenueDescription(per, range.label)}
+          label={p.revenueLabel(per, range.label)}
           format="robux"
-          {...revenueChart(analytics.revenue.current, rewards.current)}
+          {...revenueChart(analytics.revenue.current, rewards.current, t.games.revenueChart)}
           {...common}
         />
         <MetricChart
-          title="Retention"
-          description="Share of new players coming back after 1, 7 and 30 days"
-          label={`Day 1, 7 and 30 retention, ${range.label}`}
+          title={p.retentionTitle}
+          description={p.retentionDescription}
+          label={p.retentionLabel(range.label)}
           format="percent"
           variant="line"
           rows={rowsOf({ d1: analytics.d1.current, d7: analytics.d7.current, d30: analytics.d30.current })}
           series={[
-            { key: "d1", label: "Day 1" },
-            { key: "d7", label: "Day 7" },
-            { key: "d30", label: "Day 30" },
+            { key: "d1", label: p.day1 },
+            { key: "d7", label: p.day7 },
+            { key: "d30", label: p.day30 },
           ]}
-          emptyMessage="Retention needs a few days of new players before Roblox can report it."
+          emptyMessage={p.retentionEmpty}
           {...common}
         />
         <MetricChart
-          title="Performance history"
-          description={`Visits per ${range.granularity}, ${range.label}`}
-          label={`Visits per ${range.granularity}, ${range.label}`}
+          title={p.historyTitle}
+          description={p.historyDescription(per, range.label)}
+          label={p.historyDescription(per, range.label)}
           format="compact"
           rows={rowsOf({ visits: analytics.visits.current })}
-          series={[{ key: "visits", label: "Visits" }]}
+          series={[{ key: "visits", label: p.visits }]}
           {...common}
         />
         <MetricChart
-          title="Peak concurrent players"
-          description="Daily peak — Roblox keeps this metric for 28 days"
-          label="Daily peak concurrent players over the last 28 days at most"
+          title={p.peakTitle}
+          description={p.peakDescription}
+          label={p.peakLabel}
           format="compact"
           variant="line"
           rows={rowsOf({ peak: analytics.peakCcu.current })}
-          series={[{ key: "peak", label: "Peak players" }]}
+          series={[{ key: "peak", label: p.peakSeries }]}
           {...common}
         />
         <Card className="flex flex-col">
-          <CardHeader title="Alerts" description="Computed from this game's analytics" actions={<SourceBadge source="live" />} />
+          <CardHeader title={p.alertsTitle} description={p.alertsDescription} actions={<SourceBadge source="live" />} />
           <div className="flex-1 px-2 pb-2 pt-2">
             {alerts.length === 0 ? (
-              <EmptyState compact icon={ShieldCheck} title="No alerts" description="Retention, players and revenue are within normal ranges for this period." />
+              <EmptyState compact icon={ShieldCheck} title={p.noAlertsTitle} description={p.noAlertsDescription} />
             ) : (
               <ul className="space-y-1">
                 {alerts.map((alert) => {
@@ -332,7 +341,7 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
                         <p className="text-xs text-fg-3">{alert.detail}</p>
                       </div>
                       <Badge tone={style.tone} className="self-start">
-                        {style.label}
+                        {p.severity[alert.severity]}
                       </Badge>
                     </li>
                   );
@@ -342,7 +351,7 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
           </div>
         </Card>
       </div>
-      <p className="text-[11px] text-fg-3">Roblox Analytics · daily values, about one day behind, refreshed hourly.</p>
+      <p className="text-[11px] text-fg-3">{p.footnote}</p>
     </div>
   );
 }
@@ -351,39 +360,40 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
 
 export async function GamePayoutsSection({ params }: { params: Params }) {
   const game = await loadGame(params);
-  const [payouts, access, devexRate] = await Promise.all([listPayouts([game.id]), checkAccess("admin"), getDevexRate()]);
+  const [payouts, access, devexRate, { t, f }] = await Promise.all([listPayouts([game.id]), checkAccess("admin"), getDevexRate(), getI18n()]);
   await connection();
   const today = new Date().toISOString().slice(0, 10);
   const isAdmin = access.status === "allowed";
+  const text = t.games.payouts;
 
   // Last 12 months, plus any older month that has payouts.
   const months = [...new Set([...recentMonths(today), ...payouts.map((p) => p.month)])].sort().reverse();
   const valueOf = (month: string, source: PayoutSource) => payouts.find((p) => p.month === month && p.source === source)?.robux ?? null;
   const total = payouts.reduce((acc, p) => acc + p.robux, 0);
-  const monthLabel = (month: string) => formatMonthYear(month);
+  const monthLabel = (month: string) => f.formatMonthYear(month);
 
   return (
     <Card>
       <CardHeader
-        title="Creator Rewards & Roblox Plus"
-        description="Robux Roblox pays on top of game sales. They have no API: record them each month from the Creator Hub."
+        title={text.title}
+        description={text.description}
         actions={isAdmin ? <PayoutFormModal gameId={game.id} gameName={game.name} /> : null}
       />
       <div className="overflow-x-auto">
         <Table>
-          <caption className="sr-only">Monthly Creator Rewards and Roblox Plus payouts</caption>
+          <caption className="sr-only">{text.caption}</caption>
           <THead>
             <TR>
-              <TH>Month</TH>
+              <TH>{text.month}</TH>
               {PAYOUT_SOURCES.map((s) => (
                 <TH key={s.key} className="text-right">
                   {s.label}
                 </TH>
               ))}
-              <TH className="text-right">Total</TH>
+              <TH className="text-right">{text.total}</TH>
               {isAdmin ? (
                 <TH className="w-12">
-                  <span className="sr-only">Edit</span>
+                  <span className="sr-only">{t.common.actions.edit}</span>
                 </TH>
               ) : null}
             </TR>
@@ -397,14 +407,14 @@ export async function GamePayoutsSection({ params }: { params: Params }) {
                 <TR key={month}>
                   <TD className="whitespace-nowrap text-fg-2">
                     {monthLabel(month)}
-                    {month.slice(0, 7) === today.slice(0, 7) ? <span className="ml-1.5 text-xs text-fg-3">(so far)</span> : null}
+                    {month.slice(0, 7) === today.slice(0, 7) ? <span className="ml-1.5 text-xs text-fg-3">{text.soFar}</span> : null}
                   </TD>
                   {values.map((v, i) => (
                     <TD key={PAYOUT_SOURCES[i]?.key} className="text-right tabular">
-                      {v === null ? <span className="text-fg-4">—</span> : formatRobux(v)}
+                      {v === null ? <span className="text-fg-4">—</span> : f.formatRobux(v)}
                     </TD>
                   ))}
-                  <TD className="text-right font-medium tabular text-fg">{recorded ? formatRobux(sum) : <span className="font-normal text-fg-4">—</span>}</TD>
+                  <TD className="text-right font-medium tabular text-fg">{recorded ? f.formatRobux(sum) : <span className="font-normal text-fg-4">—</span>}</TD>
                   {isAdmin ? (
                     <TD className="text-right">
                       <EditPayoutButton
@@ -426,8 +436,8 @@ export async function GamePayoutsSection({ params }: { params: Params }) {
         </Table>
       </div>
       <p className="border-t border-line px-5 py-3 text-xs text-fg-3">
-        {total > 0 ? `${formatRobux(total)} recorded in total (≈ ${formatCurrency(total * devexRate)} at the DevEx rate). ` : "Nothing recorded yet. "}
-        Added to this game&apos;s revenue above and to the studio totals.
+        {total > 0 ? text.recordedTotal(f.formatRobux(total), f.formatCurrency(total * devexRate)) : text.nothingYet}
+        {text.addedTo}
       </p>
     </Card>
   );

@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { getRequestT } from "@/i18n/server";
 import { fieldErrors, slugify, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -12,14 +13,15 @@ const idSchema = z.uuid();
 
 /** Creates (no id) or updates a project, then syncs its members. Developer+. */
 export async function saveProject(input: unknown, projectId?: string): Promise<ActionResult<{ id: string }>> {
+  const t = (await getRequestT()).projects.actions;
   const access = await checkAccess("developer");
-  if (access.status !== "allowed") return { ok: false, message: "You need the Developer role to edit projects." };
+  if (access.status !== "allowed") return { ok: false, message: t.forbiddenEdit };
 
   const parsed = projectSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
   const values = parsed.data;
 
-  if (projectId !== undefined && !idSchema.safeParse(projectId).success) return { ok: false, message: "Invalid project." };
+  if (projectId !== undefined && !idSchema.safeParse(projectId).success) return { ok: false, message: t.invalid };
 
   const supabase = await createClient();
   const record = {
@@ -35,7 +37,7 @@ export async function saveProject(input: unknown, projectId?: string): Promise<A
   let id = projectId;
   if (id) {
     const { error } = await supabase.from("projects").update(record).eq("id", id);
-    if (error) return { ok: false, message: "The project couldn't be saved. Try again." };
+    if (error) return { ok: false, message: t.saveFailed };
   } else {
     const slug = `${slugify(values.name) || "project"}-${randomBytes(3).toString("hex")}`;
     const { data, error } = await supabase
@@ -43,7 +45,7 @@ export async function saveProject(input: unknown, projectId?: string): Promise<A
       .insert({ ...record, slug, created_by: access.user.id })
       .select("id")
       .single();
-    if (error || !data) return { ok: false, message: "The project couldn't be created. Try again." };
+    if (error || !data) return { ok: false, message: t.createFailed };
     id = data.id;
   }
 
@@ -57,18 +59,19 @@ export async function saveProject(input: unknown, projectId?: string): Promise<A
   if (toAdd.length) await supabase.from("project_members").insert(toAdd.map((team_member_id) => ({ project_id: id, team_member_id })));
 
   refresh();
-  return { ok: true, data: { id }, message: projectId ? "Project updated" : "Project created" };
+  return { ok: true, data: { id }, message: projectId ? t.updated : t.created };
 }
 
 /** Deletes a project and its tasks (cascade). Administrators only. */
 export async function deleteProject(projectId: string): Promise<ActionResult> {
+  const t = (await getRequestT()).projects.actions;
   const access = await checkAccess("admin");
-  if (access.status !== "allowed") return { ok: false, message: "Only administrators can delete projects." };
-  if (!idSchema.safeParse(projectId).success) return { ok: false, message: "Invalid project." };
+  if (access.status !== "allowed") return { ok: false, message: t.forbiddenDelete };
+  if (!idSchema.safeParse(projectId).success) return { ok: false, message: t.invalid };
 
   const supabase = await createClient();
   const { error } = await supabase.from("projects").delete().eq("id", projectId);
-  if (error) return { ok: false, message: "The project couldn't be deleted." };
+  if (error) return { ok: false, message: t.deleteFailed };
   refresh();
-  return { ok: true, message: "Project deleted" };
+  return { ok: true, message: t.deleted };
 }

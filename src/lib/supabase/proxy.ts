@@ -10,9 +10,13 @@ import type { Database } from "@/types/database";
  * getClaims() validates the JWT signature — never trust getSession() on the
  * server. This is an optimistic check: pages and RLS still authorize.
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  /** Response to continue with — a rewrite to the localized page, or a plain next(). */
+  makeResponse: () => NextResponse = () => NextResponse.next({ request }),
+) {
   const env = publicEnv();
-  let response = NextResponse.next({ request });
+  let response = makeResponse();
 
   const supabase = createServerClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
@@ -21,7 +25,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet, headers) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-        response = NextResponse.next({ request });
+        response = makeResponse();
         for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
         // Auth responses must never be cached by a CDN (one user's session
         // could be served to another).

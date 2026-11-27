@@ -1,4 +1,5 @@
 import { SERIES_COLORS } from "@/components/charts/theme";
+import { messages, type Messages } from "@/i18n/messages";
 import type { BreakdownGroup, DailyPoint } from "@/lib/integrations/roblox/analytics";
 
 /**
@@ -11,26 +12,32 @@ import type { BreakdownGroup, DailyPoint } from "@/lib/integrations/roblox/analy
 /**
  * Known AcquisitionSource values, each with a fixed color so a source keeps
  * its color across games and periods. Values seen from the API; anything else
- * Roblox adds later is labelled from its name.
+ * Roblox adds later is labelled from its name. Labels come from the
+ * dictionary (t.games.acquisition.sources), English by default.
  */
-const KNOWN_SOURCES: Record<string, { label: string; color: string }> = {
-  HomeRecommendation: { label: "Home recommendations", color: SERIES_COLORS[0] },
-  Search: { label: "Search", color: SERIES_COLORS[1] },
-  ContinueToPlay: { label: "Continue playing", color: SERIES_COLORS[2] },
-  Friends: { label: "Friends", color: SERIES_COLORS[3] },
-  SponsoredAds: { label: "Sponsored ads", color: SERIES_COLORS[4] },
+type KnownSource = "HomeRecommendation" | "Search" | "ContinueToPlay" | "Friends" | "SponsoredAds";
+const KNOWN_SOURCES: Record<KnownSource, { color: string }> = {
+  HomeRecommendation: { color: SERIES_COLORS[0] },
+  Search: { color: SERIES_COLORS[1] },
+  ContinueToPlay: { color: SERIES_COLORS[2] },
+  Friends: { color: SERIES_COLORS[3] },
+  SponsoredAds: { color: SERIES_COLORS[4] },
 };
+
+export type SourceLabels = Messages["games"]["acquisition"]["sources"];
+const EN_SOURCE_LABELS: SourceLabels = messages.en.games.acquisition.sources;
+
+const isKnown = (raw: string): raw is KnownSource => Object.hasOwn(KNOWN_SOURCES, raw);
 
 /** Colors left for sources the dashboard doesn't know yet (by volume). */
 const SPARE_COLORS = [SERIES_COLORS[5], SERIES_COLORS[7]];
 const OTHER_KEY = "Others";
-const OTHER = { label: "Other", color: SERIES_COLORS[6] };
+const OTHER_COLOR = SERIES_COLORS[6];
 
-/** "TodaysPicks" → "Todays picks". */
-export function sourceLabel(raw: string): string {
-  const known = KNOWN_SOURCES[raw];
-  if (known) return known.label;
-  if (raw === OTHER_KEY || raw === "") return OTHER.label;
+/** "TodaysPicks" → "Todays picks" (unknown Roblox values are humanized, not translated). */
+export function sourceLabel(raw: string, labels: SourceLabels = EN_SOURCE_LABELS): string {
+  if (isKnown(raw)) return labels[raw];
+  if (raw === OTHER_KEY || raw === "") return labels.other;
   const words = raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -69,20 +76,19 @@ export type SourceRow = {
  * (by volume); everything else, including Roblox's own "Others", is merged
  * into "Other" — never more than 8 series. Sorted by reach, "Other" last.
  */
-export function sourceRows(reached: BreakdownGroup[], played: BreakdownGroup[]): SourceRow[] {
+export function sourceRows(reached: BreakdownGroup[], played: BreakdownGroup[], labels: SourceLabels = EN_SOURCE_LABELS): SourceRow[] {
   const keys = new Set([...reached.map((g) => g.value), ...played.map((g) => g.value)]);
   const pointsOf = (groups: BreakdownGroup[], key: string) => groups.find((g) => g.value === key)?.points ?? [];
   const volume = (key: string) => sumPoints(pointsOf(reached, key)) + sumPoints(pointsOf(played, key));
 
   const unknown = [...keys]
-    .filter((k) => !(k in KNOWN_SOURCES) && k !== OTHER_KEY && k !== "")
+    .filter((k) => !isKnown(k) && k !== OTHER_KEY && k !== "")
     .sort((a, b) => volume(b) - volume(a) || a.localeCompare(b));
   const own = new Map<string, string>(); // key → color
   for (const k of keys) {
-    const known = KNOWN_SOURCES[k];
-    if (known) own.set(k, known.color);
+    if (isKnown(k)) own.set(k, KNOWN_SOURCES[k].color);
   }
-  unknown.slice(0, SPARE_COLORS.length).forEach((k, i) => own.set(k, SPARE_COLORS[i] ?? OTHER.color));
+  unknown.slice(0, SPARE_COLORS.length).forEach((k, i) => own.set(k, SPARE_COLORS[i] ?? OTHER_COLOR));
   const merged = [...keys].filter((k) => !own.has(k));
 
   const row = (key: string, label: string, color: string, r: DailyPoint[], p: DailyPoint[]): SourceRow => {
@@ -100,14 +106,14 @@ export function sourceRows(reached: BreakdownGroup[], played: BreakdownGroup[]):
     };
   };
 
-  const rows = [...own.entries()].map(([key, color]) => row(key, sourceLabel(key), color, pointsOf(reached, key), pointsOf(played, key)));
+  const rows = [...own.entries()].map(([key, color]) => row(key, sourceLabel(key, labels), color, pointsOf(reached, key), pointsOf(played, key)));
   rows.sort((a, b) => b.reachedTotal - a.reachedTotal || b.playedTotal - a.playedTotal || a.label.localeCompare(b.label));
   if (merged.length > 0) {
     rows.push(
       row(
         OTHER_KEY,
-        OTHER.label,
-        OTHER.color,
+        labels.other,
+        OTHER_COLOR,
         mergePoints(merged.map((k) => pointsOf(reached, k))),
         mergePoints(merged.map((k) => pointsOf(played, k))),
       ),
@@ -177,7 +183,7 @@ export function thumbnailStats(impressions: BreakdownGroup[], ptr: BreakdownGrou
   return stats.map((s, i) => ({
     ...s,
     rank: i + 1,
-    color: i < MAX_THUMBNAIL_SERIES ? (SERIES_COLORS[i] ?? OTHER.color) : OTHER.color,
+    color: i < MAX_THUMBNAIL_SERIES ? (SERIES_COLORS[i] ?? OTHER_COLOR) : OTHER_COLOR,
   }));
 }
 

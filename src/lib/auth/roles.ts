@@ -8,13 +8,6 @@ export type AppRole = (typeof APP_ROLES)[number];
 
 const RANK: Record<AppRole, number> = { viewer: 0, developer: 1, admin: 2, owner: 3 };
 
-export const ROLE_LABELS: Record<AppRole, string> = {
-  owner: "Owner",
-  admin: "Administrator",
-  developer: "Developer",
-  viewer: "Viewer",
-};
-
 export function hasMinRole(role: AppRole, minRole: AppRole): boolean {
   return RANK[role] >= RANK[minRole];
 }

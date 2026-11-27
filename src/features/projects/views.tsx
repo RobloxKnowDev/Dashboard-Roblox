@@ -12,20 +12,23 @@ import { SearchInput } from "@/components/ui/input";
 import { Progress } from "@/components/ui/primitives";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PROJECT_STATUS } from "@/features/shared/status";
+import { useFormat, useT } from "@/i18n/client";
+import type { Messages } from "@/i18n/messages";
 import { cn } from "@/lib/utils/cn";
-import { formatDate, initials } from "@/lib/utils/format";
+import { initials, type Formatters } from "@/lib/utils/format";
 import type { ProjectItem } from "./data";
 import { parseProjectTab, PROJECT_TABS } from "./tabs";
 
+const VIEWS = ["cards", "table"] as const;
 
-const VIEWS = [
-  { value: "cards", label: "Cards" },
-  { value: "table", label: "Table" },
-] as const;
+function tabOptions(t: Messages) {
+  return PROJECT_TABS.map((value) => ({ value, label: t.projects.tabs[value] }));
+}
 
 /* ─────────────────────────── Toolbar (URL state) ─────────────────────────── */
 
 export function ProjectsToolbar() {
+  const t = useT();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -52,10 +55,15 @@ export function ProjectsToolbar() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SegmentedControl value={tab} onValueChange={(v) => update("tab", v, "active")} options={PROJECT_TABS} aria-label="Project filter" />
+      <SegmentedControl
+        value={tab}
+        onValueChange={(v) => update("tab", v, "active")}
+        options={tabOptions(t)}
+        aria-label={t.projects.toolbar.filterLabel}
+      />
       <SearchInput
-        aria-label="Search projects"
-        placeholder="Search projects…"
+        aria-label={t.projects.toolbar.searchLabel}
+        placeholder={t.projects.toolbar.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full sm:w-56"
@@ -64,8 +72,8 @@ export function ProjectsToolbar() {
         <SegmentedControl
           value={view}
           onValueChange={(v) => update("view", v, "cards")}
-          options={VIEWS}
-          aria-label="Layout"
+          options={VIEWS.map((value) => ({ value, label: t.projects.toolbar.views[value] }))}
+          aria-label={t.projects.toolbar.layoutLabel}
         />
       </div>
     </div>
@@ -73,10 +81,16 @@ export function ProjectsToolbar() {
 }
 
 export function ProjectsToolbarFallback() {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SegmentedControl value="active" onValueChange={() => {}} options={PROJECT_TABS} aria-label="Project filter" />
-      <SearchInput aria-label="Search projects" placeholder="Search projects…" className="w-full sm:w-56" disabled />
+      <SegmentedControl value="active" onValueChange={() => {}} options={tabOptions(t)} aria-label={t.projects.toolbar.filterLabel} />
+      <SearchInput
+        aria-label={t.projects.toolbar.searchLabel}
+        placeholder={t.projects.toolbar.searchPlaceholder}
+        className="w-full sm:w-56"
+        disabled
+      />
     </div>
   );
 }
@@ -98,12 +112,15 @@ export function ProjectCover({ project, className }: { project: ProjectItem; cla
   );
 }
 
-function dueText(project: ProjectItem) {
-  if (project.status === "completed") return project.completedAt ? `Shipped ${formatDate(project.completedAt)}` : "Completed";
-  return project.targetReleaseDate ? `Target ${formatDate(project.targetReleaseDate)}` : "No target date";
+function dueText(project: ProjectItem, t: Messages, f: Formatters) {
+  const c = t.projects.card;
+  if (project.status === "completed") return project.completedAt ? c.shipped(f.formatDate(project.completedAt)) : c.completed;
+  return project.targetReleaseDate ? c.target(f.formatDate(project.targetReleaseDate)) : c.noTargetDate;
 }
 
 export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
+  const t = useT();
+  const f = useFormat();
   return (
     <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {projects.map((project) => {
@@ -119,21 +136,21 @@ export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent">{project.name}</h3>
                   <Badge tone={status.tone} dot className="shrink-0">
-                    {status.label}
+                    {t.common.status.project[project.status]}
                   </Badge>
                 </div>
                 <p className="line-clamp-2 min-h-[2.5em] text-xs leading-relaxed text-fg-3">
-                  {project.description || "No description."}
+                  {project.description || t.projects.card.noDescription}
                 </p>
                 <div>
                   <div className="mb-1.5 flex justify-between text-[11px] text-fg-3">
-                    <span>Progress</span>
+                    <span>{t.projects.card.progress}</span>
                     <span className="tabular text-fg-2">{project.progress}%</span>
                   </div>
-                  <Progress value={project.progress} label={`${project.name} progress`} tone={project.status === "completed" ? "good" : "accent"} />
+                  <Progress value={project.progress} label={t.projects.card.progressLabel(project.name)} tone={project.status === "completed" ? "good" : "accent"} />
                 </div>
                 <div className="mt-auto flex items-center justify-between gap-3 pt-1 text-[11px] text-fg-3">
-                  {project.members.length ? <AvatarGroup people={project.members} size="xs" /> : <span>No members</span>}
+                  {project.members.length ? <AvatarGroup people={project.members} size="xs" /> : <span>{t.projects.card.noMembers}</span>}
                   <span className="flex items-center gap-3">
                     <span className="inline-flex items-center gap-1">
                       <ListTodo className="size-3" aria-hidden />
@@ -141,7 +158,7 @@ export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <CalendarDays className="size-3" aria-hidden />
-                      {dueText(project)}
+                      {dueText(project, t, f)}
                     </span>
                   </span>
                 </div>
@@ -157,11 +174,14 @@ export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
 /* ─────────────────────────────── Table ─────────────────────────────── */
 
 export function ProjectTable({ projects }: { projects: ProjectItem[] }) {
+  const t = useT();
+  const f = useFormat();
+  const c = t.projects.table;
   const router = useRouter();
   const columns: Column<ProjectItem>[] = [
     {
       id: "name",
-      header: "Project",
+      header: c.project,
       sortValue: (p) => p.name.toLowerCase(),
       cell: (p) => (
         <Link href={`/projects/${p.id}`} className="font-medium text-fg hover:text-accent" onClick={(e) => e.stopPropagation()}>
@@ -171,42 +191,42 @@ export function ProjectTable({ projects }: { projects: ProjectItem[] }) {
     },
     {
       id: "status",
-      header: "Status",
+      header: c.status,
       sortValue: (p) => p.status,
       cell: (p) => (
         <Badge tone={PROJECT_STATUS[p.status].tone} dot>
-          {PROJECT_STATUS[p.status].label}
+          {t.common.status.project[p.status]}
         </Badge>
       ),
     },
     {
       id: "progress",
-      header: "Progress",
+      header: c.progress,
       sortValue: (p) => p.progress,
       cell: (p) => (
         <div className="flex w-32 items-center gap-2">
-          <Progress value={p.progress} label={`${p.name} progress`} className="flex-1" />
+          <Progress value={p.progress} label={t.projects.card.progressLabel(p.name)} className="flex-1" />
           <span className="w-9 text-right text-xs tabular">{p.progress}%</span>
         </div>
       ),
     },
     {
       id: "members",
-      header: "Members",
+      header: c.members,
       cell: (p) => (p.members.length ? <AvatarGroup people={p.members} size="xs" /> : <span className="text-fg-3">—</span>),
     },
     {
       id: "tasks",
-      header: "Tasks",
+      header: c.tasks,
       sortValue: (p) => p.tasks.open,
-      cell: (p) => <span className="tabular">{p.tasks.open} open</span>,
+      cell: (p) => <span className="tabular">{c.openTasks(p.tasks.open)}</span>,
     },
     {
       id: "target",
-      header: "Target",
+      header: c.target,
       align: "right",
       sortValue: (p) => p.targetReleaseDate,
-      cell: (p) => <span className="tabular">{p.targetReleaseDate ? formatDate(p.targetReleaseDate) : "—"}</span>,
+      cell: (p) => <span className="tabular">{p.targetReleaseDate ? f.formatDate(p.targetReleaseDate) : "—"}</span>,
     },
   ];
 
@@ -217,7 +237,7 @@ export function ProjectTable({ projects }: { projects: ProjectItem[] }) {
         rows={projects}
         getRowId={(p) => p.id}
         onRowClick={(p) => router.push(`/projects/${p.id}`)}
-        caption="Projects"
+        caption={c.caption}
         pageSize={15}
       />
     </div>

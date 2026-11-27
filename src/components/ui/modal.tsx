@@ -3,6 +3,7 @@
 import { Dialog } from "radix-ui";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 const widths = {
@@ -27,6 +28,7 @@ type ModalProps = {
 
 /** Accessible dialog: focus trap, Esc to close, labelled by its title. */
 export function Modal({ open, onOpenChange, trigger, title, description, size = "md", footer, children }: ModalProps) {
+  const t = useT();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
@@ -52,7 +54,7 @@ export function Modal({ open, onOpenChange, trigger, title, description, size = 
             </div>
             <Dialog.Close
               className="-mr-1.5 -mt-1 rounded-md p-1.5 text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
-              aria-label="Close"
+              aria-label={t.common.actions.close}
             >
               <X className="size-4" />
             </Dialog.Close>

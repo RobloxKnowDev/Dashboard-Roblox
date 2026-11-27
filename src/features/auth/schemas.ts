@@ -1,24 +1,26 @@
 import { z } from "zod";
 
+/* Error messages are dictionary keys ("auth.validation.…"): forms translate them with useMessage(). */
+
 export const emailSchema = z
   .string()
   .trim()
-  .min(1, "Enter your email address.")
-  .max(254, "This email address is too long.")
-  .pipe(z.email("Enter a valid email address."));
+  .min(1, "auth.validation.emailRequired")
+  .max(254, "auth.validation.emailTooLong")
+  .pipe(z.email("auth.validation.emailInvalid"));
 
 /** Mirrors the password policy configured on Supabase Auth. */
 export const newPasswordSchema = z
   .string()
-  .min(10, "Use at least 10 characters.")
-  .max(72, "Use at most 72 characters.")
-  .regex(/[a-z]/, "Add a lowercase letter.")
-  .regex(/[A-Z]/, "Add an uppercase letter.")
-  .regex(/[0-9]/, "Add a digit.");
+  .min(10, "auth.validation.passwordMin")
+  .max(72, "auth.validation.passwordMax")
+  .regex(/[a-z]/, "auth.validation.passwordLowercase")
+  .regex(/[A-Z]/, "auth.validation.passwordUppercase")
+  .regex(/[0-9]/, "auth.validation.passwordDigit");
 
 export const signInSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Enter your password.").max(72),
+  password: z.string().min(1, "auth.validation.passwordRequired").max(72, "auth.validation.passwordMax"),
   next: z.string().optional(),
 });
 
@@ -33,7 +35,7 @@ export const resetPasswordSchema = z
   })
   .refine((values) => values.password === values.confirm, {
     path: ["confirm"],
-    message: "The passwords don't match.",
+    message: "auth.validation.passwordsMismatch",
   });
 
 export type SignInValues = z.infer<typeof signInSchema>;

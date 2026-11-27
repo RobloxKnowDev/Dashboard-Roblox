@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "tr.rbxcdn.com" },
       { protocol: "https", hostname: "*.rbxcdn.com" },
+      // Steam store images (game ideas inspired by Steam)
+      { protocol: "https", hostname: "**.steamstatic.com" },
     ],
   },
   async redirects() {

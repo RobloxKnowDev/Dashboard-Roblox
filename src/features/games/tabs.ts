@@ -1,13 +1,9 @@
 /**
  * Statistics tabs of a game page (?tab=…). Kept out of the "use client"
  * tab bar: values imported from a client module into a Server Component are
- * client references, not the actual array.
+ * client references, not the actual array. Labels: t.games.tabs[value].
  */
-export const GAME_TABS = [
-  { value: "performance", label: "Performance" },
-  { value: "acquisition", label: "Acquisition" },
-  { value: "thumbnails", label: "Thumbnails" },
-] as const;
+export const GAME_TABS = [{ value: "performance" }, { value: "acquisition" }, { value: "thumbnails" }] as const;
 
 export type GameTab = (typeof GAME_TABS)[number]["value"];
 

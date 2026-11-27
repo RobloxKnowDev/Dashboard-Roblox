@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createContext, use, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Kbd } from "@/components/ui/primitives";
 import { navigation } from "@/config/navigation";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
 type PaletteContextValue = { open: boolean; setOpen: (open: boolean) => void };
@@ -55,6 +56,7 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
 export function CommandPaletteTrigger({ className }: { className?: string }) {
   const { setOpen } = usePalette();
   const mod = useModifierKey();
+  const t = useT();
   return (
     <button
       type="button"
@@ -64,11 +66,11 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
         "hover:border-line-strong hover:text-fg-2",
         className,
       )}
-      aria-label="Search (opens command palette)"
+      aria-label={t.shell.search.triggerLabel}
       aria-keyshortcuts="Control+K Meta+K"
     >
       <Search className="size-3.5" aria-hidden />
-      <span className="flex-1 text-left">Search…</span>
+      <span className="flex-1 truncate text-left">{t.shell.search.trigger}</span>
       <span className="hidden items-center gap-0.5 sm:flex" aria-hidden>
         <Kbd>{mod}</Kbd>
         <Kbd>K</Kbd>
@@ -83,6 +85,7 @@ const itemClass =
 
 function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
+  const t = useT();
 
   function go(href: string) {
     onOpenChange(false);
@@ -93,7 +96,7 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
     <Command.Dialog
       open={open}
       onOpenChange={onOpenChange}
-      label="Global search"
+      label={t.shell.search.dialogLabel}
       overlayClassName="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] data-[state=open]:animate-fade-in"
       contentClassName={cn(
         "fixed left-1/2 top-[14vh] z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden",
@@ -103,39 +106,40 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
       <div className="flex items-center gap-2.5 border-b border-line px-4">
         <Search className="size-4 shrink-0 text-fg-3" aria-hidden />
         <Command.Input
-          placeholder="Search pages and actions…"
+          placeholder={t.shell.search.placeholder}
           className="h-12 flex-1 bg-transparent text-sm text-fg placeholder:text-fg-3 focus:outline-none"
         />
         <Kbd>Esc</Kbd>
       </div>
       <Command.List className="max-h-[50vh] overflow-y-auto p-2">
-        <Command.Empty className="py-10 text-center text-xs text-fg-3">No results.</Command.Empty>
+        <Command.Empty className="py-10 text-center text-xs text-fg-3">{t.shell.search.empty}</Command.Empty>
         {navigation.map((section) => (
           <Command.Group
-            key={section.title}
-            heading={section.title}
+            key={section.key}
+            heading={t.nav.sections[section.key]}
             className="mb-1 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-fg-3"
           >
             {section.items.map((item) => {
               const Icon = item.icon;
+              const text = t.nav.items[item.key];
               return (
                 <Command.Item
                   key={item.href}
-                  value={`${item.title} ${section.title}`}
-                  keywords={item.keywords}
+                  value={`${text.title} ${t.nav.sections[section.key]}`}
+                  keywords={text.keywords.split(" ")}
                   onSelect={() => go(item.href)}
                   className={itemClass}
                 >
                   <Icon aria-hidden />
-                  {item.title}
-                  <span className="ml-auto text-[11px] text-fg-3">{section.title}</span>
+                  {text.title}
+                  <span className="ml-auto text-[11px] text-fg-3">{t.nav.sections[section.key]}</span>
                 </Command.Item>
               );
             })}
           </Command.Group>
         ))}
         <Command.Group
-          heading="Internal"
+          heading={t.shell.search.internal}
           className="mb-1 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-fg-3"
         >
           <Command.Item
@@ -145,13 +149,13 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
             className={itemClass}
           >
             <Palette aria-hidden />
-            Design System
-            <span className="ml-auto text-[11px] text-fg-3">Internal</span>
+            {t.shell.search.designSystem}
+            <span className="ml-auto text-[11px] text-fg-3">{t.shell.search.internal}</span>
           </Command.Item>
         </Command.Group>
       </Command.List>
       <div className="flex items-center justify-between border-t border-line px-4 py-2 text-[11px] text-fg-3">
-        <span>Projects, tasks and games become searchable once live data is connected.</span>
+        <span>{t.shell.search.footer}</span>
         <span className="flex items-center gap-1">
           <CornerDownLeft className="size-3" aria-hidden /> open
         </span>

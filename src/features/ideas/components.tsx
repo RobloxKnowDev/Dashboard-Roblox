@@ -19,8 +19,8 @@ import { describedBy, Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useFormat, useMessage, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
-import { formatDate } from "@/lib/utils/format";
 import { deleteIdea, saveIdea, setIdeaArchived } from "./actions";
 import { emptyIdea, ideaSchema, type IdeaInput } from "./schemas";
 
@@ -42,6 +42,9 @@ function IdeaFormModal({ open, onOpenChange, idea }: { open: boolean; onOpenChan
   const [pending, startTransition] = useTransition();
   const { register, handleSubmit, formState, setError, reset } = useForm<IdeaInput>({ resolver: zodResolver(ideaSchema), defaultValues: emptyIdea });
   const errors = formState.errors;
+  const t = useT();
+  const msg = useMessage();
+  const l = t.ideas.form;
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +67,7 @@ function IdeaFormModal({ open, onOpenChange, idea }: { open: boolean; onOpenChan
     startTransition(async () => {
       const result = await saveIdea(values, idea?.id);
       if (result.ok) {
-        toast.success(result.message ?? "Saved");
+        toast.success(result.message ?? l.saved);
         onOpenChange(false);
         return;
       }
@@ -74,35 +77,35 @@ function IdeaFormModal({ open, onOpenChange, idea }: { open: boolean; onOpenChan
   );
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} size="lg" title={idea ? "Edit idea" : "New idea"} description="Capture a game concept for the library.">
+    <Modal open={open} onOpenChange={onOpenChange} size="lg" title={idea ? l.editTitle : l.newTitle} description={l.description}>
       <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field htmlFor="i-title" label="Title" required error={errors.title?.message} className="sm:col-span-2">
+        <Field htmlFor="i-title" label={l.title} required error={msg(errors.title?.message)} className="sm:col-span-2">
           <Input id="i-title" autoFocus aria-invalid={!!errors.title} aria-describedby={describedBy("i-title")} {...register("title")} />
         </Field>
-        <Field htmlFor="i-pitch" label="Pitch" error={errors.pitch?.message} className="sm:col-span-2">
-          <Textarea id="i-pitch" rows={2} placeholder="The game in one or two sentences" {...register("pitch")} />
+        <Field htmlFor="i-pitch" label={l.pitch} error={msg(errors.pitch?.message)} className="sm:col-span-2">
+          <Textarea id="i-pitch" rows={2} placeholder={l.pitchPlaceholder} {...register("pitch")} />
         </Field>
-        <Field htmlFor="i-genre" label="Genre" error={errors.genre?.message}>
-          <Input id="i-genre" placeholder="Tycoon, Obby, Horror…" {...register("genre")} />
+        <Field htmlFor="i-genre" label={l.genre} error={msg(errors.genre?.message)}>
+          <Input id="i-genre" placeholder={l.genrePlaceholder} {...register("genre")} />
         </Field>
-        <Field htmlFor="i-score" label="Score (0–100)" error={errors.score?.message} hint="Your gut feeling about its potential.">
+        <Field htmlFor="i-score" label={l.score} error={msg(errors.score?.message)} hint={l.scoreHint}>
           <Input id="i-score" inputMode="numeric" aria-invalid={!!errors.score} {...register("score")} />
         </Field>
-        <Field htmlFor="i-audience" label="Target audience" error={errors.targetAudience?.message} className="sm:col-span-2">
-          <Input id="i-audience" placeholder="Age range, play style…" {...register("targetAudience")} />
+        <Field htmlFor="i-audience" label={l.audience} error={msg(errors.targetAudience?.message)} className="sm:col-span-2">
+          <Input id="i-audience" placeholder={l.audiencePlaceholder} {...register("targetAudience")} />
         </Field>
-        <Field htmlFor="i-loop" label="Core loop" error={errors.coreLoop?.message}>
-          <Textarea id="i-loop" rows={3} placeholder="What players do again and again" {...register("coreLoop")} />
+        <Field htmlFor="i-loop" label={l.coreLoop} error={msg(errors.coreLoop?.message)}>
+          <Textarea id="i-loop" rows={3} placeholder={l.coreLoopPlaceholder} {...register("coreLoop")} />
         </Field>
-        <Field htmlFor="i-money" label="Monetization" error={errors.monetization?.message}>
-          <Textarea id="i-money" rows={3} placeholder="Game passes, products…" {...register("monetization")} />
+        <Field htmlFor="i-money" label={l.monetization} error={msg(errors.monetization?.message)}>
+          <Textarea id="i-money" rows={3} placeholder={l.monetizationPlaceholder} {...register("monetization")} />
         </Field>
         <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t.common.actions.cancel}
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
-            {idea ? "Save changes" : "Save idea"}
+            {idea ? t.common.actions.saveChanges : l.saveIdea}
           </Button>
         </div>
       </form>
@@ -110,10 +113,7 @@ function IdeaFormModal({ open, onOpenChange, idea }: { open: boolean; onOpenChan
   );
 }
 
-const VIEWS = [
-  { value: "saved", label: "Library" },
-  { value: "archived", label: "Archived" },
-] as const;
+const VIEWS = ["saved", "archived"] as const;
 
 export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: IdeaRow[]; canEdit: boolean; canDeleteAny: boolean; userId: string }) {
   const [view, setView] = useState<"saved" | "archived">("saved");
@@ -121,23 +121,27 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
   const [creating, setCreating] = useState(false);
   const [, startTransition] = useTransition();
   const visible = useMemo(() => ideas.filter((i) => (view === "archived" ? i.status === "archived" : i.status !== "archived")), [ideas, view]);
+  const t = useT();
+  const f = useFormat();
+  const l = t.ideas.library;
+  const views = VIEWS.map((value) => ({ value, label: l.views[value] }));
 
   function run(action: () => Promise<{ ok: boolean; message?: string }>) {
     startTransition(async () => {
       const result = await action();
-      if (result.ok) toast.success(result.message ?? "Done");
-      else toast.error(result.message ?? "Something went wrong.");
+      if (result.ok) toast.success(result.message ?? l.done);
+      else toast.error(result.message ?? l.failed);
     });
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <SegmentedControl value={view} onValueChange={setView} options={VIEWS} aria-label="Ideas view" />
+        <SegmentedControl value={view} onValueChange={setView} options={views} aria-label={l.viewsLabel} />
         {canEdit ? (
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus aria-hidden />
-            New idea
+            {l.newIdea}
           </Button>
         ) : null}
       </div>
@@ -146,8 +150,8 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
         <div className="rounded-lg border border-line bg-surface">
           <EmptyState
             icon={Lightbulb}
-            title={view === "archived" ? "No archived ideas" : "The library is empty"}
-            description={view === "archived" ? "Archived ideas show up here." : "Write down game concepts as they come — pitch, loop, monetization."}
+            title={view === "archived" ? l.emptyArchivedTitle : l.emptyTitle}
+            description={view === "archived" ? l.emptyArchivedDescription : l.emptyDescription}
           />
         </div>
       ) : (
@@ -160,7 +164,7 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-fg">{idea.title}</h3>
                     <p className="mt-0.5 text-xs text-fg-3">
-                      {[idea.genre, `Added ${formatDate(idea.createdAt)}`].filter(Boolean).join(" · ")}
+                      {[idea.genre, l.added(f.formatDate(idea.createdAt))].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
@@ -168,25 +172,25 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
                     {canEdit ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${idea.title}`}>
+                          <Button variant="ghost" size="icon-sm" aria-label={l.actionsFor(idea.title)}>
                             <Ellipsis />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onSelect={() => setEditing(idea)}>
                             <Pencil aria-hidden />
-                            Edit
+                            {t.common.actions.edit}
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => run(() => setIdeaArchived(idea.id, idea.status !== "archived"))}>
                             {idea.status === "archived" ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
-                            {idea.status === "archived" ? "Restore" : "Archive"}
+                            {idea.status === "archived" ? l.restore : l.archive}
                           </DropdownMenuItem>
                           {canDelete ? (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem destructive onSelect={() => run(() => deleteIdea(idea.id))}>
                                 <Trash2 aria-hidden />
-                                Delete
+                                {t.common.actions.delete}
                               </DropdownMenuItem>
                             </>
                           ) : null}
@@ -198,14 +202,14 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
                 {idea.pitch ? <p className="text-[13px] leading-relaxed text-fg-2">{idea.pitch}</p> : null}
                 <dl className="mt-auto space-y-1.5 text-xs">
                   {[
-                    ["Audience", idea.targetAudience],
-                    ["Core loop", idea.coreLoop],
-                    ["Monetization", idea.monetization],
+                    [l.audience, idea.targetAudience],
+                    [l.coreLoop, idea.coreLoop],
+                    [l.monetization, idea.monetization],
                   ]
                     .filter(([, value]) => value)
                     .map(([label, value]) => (
                       <div key={label}>
-                        <dt className="inline font-medium text-fg-3">{label}: </dt>
+                        <dt className="inline font-medium text-fg-3">{l.term(label ?? "")}</dt>
                         <dd className="inline text-fg-2">{value}</dd>
                       </div>
                     ))}

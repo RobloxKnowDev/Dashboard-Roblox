@@ -6,12 +6,20 @@ import { SearchInput } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 import { statusOptions, TASK_PRIORITY } from "@/features/shared/status";
+import { useT } from "@/i18n/client";
+import type { Messages } from "@/i18n/messages";
 import { parseTaskView, TASK_VIEWS, type TaskView } from "./schemas";
 
 const ALL = "all";
 
+function viewOptions(t: Messages) {
+  return TASK_VIEWS.map((value) => ({ value, label: t.tasks.views[value] }));
+}
+
 /** View tabs + filters, kept in the URL so a filtered list can be shared. */
 export function TasksToolbar({ projects }: { projects: { id: string; name: string }[] }) {
+  const t = useT();
+  const c = t.tasks.toolbar;
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -38,26 +46,26 @@ export function TasksToolbar({ projects }: { projects: { id: string; name: strin
       <SegmentedControl<TaskView>
         value={parseTaskView(params.get("view"))}
         onValueChange={(v) => update("view", v)}
-        options={TASK_VIEWS}
-        aria-label="Task view"
+        options={viewOptions(t)}
+        aria-label={c.viewLabel}
       />
       <Select
-        aria-label="Priority"
+        aria-label={c.priorityLabel}
         value={params.get("priority") ?? ALL}
         onValueChange={(v) => update("priority", v)}
-        options={[{ value: ALL, label: "All priorities" }, ...statusOptions(TASK_PRIORITY)]}
+        options={[{ value: ALL, label: c.allPriorities }, ...statusOptions(TASK_PRIORITY, t.common.status.priority)]}
         className="w-36"
       />
       <Select
-        aria-label="Project"
+        aria-label={c.projectLabel}
         value={params.get("project") ?? ALL}
         onValueChange={(v) => update("project", v)}
-        options={[{ value: ALL, label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
+        options={[{ value: ALL, label: c.allProjects }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
         className="w-44"
       />
       <SearchInput
-        aria-label="Search tasks"
-        placeholder="Search tasks…"
+        aria-label={c.searchLabel}
+        placeholder={c.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full sm:w-56"
@@ -67,9 +75,10 @@ export function TasksToolbar({ projects }: { projects: { id: string; name: strin
 }
 
 export function TasksToolbarFallback() {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SegmentedControl value="all" onValueChange={() => {}} options={TASK_VIEWS} aria-label="Task view" />
+      <SegmentedControl value="all" onValueChange={() => {}} options={viewOptions(t)} aria-label={t.tasks.toolbar.viewLabel} />
     </div>
   );
 }

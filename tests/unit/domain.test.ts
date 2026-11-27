@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeGameAlerts } from "@/features/games/alerts";
 import { filterTasks } from "@/features/tasks/filter";
+import { messages } from "@/i18n/messages";
 import { slugify } from "@/lib/action-result";
 
 const days = (values: number[], start = 1) => values.map((value, i) => ({ date: `2026-11-${String(start + i).padStart(2, "0")}`, value }));
@@ -24,6 +25,19 @@ describe("computeGameAlerts", () => {
       d1: { current: days([0.2]) },
     });
     expect(alerts.some((a) => a.id === "G-dau" && a.title.includes("40.0%"))).toBe(true);
+  });
+
+  it("writes alerts in the dictionary's language", () => {
+    const alerts = computeGameAlerts(
+      {
+        gameName: "G",
+        dau: { current: days([60, 60]), previous: days([100, 100]) },
+        revenue: { current: days([5]) },
+        d1: { current: days([0.2]) },
+      },
+      messages.fr,
+    );
+    expect(alerts[0]?.title).toMatch(/^Joueurs quotidiens en baisse de 40,0\s%$/);
   });
 
   it("reports no revenue despite traffic", () => {

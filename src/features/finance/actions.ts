@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { getRequestT } from "@/i18n/server";
 import { fieldErrors, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -11,15 +12,16 @@ const idSchema = z.uuid();
 
 /** Creates (no id) or updates a transaction. Owners and administrators only (RLS enforces it too). */
 export async function saveTransaction(input: unknown, transactionId?: string): Promise<ActionResult> {
+  const t = await getRequestT();
   const access = await checkAccess("admin");
-  if (access.status !== "allowed") return { ok: false, message: "Only owners and administrators can edit finances." };
+  if (access.status !== "allowed") return { ok: false, message: t.finance.actions.adminOnly };
 
   const parsed = transactionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
   const values = parsed.data;
   const amount = parseAmount(values.amount);
-  if (amount === null) return { ok: false, fieldErrors: { amount: "Enter an amount above 0." } };
-  if (transactionId !== undefined && !idSchema.safeParse(transactionId).success) return { ok: false, message: "Invalid transaction." };
+  if (amount === null) return { ok: false, fieldErrors: { amount: t.finance.validation.amountPositive } };
+  if (transactionId !== undefined && !idSchema.safeParse(transactionId).success) return { ok: false, message: t.finance.actions.invalid };
 
   const record = {
     type: values.type,
@@ -37,20 +39,21 @@ export async function saveTransaction(input: unknown, transactionId?: string): P
   const { error } = transactionId
     ? await supabase.from("finance_transactions").update(record).eq("id", transactionId)
     : await supabase.from("finance_transactions").insert({ ...record, created_by: access.user.id });
-  if (error) return { ok: false, message: "The transaction couldn't be saved. Try again." };
+  if (error) return { ok: false, message: t.finance.actions.saveFailed };
 
   refresh();
-  return { ok: true, message: transactionId ? "Transaction updated" : "Transaction added" };
+  return { ok: true, message: transactionId ? t.finance.actions.updated : t.finance.actions.added };
 }
 
 export async function deleteTransaction(transactionId: string): Promise<ActionResult> {
+  const t = await getRequestT();
   const access = await checkAccess("admin");
-  if (access.status !== "allowed") return { ok: false, message: "Only owners and administrators can edit finances." };
-  if (!idSchema.safeParse(transactionId).success) return { ok: false, message: "Invalid transaction." };
+  if (access.status !== "allowed") return { ok: false, message: t.finance.actions.adminOnly };
+  if (!idSchema.safeParse(transactionId).success) return { ok: false, message: t.finance.actions.invalid };
 
   const supabase = await createClient();
   const { error } = await supabase.from("finance_transactions").delete().eq("id", transactionId);
-  if (error) return { ok: false, message: "The transaction couldn't be deleted." };
+  if (error) return { ok: false, message: t.finance.actions.deleteFailed };
   refresh();
-  return { ok: true, message: "Transaction deleted" };
+  return { ok: true, message: t.finance.actions.deleted };
 }

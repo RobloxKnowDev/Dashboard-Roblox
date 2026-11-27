@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "./button";
 import { Table, TBody, TD, TH, THead, TR } from "./table";
@@ -42,6 +43,7 @@ export function DataTable<T>({
   onRowClick,
   caption,
 }: DataTableProps<T>) {
+  const t = useT();
   const [sort, setSort] = useState<SortState>(initialSort);
   const [page, setPage] = useState(0);
 
@@ -135,13 +137,13 @@ export function DataTable<T>({
       {pageCount > 1 ? (
         <div className="flex items-center justify-between border-t border-line px-4 py-2.5 text-xs text-fg-3">
           <span className="tabular">
-            {currentPage * pageSize + 1}–{Math.min(sorted.length, (currentPage + 1) * pageSize)} of {sorted.length}
+            {t.common.actions.pageRange(currentPage * pageSize + 1, Math.min(sorted.length, (currentPage + 1) * pageSize), sorted.length)}
           </span>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Previous page"
+              aria-label={t.common.actions.previousPage}
               disabled={currentPage === 0}
               onClick={() => setPage(currentPage - 1)}
             >
@@ -150,7 +152,7 @@ export function DataTable<T>({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Next page"
+              aria-label={t.common.actions.nextPage}
               disabled={currentPage >= pageCount - 1}
               onClick={() => setPage(currentPage + 1)}
             >

@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { APP_ROLES, type AppRole } from "@/lib/auth/roles";
 
+/** Error messages are dictionary keys, translated by the form (useMessage). */
 export const createAccountSchema = z.object({
-  name: z.string().trim().min(1, "Enter their name.").max(120, "120 characters maximum."),
-  email: z.string().trim().toLowerCase().min(1, "Enter their email address.").max(254, "This email address is too long.").pipe(z.email("Enter a valid email address.")),
+  name: z.string().trim().min(1, "settings.validation.theirNameRequired").max(120, "settings.validation.max120"),
+  email: z.string().trim().toLowerCase().min(1, "settings.validation.theirEmailRequired").max(254, "auth.validation.emailTooLong").pipe(z.email("auth.validation.emailInvalid")),
   role: z.enum(APP_ROLES),
 });
 
