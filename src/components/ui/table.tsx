@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils/cn";
 /** Low-level table primitives. For sorting/pagination use <DataTable>. */
 export function Table({ className, ...props }: ComponentProps<"table">) {
   return (
-    <div className="w-full overflow-x-auto">
+    // `relative` keeps absolutely positioned children (sr-only labels) inside the
+    // scroll area — otherwise they escape it and widen the whole page on phones.
+    <div className="relative w-full overflow-x-auto">
       <table className={cn("w-full border-collapse text-left text-[13px]", className)} {...props} />
     </div>
   );

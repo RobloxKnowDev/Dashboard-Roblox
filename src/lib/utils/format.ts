@@ -47,6 +47,17 @@ export function formatPercent(ratio: number): string {
   return percentFormat.format(ratio);
 }
 
+const precisePercentFormat = new Intl.NumberFormat(locale, {
+  style: "percent",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Small rates that need two decimals to compare: 0.00946 → "0.95%" */
+export function formatPrecisePercent(ratio: number): string {
+  return precisePercentFormat.format(ratio);
+}
+
 /** Signed delta for stat cards: 0.124 → "+12.4%" */
 export function formatDelta(ratio: number): string {
   const sign = ratio > 0 ? "+" : ratio < 0 ? "−" : "";

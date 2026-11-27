@@ -46,7 +46,7 @@ async function AgentDetail({ params }: { params: Promise<{ agentId: string }> })
         <p className="text-[13px] text-fg-3">{agent.mission}</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-1">
           <dl className="space-y-3 text-[13px]">
             {[

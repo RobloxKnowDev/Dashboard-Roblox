@@ -68,7 +68,7 @@ export function MemberFormModal({ member, trigger }: MemberFormModalProps) {
           : "For people without an account (freelancers, contractors). They can be assigned projects and tasks. To give someone sign-in access, create an account in Settings → Members."
       }
     >
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           htmlFor="m-name"
           label="Name"

@@ -105,7 +105,7 @@ function dueText(project: ProjectItem) {
 
 export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
   return (
-    <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {projects.map((project) => {
         const status = PROJECT_STATUS[project.status];
         return (

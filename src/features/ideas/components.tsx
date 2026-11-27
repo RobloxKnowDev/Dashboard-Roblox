@@ -75,7 +75,7 @@ function IdeaFormModal({ open, onOpenChange, idea }: { open: boolean; onOpenChan
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} size="lg" title={idea ? "Edit idea" : "New idea"} description="Capture a game concept for the library.">
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field htmlFor="i-title" label="Title" required error={errors.title?.message} className="sm:col-span-2">
           <Input id="i-title" autoFocus aria-invalid={!!errors.title} aria-describedby={describedBy("i-title")} {...register("title")} />
         </Field>
@@ -151,7 +151,7 @@ export function IdeasLibrary({ ideas, canEdit, canDeleteAny, userId }: { ideas: 
           />
         </div>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {visible.map((idea) => {
             const canDelete = canDeleteAny || (canEdit && idea.createdBy === userId);
             return (

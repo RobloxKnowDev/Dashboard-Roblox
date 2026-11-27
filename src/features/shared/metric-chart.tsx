@@ -12,18 +12,20 @@ import {
   formatMonth,
   formatMonthYear,
   formatPercent,
+  formatPrecisePercent,
   formatRobux,
   formatShortDate,
 } from "@/lib/utils/format";
 
 /** Value formats, by name — functions can't cross the server/client boundary. */
-export type ValueFormat = "compact" | "robux" | "usd" | "percent" | "minutes";
+export type ValueFormat = "compact" | "robux" | "usd" | "percent" | "rate" | "minutes";
 
 const FORMATTERS: Record<ValueFormat, (value: number) => string> = {
   compact: formatCompact,
   robux: formatRobux,
   usd: (v) => formatCurrency(v, { compact: v >= 10_000 }),
   percent: formatPercent,
+  rate: formatPrecisePercent,
   minutes: (v) => `${v.toFixed(1)} min`,
 };
 
@@ -46,7 +48,7 @@ export function MetricChart({
   ...common
 }: Common & {
   rows: TimeSeriesRow[];
-  series: { key: string; label: string }[];
+  series: { key: string; label: string; color?: string }[];
   granularity?: "day" | "month";
   variant?: "area" | "line";
 }) {

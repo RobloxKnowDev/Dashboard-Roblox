@@ -18,7 +18,7 @@ async function ProfileSection() {
   const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle();
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card className="flex items-center gap-4 p-5 xl:col-span-2">
         <Avatar name={user.name} src={user.avatarUrl} size="xl" />
         <div className="min-w-0">

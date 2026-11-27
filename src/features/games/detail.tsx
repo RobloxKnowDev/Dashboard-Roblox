@@ -24,7 +24,6 @@ import { parseRange, type RangeConfig } from "@/features/shared/range";
 import { MetricChart } from "@/features/shared/metric-chart";
 import { GAME_STATUS } from "@/features/shared/status";
 import { checkAccess } from "@/lib/auth/session";
-import type { DailyPoint } from "@/lib/integrations/roblox/analytics";
 import { getRobloxGames, likeRatio, robloxGameUrl } from "@/lib/integrations/roblox/public";
 import { cn } from "@/lib/utils/cn";
 import { formatCompact, formatCurrency, formatDate, formatMonthYear, formatNumber, formatPercent, formatRobux } from "@/lib/utils/format";
@@ -33,17 +32,18 @@ import { computeGameAlerts } from "./alerts";
 import { analyticsWindow, avgOf, deltaOf, getGameAnalytics, sumOf, type GameAnalytics } from "./analytics";
 import { GameIcon } from "./components";
 import { getDevexRate, getGame, type GameRow } from "./data";
+import { rowsOf } from "./rows";
 import { listPayouts } from "./payouts";
 import { EditPayoutButton, PayoutFormModal } from "./payout-form";
 import { PAYOUT_SOURCES, payoutSeries, recentMonths, revenueChart, type PayoutSource } from "./payouts-compute";
 
-type Params = Promise<{ gameId: string }>;
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+export type Params = Promise<{ gameId: string }>;
+export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Loads the game or 404s. getGame is memoized per request. */
-async function loadGame(params: Params): Promise<GameRow> {
+export async function loadGame(params: Params): Promise<GameRow> {
   const { gameId } = await params;
   if (!UUID.test(gameId)) notFound();
   const game = await getGame(gameId);
@@ -144,19 +144,7 @@ export async function GameLiveStats({ params }: { params: Params }) {
 
 /* ─────────────────────────── Analytics ─────────────────────────── */
 
-function rowsOf(series: Record<string, DailyPoint[]>) {
-  const byDate = new Map<string, Record<string, number | string>>();
-  for (const [key, points] of Object.entries(series)) {
-    for (const p of points) {
-      const row = byDate.get(p.date) ?? { date: p.date };
-      row[key] = p.value;
-      byDate.set(p.date, row);
-    }
-  }
-  return [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date))) as ({ date: string } & Record<string, number | string>)[];
-}
-
-function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["status"]; universeId: number }) {
+export function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["status"]; universeId: number }) {
   if (status === "unauthorized") {
     return (
       <Card className="border-dashed">
@@ -193,7 +181,7 @@ function AnalyticsUnavailable({ status, universeId }: { status: GameAnalytics["s
       description={
         status === "not_configured"
           ? "Add ROBLOX_OPEN_CLOUD_API_KEY to the server environment to see DAU, revenue and retention."
-          : "Roblox's analytics service didn't answer. This usually resolves itself — try again later."
+          : "Roblox didn't answer, or the API key reached its data limit for the minute. Try again in a minute."
       }
     />
   );
@@ -271,7 +259,7 @@ export async function GameAnalyticsSection({ params, searchParams }: { params: P
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <MetricChart
           title="Player activity"
           description={`Daily active users, ${range.label}`}

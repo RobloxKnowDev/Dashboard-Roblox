@@ -37,7 +37,7 @@ export default function FinancePage() {
       <RequireRole min="admin">
         <Suspense
           fallback={
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading indicators">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3" role="status" aria-label="Loading indicators">
               {Array.from({ length: 6 }, (_, i) => (
                 <Skeleton key={i} className="h-[108px] rounded-lg" />
               ))}
@@ -49,7 +49,7 @@ export default function FinancePage() {
 
         <Suspense
           fallback={
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {Array.from({ length: 4 }, (_, i) => (
                 <ChartSkeleton key={i} />
               ))}

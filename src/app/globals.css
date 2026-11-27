@@ -134,6 +134,25 @@
   }
 }
 
+/*
+ * Touch screens. Unlayered on purpose so it wins over the text-size utilities:
+ * iOS zooms the whole page into any field whose text is under 16px.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea,
+  [cmdk-input] {
+    font-size: 16px;
+  }
+}
+
+html {
+  /* Keep text sizes when a phone rotates to landscape */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 @layer utilities {
   /* Expanded width axis of Mona Sans for display headings and the wordmark */
   .font-display {

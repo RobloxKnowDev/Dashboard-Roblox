@@ -43,6 +43,14 @@ export function analyticsWindow(range: RangeConfig, today: string) {
   return { start, mid, end };
 }
 
+/** One status for a set of queries: usable as soon as one of them answered. */
+export function overallStatus(results: { status: string }[]): AnalyticsStatus {
+  if (results.some((r) => r.status === "ok")) return "ok";
+  if (results.length > 0 && results.every((r) => r.status === "unauthorized")) return "unauthorized";
+  if (results.some((r) => r.status === "not_configured")) return "not_configured";
+  return "error";
+}
+
 export const sumOf = (points: DailyPoint[]) => points.reduce((acc, p) => acc + p.value, 0);
 export const avgOf = (points: DailyPoint[]) => (points.length ? sumOf(points) / points.length : null);
 export const lastOf = (points: DailyPoint[]) => (points.length ? (points[points.length - 1]?.value ?? null) : null);
@@ -128,13 +136,7 @@ export async function getGameAnalytics(
     }),
   );
 
-  const status: AnalyticsStatus = results.some((r) => r.status === "ok")
-    ? "ok"
-    : results.every((r) => r.status === "unauthorized")
-      ? "unauthorized"
-      : results.some((r) => r.status === "not_configured")
-        ? "not_configured"
-        : "error";
+  const status = overallStatus(results);
 
   const analytics: GameAnalytics = {
     status,

@@ -78,7 +78,7 @@ async function ProjectDetail({ params }: { params: Promise<{ projectId: string }
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="p-5">
           <p className="text-xs text-fg-3">Progress</p>
           <p className="mt-1 text-2xl font-semibold text-fg">{project.progress}%</p>
@@ -159,7 +159,7 @@ export default function ProjectPage({ params }: PageProps<"/projects/[projectId]
         fallback={
           <div className="space-y-4" role="status" aria-label="Loading project">
             <Skeleton className="h-36 rounded-lg" />
-            <Skeleton className="h-7 w-72" />
+            <Skeleton className="h-7 w-72 max-w-full" />
             <div className="rounded-lg border border-line bg-surface">
               <ListSkeleton rows={4} />
             </div>

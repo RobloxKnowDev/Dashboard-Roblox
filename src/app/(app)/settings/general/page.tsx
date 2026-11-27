@@ -14,7 +14,7 @@ async function GeneralSection() {
   const supabase = await createClient();
   const { data } = await supabase.from("studio_settings").select("studio_name, devex_rate_usd").maybeSingle();
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_20rem]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_20rem]">
       <GeneralSettingsForm defaults={{ studioName: data?.studio_name ?? "", devexRate: String(data?.devex_rate_usd ?? 0.0038) }} />
       <Card className="p-5">
         <h3 className="text-[13px] font-semibold text-fg">Fixed for now</h3>

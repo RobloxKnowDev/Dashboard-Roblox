@@ -34,7 +34,8 @@ export function Modal({ open, onOpenChange, trigger, title, description, size = 
         <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-[12vh] z-50 flex max-h-[76vh] w-[calc(100vw-2rem)] -translate-x-1/2 flex-col",
+            // Phones: near the top and sized to the visible height (dvh shrinks with the keyboard).
+            "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 flex-col sm:top-[12vh] sm:max-h-[76vh]",
             "rounded-xl border border-line-strong bg-surface-2 shadow-2xl shadow-black/50",
             "data-[state=open]:animate-pop-in focus:outline-none",
             widths[size],

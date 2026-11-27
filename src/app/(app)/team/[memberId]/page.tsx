@@ -117,7 +117,7 @@ async function MemberDetail({ params }: { params: Promise<{ memberId: string }> 
         ) : null}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader title="Projects" description={`${member.projects.length} ${member.projects.length === 1 ? "project" : "projects"}`} />
           {member.projects.length === 0 ? (
@@ -176,7 +176,7 @@ export default function TeamMemberPage({ params }: PageProps<"/team/[memberId]">
       <Suspense
         fallback={
           <div className="space-y-4" role="status" aria-label="Loading member">
-            <Skeleton className="h-14 w-80" />
+            <Skeleton className="h-14 w-80 max-w-full" />
             <div className="rounded-lg border border-line bg-surface">
               <ListSkeleton rows={4} />
             </div>

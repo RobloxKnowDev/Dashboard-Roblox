@@ -60,7 +60,7 @@ export default function TeamPage() {
       />
       <Suspense
         fallback={
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading the team">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading the team">
             {Array.from({ length: 3 }, (_, i) => (
               <Skeleton key={i} className="h-52 rounded-lg" />
             ))}

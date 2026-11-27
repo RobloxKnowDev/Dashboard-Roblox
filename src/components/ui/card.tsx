@@ -24,7 +24,8 @@ export function CardHeader({ title, description, actions, className, as: Heading
   return (
     <header className={cn("flex items-start justify-between gap-4 px-5 pt-4", className)}>
       <div className="min-w-0">
-        <Heading className="truncate text-[13px] font-semibold text-fg">{title}</Heading>
+        {/* Phones: long titles wrap instead of being cut next to the actions. */}
+        <Heading className="text-[13px] font-semibold text-fg sm:truncate">{title}</Heading>
         {description ? <p className="mt-0.5 text-xs text-fg-3">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}

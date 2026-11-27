@@ -45,7 +45,7 @@ export function StatCard({
     <section
       aria-label={label}
       className={cn(
-        "group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden rounded-lg border border-line bg-surface p-4",
+        "group @container relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden rounded-lg border border-line bg-surface p-4",
         "transition-colors hover:border-line-strong",
         className,
       )}
@@ -62,7 +62,8 @@ export function StatCard({
         <div className="flex items-end justify-between gap-3">
           <p className="min-w-0 truncate text-2xl font-semibold tracking-tight text-fg">{value}</p>
           {trend && trend.length > 1 ? (
-            <div className="mb-1 w-20 shrink-0">
+            // Only when the card is wide enough to keep the value readable (two cards per row on phones).
+            <div className="mb-1 hidden w-20 shrink-0 @[15rem]:block">
               <Sparkline values={trend} height={28} />
             </div>
           ) : null}

@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Overview" };
 function KpiSkeleton() {
   return (
     <div className="space-y-3" role="status" aria-label="Loading indicators">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i} className="h-[118px] rounded-lg" />
         ))}
@@ -36,7 +36,7 @@ function KpiSkeleton() {
 
 function ChartsSkeleton() {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {Array.from({ length: 4 }, (_, i) => (
         <ChartSkeleton key={i} />
       ))}
@@ -78,7 +78,7 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
         <OverviewCharts searchParams={searchParams} />
       </Suspense>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Suspense fallback={<CardSkeleton />}>
           <UpcomingTasks />
         </Suspense>
@@ -88,7 +88,7 @@ export default function OverviewPage({ searchParams }: PageProps<"/overview">) {
         <ActiveAgents />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Suspense fallback={<CardSkeleton />}>
           <ImportantAlerts searchParams={searchParams} />
         </Suspense>

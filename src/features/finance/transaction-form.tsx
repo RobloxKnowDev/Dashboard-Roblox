@@ -93,7 +93,7 @@ export function TransactionFormModal({ options, transaction, trigger }: Transact
       title={editing ? "Edit transaction" : "Add transaction"}
       description="Amounts are in USD. Revenue and expenses feed the totals and charts on this page."
     >
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <SegmentedControl
             aria-label="Transaction type"

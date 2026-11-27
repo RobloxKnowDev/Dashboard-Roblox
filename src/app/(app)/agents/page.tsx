@@ -26,7 +26,7 @@ async function AgentsSection({ searchParams }: { searchParams: PageProps<"/agent
           <EmptyState title={`No ${status ? AGENT_STATUS[status].label.toLowerCase() : ""} agents`} description="Pick another status above." />
         </div>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {agents.map((agent) => (
             <li key={agent.id}>
               <AgentCard agent={agent} />

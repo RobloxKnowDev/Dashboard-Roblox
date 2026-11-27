@@ -69,7 +69,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           label="Total revenue"
           value={hasAnalytics ? formatRobux(studio.revenue.total) : "—"}
@@ -179,7 +179,7 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <MetricChart
           title="Revenue overview"
           description={`Robux earned per ${range.granularity}, ${range.label} · ${coverage}`}

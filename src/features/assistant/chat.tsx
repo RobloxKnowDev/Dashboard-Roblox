@@ -174,7 +174,7 @@ export function AssistantChat() {
   }
 
   return (
-    <div className="grid h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-lg border border-line bg-surface lg:grid-cols-[15rem_1fr]">
+    <div className="grid h-[calc(100dvh-13rem)] min-h-[440px] overflow-hidden rounded-lg sm:h-[calc(100dvh-15rem)] sm:min-h-[520px] border border-line bg-surface lg:grid-cols-[15rem_1fr]">
       {/* History */}
       <aside className="hidden min-h-0 flex-col border-r border-line lg:flex" aria-label="Conversations">
         <div className="p-3">
@@ -205,7 +205,7 @@ export function AssistantChat() {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
                     aria-label={`Delete conversation ${c.title}`}
                     onClick={() => deleteConversation(c.id)}
                   >
@@ -221,6 +221,47 @@ export function AssistantChat() {
 
       {/* Chat */}
       <section className="flex min-h-0 flex-col" aria-label="Chat">
+        {/* Phones and tablets: the history list is hidden, so switch conversations here. */}
+        <div className="flex items-center gap-2 border-b border-line p-2 lg:hidden">
+          {conversations.length > 0 ? (
+            <>
+              <label htmlFor="assistant-conversation" className="sr-only">
+                Conversation
+              </label>
+              <select
+                id="assistant-conversation"
+                value={activeId ?? ""}
+                disabled={generating}
+                onChange={(event) => setActiveId(event.target.value || null)}
+                className="h-9 min-w-0 flex-1 truncate rounded-md border border-line-strong bg-surface-2 px-2.5 text-[13px] text-fg focus:border-accent/60 focus:outline-none"
+              >
+                <option value="">New conversation</option>
+                {conversations.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+              {activeId ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Delete this conversation"
+                  disabled={generating}
+                  onClick={() => deleteConversation(activeId)}
+                >
+                  <Trash2 />
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <p className="min-w-0 flex-1 truncate px-1.5 text-xs text-fg-3">Demo conversations aren&apos;t saved.</p>
+          )}
+          <Button variant="secondary" size="sm" onClick={newConversation} disabled={generating}>
+            <Plus aria-hidden />
+            New
+          </Button>
+        </div>
         <div ref={logRef} role="log" aria-live="polite" aria-busy={generating} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           {messages.length === 0 ? (
             <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center text-center">
@@ -325,7 +366,7 @@ export function AssistantChat() {
               </Button>
             )}
           </div>
-          <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-fg-3">Enter to send · Shift + Enter for a new line</p>
+          <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-fg-3 pointer-coarse:hidden">Enter to send · Shift + Enter for a new line</p>
         </form>
       </section>
     </div>

@@ -78,7 +78,7 @@ export function ProjectFormModal({ options, project, trigger }: ProjectFormModal
       title={editing ? "Edit project" : "New project"}
       description="Projects group tasks, members and a target release date."
     >
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field htmlFor="p-name" label="Name" required error={errors.name?.message} className="sm:col-span-2">
           <Input id="p-name" autoFocus aria-invalid={!!errors.name} aria-describedby={describedBy("p-name")} {...register("name")} />
         </Field>

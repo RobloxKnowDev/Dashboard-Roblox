@@ -59,7 +59,7 @@ export function TaskFormModal({ open, onOpenChange, options, task, defaults }: T
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} size="lg" title={task ? "Edit task" : "New task"} description="Who does what, by when.">
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field htmlFor="t-title" label="Title" required error={errors.title?.message} className="sm:col-span-2">
           <Input id="t-title" autoFocus aria-invalid={!!errors.title} aria-describedby={describedBy("t-title")} {...register("title")} />
         </Field>

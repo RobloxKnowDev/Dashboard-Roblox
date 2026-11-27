@@ -59,7 +59,7 @@ async function GamesGrid() {
           Roblox couldn&apos;t be reached — live stats are temporarily unavailable.
         </p>
       ) : null}
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {games.map((game, index) => {
           const result = dauResults[index];
           const dau =
@@ -79,7 +79,7 @@ async function GamesGrid() {
 
 function GridSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading games">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading games">
       {Array.from({ length: 3 }, (_, i) => (
         <Skeleton key={i} className="h-[196px] rounded-lg" />
       ))}

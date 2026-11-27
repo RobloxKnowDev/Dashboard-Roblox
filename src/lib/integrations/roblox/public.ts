@@ -138,3 +138,29 @@ export function likeRatio(game: Pick<RobloxGameInfo, "upVotes" | "downVotes">): 
 export function robloxGameUrl(placeId: number): string {
   return `https://www.roblox.com/games/${placeId}`;
 }
+
+type AssetThumbsResponse = { data: { targetId: number; state: string; imageUrl: string | null }[] };
+
+async function fetchAssetImagesCached(assetIds: string[]): Promise<[string, string][]> {
+  "use cache: remote";
+  cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
+
+  const response = await getJson<AssetThumbsResponse>(
+    `https://thumbnails.roblox.com/v1/assets?assetIds=${assetIds.join(",")}&returnPolicy=PlaceHolder&size=768x432&format=Webp&isCircular=false`,
+  );
+  return response.data.flatMap((d) => (d.state === "Completed" && d.imageUrl ? [[String(d.targetId), d.imageUrl] as [string, string]] : []));
+}
+
+/**
+ * 16:9 images of image assets (game thumbnails), by asset id. Missing or
+ * failed images are simply absent from the map. Up to 100 ids.
+ */
+export async function getAssetImages(assetIds: string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(assetIds.filter((id) => /^\d+$/.test(id)))].sort().slice(0, 100);
+  if (ids.length === 0) return new Map();
+  try {
+    return new Map(await fetchAssetImagesCached(ids));
+  } catch {
+    return new Map();
+  }
+}

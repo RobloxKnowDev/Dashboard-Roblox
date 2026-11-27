@@ -44,7 +44,7 @@ export async function FinanceKpis() {
   const previous = s.previousMonth.revenue;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
       <StatCard label="Total revenue" value={usd(s.totalRevenue)} source="live" icon={Wallet} hint={empty ?? "All time"} trend={trend("revenue")} />
       <StatCard
         label="Monthly revenue"
@@ -103,7 +103,7 @@ export async function FinanceCharts() {
   const hasActivity = s.monthly.some((m) => m.revenue > 0 || m.expenses > 0);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <MetricBarChart
         title="Revenue history"
         description="Revenue per month by category, last 12 months"
@@ -174,7 +174,7 @@ export async function RobloxEarnings() {
   } else {
     const robux = studio.revenue.total;
     body = (
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatCard
           label="Robux earned"
           value={formatRobux(robux)}

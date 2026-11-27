@@ -13,7 +13,9 @@ import { cacheLife } from "next/cache";
  *   Only successful and "not authorized" answers are cached — transient
  *   failures are retried on the next request.
  * - At most 4 requests are in flight, and "too many requests" (429) answers
- *   are retried with backoff, to stay within Roblox's limits.
+ *   are retried with exponential backoff (about 30 s in total): Roblox meters
+ *   a "data point budget" whose size and window aren't published, and a game
+ *   page asks for up to 8 metrics at once.
  */
 
 export const ANALYTICS_METRICS = [
@@ -26,26 +28,48 @@ export const ANALYTICS_METRICS = [
   "ForwardD7Retention",
   "ForwardD30Retention",
   "PayingUsers",
+  // Acquisition (daily unique users and conversion rates)
+  "UniqueUsersWithImpressions",
+  "UniqueUsersWithPlaySessions",
+  "ImpressionCVR",
+  "QualifiedEndToEndCVR",
+  // Home recommendation signals: play-through and first-play bounce
+  "RFYPlayThroughRate",
+  "RFYDuration0To60",
+  "RFYDuration61To180",
+  // Thumbnails (Roblox keeps 30 days)
+  "ThumbnailImpressions",
+  "ThumbnailQualifiedPTR",
 ] as const;
 
 export type AnalyticsMetric = (typeof ANALYTICS_METRICS)[number];
 
+/** Dimensions a metric can be split by (subset used by the dashboard). */
+export type AnalyticsBreakdown = "AcquisitionSource" | "IsNewUser" | "ThumbnailAsset";
+
 export type DailyPoint = { date: string; value: number };
 
-export type MetricResult =
-  | { status: "ok"; points: DailyPoint[] }
-  | { status: "unauthorized" }
-  | { status: "not_configured" }
-  | { status: "error"; message: string };
+/** One series of a broken-down metric: the dimension value and its points. */
+export type BreakdownGroup = { value: string; points: DailyPoint[] };
+
+type Failure = { status: "unauthorized" } | { status: "not_configured" } | { status: "error"; message: string };
+
+export type MetricResult = { status: "ok"; points: DailyPoint[] } | Failure;
+export type BreakdownResult = { status: "ok"; groups: BreakdownGroup[] } | Failure;
+
+/** Raw answer of one query: every returned series (one per dimension value). */
+type QueryResult = { status: "ok"; groups: BreakdownGroup[] } | { status: "unauthorized" };
 
 const BASE = "https://apis.roblox.com/analytics-query-api";
 const MAX_CONCURRENT = 4;
-const MAX_RATE_LIMIT_RETRIES = 2;
+const MAX_RATE_LIMIT_RETRIES = 4;
 
 type QueryResponse = {
   path?: string;
   done?: boolean;
-  response?: { values?: { dataPoints?: { time: string; value: number }[] }[] };
+  response?: {
+    values?: { breakdowns?: { dimension: string; value: string }[]; dataPoints?: { time: string; value: number }[] }[];
+  };
 };
 
 class TransientError extends Error {}
@@ -81,10 +105,17 @@ async function withSlot<T>(task: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Keys that exhausted their retries on 429 rest for a minute: hammering a
- * key that is over its data-point budget only delays its recovery.
+ * Keys that exhausted their retries on 429 rest for 30 s: hammering a key
+ * that is over its data-point budget only delays its recovery.
  */
-const COOL_DOWN_MS = 60_000;
+const COOL_DOWN_MS = 30_000;
+
+/** Wait before retry n (0-based): Retry-After if given, else 2, 4, 8, 16 s, plus jitter. */
+function backoffMs(attempt: number, retryAfter: string | null): number {
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds > 0) return Math.min(seconds, 20) * 1000;
+  return 2000 * 2 ** attempt + Math.floor(Math.random() * 500);
+}
 const coolingUntil = new Map<string, number>();
 
 async function call(url: string, init: RequestInit, key: string): Promise<{ status: number; body: QueryResponse }> {
@@ -99,8 +130,7 @@ async function call(url: string, init: RequestInit, key: string): Promise<{ stat
     );
     if (response.status === 429) {
       if (attempt < MAX_RATE_LIMIT_RETRIES) {
-        const retryAfter = Number(response.headers.get("retry-after"));
-        await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 10) * 1000 : 1500 * 2 ** attempt);
+        await sleep(backoffMs(attempt, response.headers.get("retry-after")));
         continue;
       }
       coolingUntil.set(key, Date.now() + COOL_DOWN_MS);
@@ -110,13 +140,22 @@ async function call(url: string, init: RequestInit, key: string): Promise<{ stat
   }
 }
 
+type Query = { metric: AnalyticsMetric; startDate: string; endDate: string; breakdown: AnalyticsBreakdown | null };
+
 /** One query with one key. Returns ok/unauthorized, throws TransientError otherwise. */
-async function runQuery(universeId: number, metric: AnalyticsMetric, startDate: string, endDate: string, key: string): Promise<MetricResult> {
+async function runQuery(universeId: number, query: Query, key: string): Promise<QueryResult> {
+  const { metric, startDate, endDate, breakdown } = query;
   let { status, body } = await call(
     `${BASE}/v1/universes/${universeId}/metrics`,
     {
       method: "POST",
-      body: JSON.stringify({ metric, granularity: "OneDay", startTime: `${startDate}T00:00:00Z`, endTime: `${endDate}T00:00:00Z` }),
+      body: JSON.stringify({
+        metric,
+        granularity: "OneDay",
+        startTime: `${startDate}T00:00:00Z`,
+        endTime: `${endDate}T00:00:00Z`,
+        ...(breakdown ? { breakdown: [breakdown] } : {}),
+      }),
     },
     key,
   );
@@ -134,8 +173,13 @@ async function runQuery(universeId: number, metric: AnalyticsMetric, startDate: 
     throw new TransientError(`Roblox analytics HTTP ${status}`);
   }
 
-  const points = (body.response?.values?.[0]?.dataPoints ?? []).map((p) => ({ date: p.time.slice(0, 10), value: p.value }));
-  return { status: "ok", points };
+  const groups = (body.response?.values ?? []).map((v) => ({
+    value: v.breakdowns?.[0]?.value ?? "",
+    points: (v.dataPoints ?? [])
+      .map((p) => ({ date: p.time.slice(0, 10), value: p.value }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  }));
+  return { status: "ok", groups };
 }
 
 /* ── Cached layers ─────────────────────────────────────────────────────── */
@@ -153,13 +197,19 @@ async function resolveKeyIndex(universeId: number, keyCount: number): Promise<nu
   const end = new Date().toISOString().slice(0, 10);
   const start = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
   for (const [index, key] of keys.entries()) {
-    const result = await runQuery(universeId, "DailyActiveUsers", start, end, key);
+    const result = await runQuery(universeId, { metric: "DailyActiveUsers", startDate: start, endDate: end, breakdown: null }, key);
     if (result.status === "ok") return index;
   }
   return -1;
 }
 
-async function queryCached(universeId: number, metric: AnalyticsMetric, startDate: string, endDate: string): Promise<MetricResult> {
+async function queryCached(
+  universeId: number,
+  metric: AnalyticsMetric,
+  startDate: string,
+  endDate: string,
+  breakdown: AnalyticsBreakdown | null,
+): Promise<QueryResult | { status: "not_configured" }> {
   "use cache: remote";
   cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
 
@@ -168,7 +218,7 @@ async function queryCached(universeId: number, metric: AnalyticsMetric, startDat
   const index = await resolveKeyIndex(universeId, keys.length);
   const key = keys[index];
   if (index < 0 || !key) return { status: "unauthorized" };
-  return runQuery(universeId, metric, startDate, endDate, key);
+  return runQuery(universeId, { metric, startDate, endDate, breakdown }, key);
 }
 
 /**
@@ -182,7 +232,26 @@ export async function getDailyMetric(
   endDate: string,
 ): Promise<MetricResult> {
   try {
-    return await queryCached(universeId, metric, startDate, endDate);
+    const result = await queryCached(universeId, metric, startDate, endDate, null);
+    return result.status === "ok" ? { status: "ok", points: result.groups[0]?.points ?? [] } : result;
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+/**
+ * Daily values of one metric split by a dimension (one group per value, e.g.
+ * per acquisition source or per thumbnail), for [startDate, endDate). Never throws.
+ */
+export async function getDailyBreakdown(
+  universeId: number,
+  metric: AnalyticsMetric,
+  breakdown: AnalyticsBreakdown,
+  startDate: string,
+  endDate: string,
+): Promise<BreakdownResult> {
+  try {
+    return await queryCached(universeId, metric, startDate, endDate, breakdown);
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Unknown error" };
   }

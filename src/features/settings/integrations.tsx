@@ -87,7 +87,7 @@ export async function IntegrationsOverview() {
     keys === 0 ? OFF("No key") : games.length === 0 ? WARN("No games") : readable === games.length ? OK() : readable > 0 ? WARN("Partial") : WARN("No access");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <IntegrationCard
         icon={Gamepad2}
         name="Roblox public stats"

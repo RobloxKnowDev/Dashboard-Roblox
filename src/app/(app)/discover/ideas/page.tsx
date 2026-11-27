@@ -42,7 +42,7 @@ function WeeklyIdeas() {
                 <ChevronDown className="size-4 shrink-0 text-fg-3 transition-transform group-open:rotate-180" aria-hidden />
               </summary>
               <div className="space-y-3 border-t border-line px-4 py-3 text-xs">
-                <dl className="grid gap-2 sm:grid-cols-2">
+                <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[
                     ["Target audience", idea.targetAudience],
                     ["Core loop", idea.coreLoop],
@@ -135,7 +135,7 @@ export default function GameIdeasPage() {
   return (
     <PageContainer>
       <PageHeader eyebrow="Market Intelligence" title="Game Ideas" description="Ideas worth building, the market signals behind them, and your library." />
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <WeeklyIdeas />
         </div>

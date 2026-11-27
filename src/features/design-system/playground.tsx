@@ -115,7 +115,7 @@ export function ComponentsPlayground() {
       </DsSection>
 
       <DsSection id="forms" title="Form controls" description="Labels always visible; errors announced and tied to their field.">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field htmlFor="ds-name" label="Project name" required error={nameError} hint="Shown on cards and in search.">
             <Input
               id="ds-name"
@@ -198,7 +198,7 @@ export function ComponentsPlayground() {
       </DsSection>
 
       <DsSection id="stat-cards" title="Stat cards" description="Label · value · delta vs a named period · trend. Up isn't always good (costs).">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total revenue" value="$48.2K" source="demo" icon={DollarSign} delta={0.124} deltaLabel="vs last 30 days" trend={sampleRevenue.slice(-12).map((r) => r.robux ?? 0)} />
           <StatCard label="Total CCU" value="3,841" source="demo" icon={Gamepad2} delta={0.087} deltaLabel="vs last 30 days" trend={sampleCcu.slice(-12).map((r) => r.ccu ?? 0)} />
           <StatCard label="Advertising costs" value="$2.9K" source="demo" icon={Bell} delta={0.21} deltaLabel="vs last month" upIsGood={false} />
@@ -211,7 +211,7 @@ export function ComponentsPlayground() {
           <SegmentedControl value={range} onValueChange={setRange} options={RANGES} aria-label="Time range" />
           <span className="text-xs text-fg-3">Filters sit in one row above the charts they scope.</span>
         </div>
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <ChartCard title="Revenue overview" description="Daily revenue, last 30 days" source="demo">
             <TimeSeriesChart
               label="Daily revenue by source over the last 30 days"
@@ -302,7 +302,7 @@ export function ComponentsPlayground() {
       </DsSection>
 
       <DsSection id="states" title="Empty, loading & error states" description="Every data block has all three.">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-md border border-line">
             <EmptyState compact icon={FolderKanban} title="No projects yet" description="Create your first project to start tracking work." action={<Button variant="primary" size="sm"><Plus aria-hidden />New project</Button>} />
           </div>
