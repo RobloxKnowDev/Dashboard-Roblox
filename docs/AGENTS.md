@@ -1,6 +1,6 @@
 # Agents IA (Claude Code en direct)
 
-La page **Agents IA** montre en direct ce que fait Claude Code sur le PC du studio, et permet au **pilote des agents** de lui écrire ou de lui confier une mission.
+La page **Agents IA** montre en direct ce que fait Claude Code sur le PC du studio, et permet aux **Owners** de lui écrire ou de lui confier une mission.
 
 ## Vue d'ensemble
 
@@ -27,9 +27,10 @@ tools/agents/share.mjs (capture Studio / Blender ou fichier) ──▶ POST /api
 | | Owner | Admin | Developer | Viewer |
 |---|:-:|:-:|:-:|:-:|
 | Voir les agents, leur historique et leurs captures | ✓ | ✓ | — | — |
-| Écrire à un agent, lancer ou arrêter une mission | **le pilote des agents uniquement** ||||
+| Écrire à un agent, lancer ou arrêter une mission, lancer un nouveau jeu | ✓ | — | — | — |
 
-- Le **pilote des agents** est un compte précis (`studio_settings.agent_controller_id`), pas un rôle. Il ne se change qu'avec la clé secrète (trigger `guard_agent_controller`), via le script d'installation. Les politiques RLS (`is_agent_controller()`) et les Server Actions appliquent la même règle.
+- **Tous les Owners pilotent les agents** (permission `agents.pilot`, choix du studio du 28/11/2026 ; avant, un seul compte désigné). Les politiques RLS (`is_agent_controller()`, qui vérifie le rôle Owner), les Server Actions et l'API d'équipe (un manager doit avoir été lancé par un Owner) appliquent la même règle. Attention : un nouvel Owner obtient donc la main sur les agents, qui tournent sur le PC du studio.
+- Chaque consigne envoyée depuis le dashboard porte le nom de son auteur dans l'historique de l'agent.
 - L'assistant IA (Haiku) reste ouvert à tous les rôles : il n'a rien à voir avec les agents.
 
 ## Livraison d'un message
@@ -70,7 +71,7 @@ Le pilote choisit un dossier de projet, un rôle et écrit la mission. Le pont l
 
 ## Équipes de jeu
 
-Bouton **Nouveau jeu** (pilote des agents) : un nom et l'idée principale.
+Bouton **Nouveau jeu** (Owners) : un nom et l'idée principale.
 
 1. Le dashboard crée le **projet** (table `projects`, statut « planning ») et son **agent manager**.
 2. Au premier poll, le pont exécute `tools/agents/new-game.mjs` :
@@ -78,10 +79,10 @@ Bouton **Nouveau jeu** (pilote des agents) : un nom et l'idée principale.
    - dossier d'assets `E:\Roblox\AssetsProjects\<Jeu>\` (Icon, Ui/Logo, Ui/Frame, Ui/Icon, Ui/Inspiration, Ui/Police, SFX, Docs) avec `SOURCES.md` ;
    - place `<Jeu>.rbxl` (copie de `E:\Roblox\Map\Baseplate.rbxl`, non versionné), ouvert dans Studio, et `rojo serve` lancé.
    Le pont signale le dossier au dashboard (`set_cwd`), puis lance le manager.
-3. Le manager fait écrire le design par le game designer, rédige `docs/Plan.md`, puis **présente le plan et attend l'OK du pilote** (choix du studio) avant de lancer le reste de l'équipe.
+3. Le manager fait écrire le design par le game designer, rédige `docs/Plan.md`, puis **présente le plan et attend l'OK d'un Owner** (choix du studio) avant de lancer le reste de l'équipe.
 4. Il délègue avec `tools/agents/team.mjs` (`delegate`, `message`, `status`) ; chaque membre apparaît sur la page, rattaché au jeu. À la fin de chaque exécution d'un membre, son rapport est envoyé au manager (`agent_messages.from_agent_id`), ce qui le relance. Statut du manager entre deux : « Attend l'équipe » ou « T'attend ».
 
-Garde-fous : seul un manager lancé par le pilote peut déléguer (vérifié côté serveur), les membres ne délèguent pas, 8 membres au plus en file ou au travail par manager, 3 exécutions en même temps sur le PC. Les agents ne publient jamais et ne poussent jamais sur GitHub.
+Garde-fous : seul un manager lancé par un Owner peut déléguer (vérifié côté serveur), les membres ne délèguent pas, 8 membres au plus en file ou au travail par manager, 3 exécutions en même temps sur le PC. Les agents ne publient jamais et ne poussent jamais sur GitHub.
 
 À faire par la personne : cliquer sur « Connect » dans le plugin Rojo de Studio au début d'une session de travail ; importer les sons dans Roblox (pas d'outil d'envoi audio) et donner leurs IDs ; publier.
 
@@ -89,7 +90,7 @@ Garde-fous : seul un manager lancé par le pilote peut déléguer (vérifié cô
 
 | Fichier | Rôle |
 |---|---|
-| `tools/agents/setup.mjs` | Installation : enregistre le PC (jeton aléatoire, seule son empreinte SHA-256 va en base), désigne le pilote, installe les hooks, enregistre le serveur MCP Roblox Studio, ajoute le pont au démarrage de Windows |
+| `tools/agents/setup.mjs` | Installation : enregistre le PC (jeton aléatoire, seule son empreinte SHA-256 va en base), installe les hooks, enregistre le serveur MCP Roblox Studio, ajoute le pont au démarrage de Windows |
 | `tools/agents/hook.mjs` | Hook Claude Code : envoie un résumé de chaque événement ; ajoute au début de chaque session la commande de partage de captures |
 | `tools/agents/bridge.mjs` | Pont : poll, lancement et arrêt des exécutions, journal `~/.dashboard-agents/bridge.log` |
 | `tools/agents/share.mjs` + `capture-window.ps1` | Partage d'une image (`--file`) ou capture d'une fenêtre (`--window studio`, `--window blender`) |
@@ -102,7 +103,7 @@ Le jeton du PC est dans `~/.dashboard-agents/config.json` (jamais dans le dépô
 
 ```powershell
 $env:PATH = "$env:LOCALAPPDATA\Programs\nodejs;$env:PATH"
-node tools/agents/setup.mjs --controller-email <e-mail du compte pilote> --machine-name "PC du studio"
+node tools/agents/setup.mjs --machine-name "PC du studio"
 ```
 
 Puis, une seule fois dans **Roblox Studio** : Assistant → « … » → *Manage MCP Servers* → activer **Enable Studio as MCP server**. Studio doit être ouvert sur un place pour que les agents s'en servent ; Blender doit être ouvert avec l'add-on MCP.

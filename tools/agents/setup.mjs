@@ -1,5 +1,5 @@
 // Connects this PC's Claude Code to the dashboard (docs/AGENTS.md). Run once, from the repo:
-//   node tools/agents/setup.mjs --controller-email <your dashboard login> [--machine-name "Studio PC"]
+//   node tools/agents/setup.mjs [--machine-name "Studio PC"]      (the dashboard's Owners pilot the agents)
 //   node tools/agents/setup.mjs --uninstall        (removes hooks + startup entry; keeps the token)
 // Options: --url <dashboard URL> (default: production), --skip-hooks, --skip-startup, --skip-mcp, --no-start.
 // Reads the Supabase secret key from .env.local (never printed) to register the PC.
@@ -152,16 +152,6 @@ async function registerMachine(env, url) {
   console.log(`✓ PC registered as "${name}" (token saved in ${CONFIG_FILE})`);
 }
 
-async function setController(env, email) {
-  const profiles = await rest(env, `profiles?email=eq.${encodeURIComponent(email.toLowerCase())}&select=id,role`);
-  if (!profiles.length) throw new Error("no dashboard account with that email");
-  if (profiles[0].role !== "owner" && profiles[0].role !== "admin") throw new Error("the agent controller must be an Owner or an Admin");
-  const settings = await rest(env, "studio_settings?select=id&limit=1");
-  if (!settings.length) throw new Error("studio settings row missing");
-  await rest(env, `studio_settings?id=eq.${settings[0].id}`, { method: "PATCH", body: JSON.stringify({ agent_controller_id: profiles[0].id }) });
-  console.log("✓ Agent controller set (only this account can talk to agents)");
-}
-
 if (flag("uninstall")) {
   writeSettings(withoutOurHooks(readSettings()));
   console.log("✓ Dashboard hooks removed from Claude Code settings");
@@ -178,8 +168,7 @@ if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SECRET_KEY) {
 }
 try {
   await registerMachine(env, url);
-  const email = option("controller-email");
-  if (email) await setController(env, email);
+  if (option("controller-email")) console.log("• --controller-email is no longer needed: every Owner of the dashboard pilots the agents");
   if (!flag("skip-hooks")) installHooks();
   if (!flag("skip-mcp")) installRobloxMcp();
   if (!flag("skip-startup")) {

@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
+import { can } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 import { agentNameFromCwd, baseName, bridgePlan, clip, deliveredInstruction, missionFromPrompt, redactSecrets, sniffImage, summarizeTool } from "./ingest";
@@ -452,15 +453,13 @@ export async function handleSetCwd(admin: Admin, machine: Machine, agentId: stri
 
 type TeamResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
-/** The requesting manager: a mission on this PC, started by the agent controller, not being stopped. */
+/** The requesting manager: a mission on this PC, started by someone who pilots agents (an Owner), not being stopped. */
 async function requireManager(admin: Admin, machine: Machine, agentId: string): Promise<TeamResult<AgentRow>> {
-  const [{ data: manager }, { data: settings }] = await Promise.all([
-    admin.from("agents").select("*").eq("id", agentId).maybeSingle(),
-    admin.from("studio_settings").select("agent_controller_id").limit(1).maybeSingle(),
-  ]);
+  const { data: manager } = await admin.from("agents").select("*").eq("id", agentId).maybeSingle();
   if (!manager || manager.machine_id !== machine.id) return { ok: false, status: 404, error: "unknown agent" };
   if (manager.role !== "manager" || manager.origin !== "mission") return { ok: false, status: 403, error: "only a game manager can use team commands" };
-  if (!settings?.agent_controller_id || manager.created_by !== settings.agent_controller_id) return { ok: false, status: 403, error: "this manager wasn't started by the agent controller" };
+  const { data: starter } = manager.created_by ? await admin.from("profiles").select("role").eq("id", manager.created_by).maybeSingle() : { data: null };
+  if (!starter?.role || !can(starter.role, "agents.pilot")) return { ok: false, status: 403, error: "this manager wasn't started by an Owner" };
   if (manager.stop_requested) return { ok: false, status: 409, error: "this manager is being stopped" };
   return { ok: true, data: manager };
 }

@@ -6,6 +6,7 @@ const EXPECTED: Record<Permission, AppRole[]> = {
   "studio.read": ["owner", "admin", "developer", "viewer"],
   "work.write": ["owner", "admin", "developer"],
   "agents.read": ["owner", "admin"],
+  "agents.pilot": ["owner"],
   "work.delete_any": ["owner", "admin"],
   "games.manage": ["owner", "admin"],
   "finance.read": ["owner", "admin"],

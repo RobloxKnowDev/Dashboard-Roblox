@@ -5,21 +5,21 @@ import { messages } from "@/i18n/messages";
 import { getRequestLocale } from "@/i18n/server";
 import { slugify, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
+import { PERMISSIONS } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { baseName, clip, missionFromPrompt } from "./ingest";
-import { isAgentController } from "./data";
 import { MISSION_ROLES } from "./roles";
 
 /*
- * Talking to agents — the agent controller only (one account, set in the
- * database). RLS enforces the same rule; these checks give clear messages.
+ * Talking to agents — Owners only ("agents.pilot"). RLS enforces the same
+ * rule (is_agent_controller()); these checks give clear messages.
  */
 
 async function controller() {
   const locale = await getRequestLocale();
   const t = messages[locale].agents.errors;
-  const access = await checkAccess("admin");
-  if (access.status !== "allowed" || !(await isAgentController(access.user.id))) return { ok: false as const, t, locale };
+  const access = await checkAccess(PERMISSIONS["agents.pilot"]);
+  if (access.status !== "allowed") return { ok: false as const, t, locale };
   return { ok: true as const, t, locale, user: access.user };
 }
 

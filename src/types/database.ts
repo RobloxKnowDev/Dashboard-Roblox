@@ -490,23 +490,17 @@ isOneToOne: false
                   ]
                 },"studio_settings": {
                   Row: {
-                    "agent_controller_id": string | null,"ai_assistant_enabled": boolean,"ai_monthly_budget_usd": number,"created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
+                    "ai_assistant_enabled": boolean,"ai_monthly_budget_usd": number,"created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_controller_id"?: string | null,"ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "agent_controller_id"?: string | null,"ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
-      foreignKeyName: "studio_settings_agent_controller_id_fkey"
-      columns: ["agent_controller_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
       foreignKeyName: "studio_settings_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false

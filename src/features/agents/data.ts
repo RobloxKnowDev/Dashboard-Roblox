@@ -116,13 +116,6 @@ function toEvent(row: Pick<Database["public"]["Tables"]["agent_events"]["Row"], 
   return { id: row.id, type: row.type, message: row.message, payload, createdAt: row.created_at, imageUrl };
 }
 
-/** Is the signed-in user the one person allowed to talk to agents? */
-export async function isAgentController(userId: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("studio_settings").select("agent_controller_id").limit(1).maybeSingle();
-  return Boolean(data?.agent_controller_id && data.agent_controller_id === userId);
-}
-
 /** All agents, most recently active first, with their latest timeline line. Null = query failed. */
 export async function listAgents(limit = 60): Promise<AgentSummary[] | null> {
   const supabase = await createClient();

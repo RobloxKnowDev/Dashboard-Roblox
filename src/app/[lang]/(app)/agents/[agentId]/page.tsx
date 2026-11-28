@@ -10,9 +10,10 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/primitives";
 import { AutoRefresh, MessageComposer, StopAgentButton } from "@/features/agents/client";
 import { AgentStatusBadge, AgentTimeline, OriginIcon, TeamCard } from "@/features/agents/components";
-import { BRIDGE_ONLINE_MS, getAgentDetail, isAgentController, listMachines, type AgentSummary } from "@/features/agents/data";
+import { BRIDGE_ONLINE_MS, getAgentDetail, listMachines, type AgentSummary } from "@/features/agents/data";
 import type { Messages } from "@/i18n/messages";
 import { getI18n, getT } from "@/i18n/server";
+import { can } from "@/lib/auth/roles";
 import { checkAccess } from "@/lib/auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,7 +39,7 @@ async function AgentDetail({ params }: { params: Promise<{ agentId: string }> })
   const [detail, machines, access, { t, f }] = await Promise.all([getAgentDetail(agentId), listMachines(), checkAccess("admin"), getI18n()]);
   if (!detail) notFound();
   const { agent } = detail;
-  const controller = access.status === "allowed" && (await isAgentController(access.user.id));
+  const controller = access.status === "allowed" && can(access.user.role, "agents.pilot");
   const machine = machines.find((m) => m.name === agent.machineName) ?? machines[0];
   const bridgeOnline = Boolean(machine?.lastSeenAt && now.getTime() - Date.parse(machine.lastSeenAt) < BRIDGE_ONLINE_MS);
   const active = agent.status === "working" || detail.pending.length > 0;

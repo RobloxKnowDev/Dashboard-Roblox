@@ -8,7 +8,7 @@ export const agents = {
     emptyStatusDescription: "Pick another status above.",
     errorTitle: "Agents couldn't be loaded",
     errorDescription: "Refresh the page in a moment.",
-    readOnly: "You can follow every agent and its results. Only the agent controller can write to them.",
+    readOnly: "You can follow every agent and its results. Only Owners can write to them.",
     newMission: "New mission",
   },
   bridge: {
@@ -164,7 +164,7 @@ export const agents = {
     ended: "Ended",
   },
   errors: {
-    controllerOnly: "Only the agent controller can talk to agents.",
+    controllerOnly: "Only Owners can talk to agents.",
     invalid: "Check the message and try again.",
     failed: "That didn't work. Try again.",
     alreadyDelivered: "Too late: the message was already delivered.",

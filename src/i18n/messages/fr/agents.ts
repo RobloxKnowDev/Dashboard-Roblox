@@ -10,7 +10,7 @@ export const agents: Messages["agents"] = {
     emptyStatusDescription: "Choisis un autre statut ci-dessus.",
     errorTitle: "Impossible de charger les agents",
     errorDescription: "Recharge la page dans un instant.",
-    readOnly: "Tu peux suivre chaque agent et ses résultats. Seul le pilote des agents peut leur écrire.",
+    readOnly: "Tu peux suivre chaque agent et ses résultats. Seuls les Owners peuvent leur écrire.",
     newMission: "Nouvelle mission",
   },
   bridge: {
@@ -166,7 +166,7 @@ export const agents: Messages["agents"] = {
     ended: "Terminé",
   },
   errors: {
-    controllerOnly: "Seul le pilote des agents peut leur parler.",
+    controllerOnly: "Seuls les Owners peuvent parler aux agents.",
     invalid: "Vérifie le message et réessaie.",
     failed: "Ça n'a pas marché. Réessaie.",
     alreadyDelivered: "Trop tard : le message a déjà été livré.",

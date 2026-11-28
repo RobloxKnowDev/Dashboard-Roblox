@@ -149,7 +149,8 @@ export const settings = {
     rows: {
       "studio.read": "View games, projects, tasks, market and team",
       "work.write": "Create and edit projects, tasks, ideas and watchlist",
-      "agents.read": "View AI agents and their results (only the agent controller can talk to them)",
+      "agents.read": "View AI agents and their results",
+      "agents.pilot": "Talk to AI agents, start missions and new games (they run on the studio's PC)",
       "work.delete_any": "Delete other people's projects and tasks",
       "games.manage": "Add and edit the studio's games",
       "finance.read": "View finance",

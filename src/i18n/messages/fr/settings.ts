@@ -144,7 +144,8 @@ export const settings: Messages["settings"] = {
     rows: {
       "studio.read": "Voir les jeux, projets, tâches, le marché et l'équipe",
       "work.write": "Créer et modifier projets, tâches, idées et jeux suivis",
-      "agents.read": "Voir les agents IA et leurs résultats (seul le pilote des agents peut leur parler)",
+      "agents.read": "Voir les agents IA et leurs résultats",
+      "agents.pilot": "Parler aux agents IA, lancer des missions et de nouveaux jeux (ils tournent sur le PC du studio)",
       "work.delete_any": "Supprimer les projets et tâches des autres",
       "games.manage": "Ajouter et modifier les jeux du studio",
       "finance.read": "Voir les finances",

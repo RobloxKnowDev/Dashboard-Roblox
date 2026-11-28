@@ -7,8 +7,9 @@ import { RequireRole } from "@/components/layout/session-widgets";
 import { Skeleton } from "@/components/ui/primitives";
 import { AutoRefresh, NewGameButton, NewMissionButton } from "@/features/agents/client";
 import { AGENT_STATUS_ORDER, AgentCard, AgentStatusOverview, BridgeStatus } from "@/features/agents/components";
-import { isAgentController, knownFolders, listAgents, listMachines, type AgentSummary } from "@/features/agents/data";
+import { knownFolders, listAgents, listMachines, type AgentSummary } from "@/features/agents/data";
 import { getT } from "@/i18n/server";
+import { can, PERMISSIONS } from "@/lib/auth/roles";
 import { checkAccess } from "@/lib/auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,10 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.nav.items.agents.title };
 }
 
-/** The controller's "New game" and "New mission" buttons. */
+/** "New game" and "New mission" buttons, for the people who pilot agents (Owners). */
 async function HeaderAction() {
-  const access = await checkAccess("admin");
-  if (access.status !== "allowed" || !(await isAgentController(access.user.id))) return null;
+  const access = await checkAccess(PERMISSIONS["agents.pilot"]);
+  if (access.status !== "allowed") return null;
   return (
     <div className="flex flex-wrap gap-2">
       <NewGameButton />
@@ -49,7 +50,7 @@ async function AgentsSection({ searchParams }: { searchParams: PageProps<"/[lang
   const value = (await searchParams).status;
   const status = AGENT_STATUS_ORDER.find((s) => s === value) ?? null;
   const [agents, machines, access] = await Promise.all([listAgents(), listMachines(), checkAccess("admin")]);
-  const controller = access.status === "allowed" && (await isAgentController(access.user.id));
+  const controller = access.status === "allowed" && can(access.user.role, "agents.pilot");
 
   if (!agents) {
     return (
