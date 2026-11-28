@@ -3,8 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
-import { agentNameFromCwd, bridgePlan, clip, deliveredInstruction, missionFromPrompt, redactSecrets, sniffImage, summarizeTool } from "./ingest";
-import { isAgentRole, missionSystemPrompt } from "./roles";
+import { agentNameFromCwd, baseName, bridgePlan, clip, deliveredInstruction, missionFromPrompt, redactSecrets, sniffImage, summarizeTool } from "./ingest";
+import { isAgentRole, MEMBER_ROLES, missionSystemPrompt, ROLE_TITLES } from "./roles";
 
 /**
  * Agent ingestion (docs/AGENTS.md): what the PC's Claude Code hooks and the
@@ -19,8 +19,10 @@ type EventInsert = Omit<Database["public"]["Tables"]["agent_events"]["Insert"], 
 
 export type Machine = { id: string; name: string };
 
-/** Runs the bridge may do at the same time on one PC. */
-export const MAX_PARALLEL_RUNS = 2;
+/** Runs the bridge may do at the same time on one PC (studio's choice: 3). */
+export const MAX_PARALLEL_RUNS = 3;
+/** Members a manager may have queued or at work at once. */
+const MAX_ACTIVE_MEMBERS = 8;
 /** How often the bridge polls (ms). */
 export const POLL_INTERVAL_MS = 10_000;
 /** A session missing from the PC's list for this long is considered closed. */
@@ -74,6 +76,18 @@ export const ingestSchema = z.discriminatedUnion("type", [
     stopped: z.boolean().optional(),
     error: z.string().max(2000).optional(),
   }),
+  // A new game's project was created by the bridge: the manager's folder.
+  z.object({ type: z.literal("set_cwd"), agentId: z.uuid(), cwd: z.string().min(3).max(500) }),
+  // Team commands, sent by a manager (tools/agents/team.mjs, DASHBOARD_AGENT_ID).
+  z.object({
+    type: z.literal("delegate"),
+    agentId: z.uuid(),
+    role: z.enum(MEMBER_ROLES),
+    title: z.string().trim().min(2).max(200),
+    instruction: z.string().trim().min(3).max(7900),
+  }),
+  z.object({ type: z.literal("message"), agentId: z.uuid(), toAgentId: z.uuid(), body: z.string().trim().min(1).max(7900) }),
+  z.object({ type: z.literal("team"), agentId: z.uuid() }),
 ]);
 
 /* ─────────────────────────────── Agents ─────────────────────────────── */
@@ -122,11 +136,20 @@ async function createSessionAgent(admin: Admin, machine: Machine, event: HookEve
   return agent;
 }
 
+type DeliveredLine = { body: string; via: "dashboard" | "agent"; author: string | null; fromAgentId: string | null };
+type Delivered = {
+  /** What the bridge passes to `claude -p`. */
+  prompt: string;
+  /** What the Stop hook gives Claude as its next instruction. */
+  reason: string;
+  lines: DeliveredLine[];
+};
+
 /** Claims every pending message of an agent (oldest first) for one delivery. */
-async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge"): Promise<{ body: string; author: string | null; bodies: string[] } | null> {
+async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge"): Promise<Delivered | null> {
   const { data: pending } = await admin
     .from("agent_messages")
-    .select("id, body, created_by")
+    .select("id")
     .eq("agent_id", agentId)
     .eq("status", "pending")
     .order("created_at")
@@ -140,14 +163,38 @@ async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge
       pending.map((m) => m.id),
     )
     .eq("status", "pending")
-    .select("id, body, created_by, created_at");
+    .select("id, body, created_by, from_agent_id, created_at");
   if (!claimed?.length) return null;
   claimed.sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const authorId = claimed[0]!.created_by;
-  const { data: profile } = authorId ? await admin.from("profiles").select("full_name, email").eq("id", authorId).maybeSingle() : { data: null };
-  const author = profile ? profile.full_name.trim() || profile.email?.split("@")[0] || null : null;
-  const bodies = claimed.map((m) => m.body);
-  return { body: bodies.join("\n\n---\n\n"), author, bodies };
+
+  const profileIds = [...new Set(claimed.map((m) => m.created_by).filter((id): id is string => Boolean(id)))];
+  const agentIds = [...new Set(claimed.map((m) => m.from_agent_id).filter((id): id is string => Boolean(id)))];
+  const [{ data: profiles }, { data: senders }] = await Promise.all([
+    profileIds.length ? admin.from("profiles").select("id, full_name, email").in("id", profileIds) : Promise.resolve({ data: [] as { id: string; full_name: string; email: string | null }[] }),
+    agentIds.length ? admin.from("agents").select("id, name").in("id", agentIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const people = new Map((profiles ?? []).map((p) => [p.id, p.full_name.trim() || p.email?.split("@")[0] || null]));
+  const agents = new Map((senders ?? []).map((a) => [a.id, a.name]));
+
+  const lines: DeliveredLine[] = claimed.map((m) =>
+    m.from_agent_id
+      ? { body: m.body, via: "agent", author: agents.get(m.from_agent_id) ?? null, fromAgentId: m.from_agent_id }
+      : { body: m.body, via: "dashboard", author: m.created_by ? (people.get(m.created_by) ?? null) : null, fromAgentId: null },
+  );
+  const fromTeam = (line: DeliveredLine) => `Message from ${line.author ?? "a team agent"} (your game team):\n\n${line.body}`;
+  return {
+    prompt: lines.map((line) => (line.via === "agent" ? fromTeam(line) : line.body)).join("\n\n---\n\n"),
+    reason: lines.map((line) => (line.via === "agent" ? fromTeam(line) : deliveredInstruction(line.body, line.author))).join("\n\n---\n\n"),
+    lines,
+  };
+}
+
+function instructionEvents(delivered: Delivered): EventInsert[] {
+  return delivered.lines.map((line) => ({
+    type: "instruction" as const,
+    message: line.body,
+    payload: { via: line.via, author: line.author, fromAgentId: line.fromAgentId },
+  }));
 }
 
 async function apply(admin: Admin, agentId: string, events: EventInsert[], update: AgentUpdate): Promise<void> {
@@ -214,9 +261,9 @@ export async function handleHook(admin: Admin, machine: Machine, agentId: string
       if (event.last_assistant_message) events.push({ type: "reply", message: clip(event.last_assistant_message, 4000) });
       const delivered = isLatest ? await claimPending(admin, agent.id, "hook") : null;
       if (delivered) {
-        for (const body of delivered.bodies) events.push({ type: "instruction", message: body, payload: { via: "dashboard", author: delivered.author } });
+        events.push(...instructionEvents(delivered));
         Object.assign(update, { status: "working", waiting_reason: null });
-        response = { decision: "block", reason: deliveredInstruction(delivered.body, delivered.author) };
+        response = { decision: "block", reason: delivered.reason };
       } else if (!fromBridge && isLatest) {
         // A bridge run ends right after: its exit sets the final status.
         Object.assign(update, { status: "waiting", waiting_reason: "input" });
@@ -249,12 +296,15 @@ export async function handleHook(admin: Admin, machine: Machine, agentId: string
 export type WorkItem = {
   agentId: string;
   prompt: string;
-  cwd: string;
+  /** Null only for a new game's manager: the bridge creates the project first (scaffold). */
+  cwd: string | null;
   /** Claude Code session to continue (null = new conversation). */
   resume: string | null;
   /** Continue in a new session id (the original is still open in VS Code). */
   fork: boolean;
   systemPrompt: string;
+  /** New game: create the project from the studio template, then report its folder (set_cwd). */
+  scaffold?: { name: string; idea: string };
 };
 
 export type PollResponse = { work: WorkItem[]; stop: string[]; pollMs: number };
@@ -298,25 +348,37 @@ export async function handlePoll(admin: Admin, machine: Machine, sessions: { ses
     for (const id of agentIds) {
       if (capacity <= 0) break;
       const agent = byId.get(id);
-      if (!agent || !agent.cwd) continue;
+      if (!agent) continue;
+      // A new game's manager starts before its folder exists: the bridge scaffolds it.
+      const scaffold = !agent.cwd && agent.role === "manager" && agent.origin === "mission" && !agent.session_id;
+      if (!agent.cwd && !scaffold) continue;
       if (agent.machine_id && agent.machine_id !== machine.id) continue;
       if (agent.origin === "claude_code" && agent.status === "working") continue;
       const delivered = await claimPending(admin, agent.id, "bridge");
       if (!delivered) continue;
       const plan = bridgePlan(agent, alive);
-      await apply(
-        admin,
-        agent.id,
-        delivered.bodies.map((body) => ({ type: "instruction" as const, message: body, payload: { via: "dashboard", author: delivered.author } })),
-        { status: "working", waiting_reason: null, stop_requested: false, machine_id: machine.id, ended_at: null, started_at: agent.started_at ?? nowIso },
-      );
+      await apply(admin, agent.id, instructionEvents(delivered), {
+        status: "working",
+        waiting_reason: null,
+        stop_requested: false,
+        machine_id: machine.id,
+        ended_at: null,
+        started_at: agent.started_at ?? nowIso,
+      });
+      const role = isAgentRole(agent.role) ? agent.role : "general";
+      let scaffoldInfo: WorkItem["scaffold"];
+      if (scaffold) {
+        const { data: project } = agent.project_id ? await admin.from("projects").select("name, description").eq("id", agent.project_id).maybeSingle() : { data: null };
+        scaffoldInfo = { name: project?.name ?? agent.name, idea: project?.description ?? agent.mission ?? "" };
+      }
       work.push({
         agentId: agent.id,
-        prompt: delivered.body,
+        prompt: delivered.prompt,
         cwd: agent.cwd,
         resume: plan.resume,
         fork: plan.fork,
-        systemPrompt: missionSystemPrompt(isAgentRole(agent.role) ? agent.role : "general"),
+        systemPrompt: missionSystemPrompt(role, Boolean(agent.parent_id) || role === "manager"),
+        scaffold: scaffoldInfo,
       });
       capacity -= 1;
     }
@@ -330,17 +392,144 @@ export async function handleRunResult(
   machine: Machine,
   result: { agentId: string; exitCode: number | null; stopped?: boolean; error?: string },
 ): Promise<boolean> {
-  const { data: agent } = await admin.from("agents").select("id, machine_id").eq("id", result.agentId).maybeSingle();
+  const { data: agent } = await admin.from("agents").select("id, name, role, machine_id, parent_id").eq("id", result.agentId).maybeSingle();
   if (!agent || agent.machine_id !== machine.id) return false;
+  let detail: string | null = null;
   if (result.stopped) {
     await apply(admin, agent.id, [{ type: "status_change", payload: { kind: "stopped" } }], { status: "completed", waiting_reason: null, stop_requested: false });
   } else if (result.exitCode === 0) {
-    await apply(admin, agent.id, [{ type: "completed", payload: { kind: "run_finished" } }], { status: "completed", waiting_reason: null });
+    // A manager whose members are still queued or at work waits for their reports.
+    const waitingForTeam = agent.role === "manager" && (await activeMembers(admin, agent.id)) > 0;
+    await apply(
+      admin,
+      agent.id,
+      [{ type: "completed", payload: { kind: "run_finished" } }],
+      agent.role === "manager" ? { status: "waiting", waiting_reason: waitingForTeam ? "team" : "input" } : { status: "completed", waiting_reason: null },
+    );
   } else {
-    const detail = clip(redactSecrets(result.error ?? `exit code ${result.exitCode ?? "?"}`), 500);
+    detail = clip(redactSecrets(result.error ?? `exit code ${result.exitCode ?? "?"}`), 500);
     await apply(admin, agent.id, [{ type: "error", message: detail, payload: { kind: "run_failed" } }], { status: "error", waiting_reason: null });
   }
+
+  // A team member reports to its manager, which wakes the manager up.
+  if (agent.parent_id) {
+    const { data: reply } = await admin
+      .from("agent_events")
+      .select("message")
+      .eq("agent_id", agent.id)
+      .eq("type", "reply")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const outcome = result.stopped ? "stopped from the dashboard" : detail ? `failed: ${detail}` : "finished";
+    const body = clip(`Report from ${agent.name} (${agent.role}, ${outcome}). Agent id: ${agent.id}\n\n${reply?.message ?? "(no report)"}`, 7900);
+    await admin.from("agent_messages").insert({ agent_id: agent.parent_id, body, from_agent_id: agent.id });
+  }
   return true;
+}
+
+/** Members of a manager that are queued or at work. */
+async function activeMembers(admin: Admin, managerId: string): Promise<number> {
+  const { count } = await admin.from("agents").select("id", { count: "exact", head: true }).eq("parent_id", managerId).in("status", ["working", "waiting"]);
+  return count ?? 0;
+}
+
+/* ──────────────────────────────── Teams ─────────────────────────────── */
+
+/** The bridge created a new game's project: it becomes the manager's (and its team's) folder. */
+export async function handleSetCwd(admin: Admin, machine: Machine, agentId: string, cwd: string): Promise<boolean> {
+  if (!/^(?:[A-Za-z]:[\\/]|\/)/.test(cwd)) return false;
+  const { data } = await admin
+    .from("agents")
+    .update({ cwd })
+    .eq("id", agentId)
+    .eq("machine_id", machine.id)
+    .eq("role", "manager")
+    .is("cwd", null)
+    .select("id");
+  return Boolean(data?.length);
+}
+
+type TeamResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
+
+/** The requesting manager: a mission on this PC, started by the agent controller, not being stopped. */
+async function requireManager(admin: Admin, machine: Machine, agentId: string): Promise<TeamResult<AgentRow>> {
+  const [{ data: manager }, { data: settings }] = await Promise.all([
+    admin.from("agents").select("*").eq("id", agentId).maybeSingle(),
+    admin.from("studio_settings").select("agent_controller_id").limit(1).maybeSingle(),
+  ]);
+  if (!manager || manager.machine_id !== machine.id) return { ok: false, status: 404, error: "unknown agent" };
+  if (manager.role !== "manager" || manager.origin !== "mission") return { ok: false, status: 403, error: "only a game manager can use team commands" };
+  if (!settings?.agent_controller_id || manager.created_by !== settings.agent_controller_id) return { ok: false, status: 403, error: "this manager wasn't started by the agent controller" };
+  if (manager.stop_requested) return { ok: false, status: 409, error: "this manager is being stopped" };
+  return { ok: true, data: manager };
+}
+
+export async function handleDelegate(
+  admin: Admin,
+  machine: Machine,
+  input: { agentId: string; role: (typeof MEMBER_ROLES)[number]; title: string; instruction: string },
+): Promise<TeamResult<{ agentId: string; name: string }>> {
+  const check = await requireManager(admin, machine, input.agentId);
+  if (!check.ok) return check;
+  const manager = check.data;
+  if (!manager.cwd) return { ok: false, status: 409, error: "the project folder isn't ready yet" };
+  if ((await activeMembers(admin, manager.id)) >= MAX_ACTIVE_MEMBERS) {
+    return { ok: false, status: 429, error: `already ${MAX_ACTIVE_MEMBERS} members queued or at work: wait for reports` };
+  }
+  const { data: project } = manager.project_id ? await admin.from("projects").select("name").eq("id", manager.project_id).maybeSingle() : { data: null };
+  const { data: member } = await admin
+    .from("agents")
+    .insert({
+      name: clip(`Agent ${ROLE_TITLES[input.role]} · ${project?.name ?? baseName(manager.cwd)}`, 120),
+      origin: "mission",
+      role: input.role,
+      cwd: manager.cwd,
+      project_id: manager.project_id,
+      parent_id: manager.id,
+      machine_id: machine.id,
+      created_by: manager.created_by,
+      mission: clip(input.title, 200),
+      status: "waiting",
+      waiting_reason: "bridge",
+    })
+    .select("id, name")
+    .single();
+  if (!member) return { ok: false, status: 500, error: "member not created" };
+  await admin.from("agent_messages").insert({ agent_id: member.id, body: input.instruction, from_agent_id: manager.id });
+  await admin.from("agent_events").insert({ agent_id: manager.id, type: "action", payload: { kind: "delegate", target: `${ROLE_TITLES[input.role]} · ${clip(input.title, 120)}` } });
+  return { ok: true, data: { agentId: member.id, name: member.name } };
+}
+
+export async function handleTeamMessage(admin: Admin, machine: Machine, input: { agentId: string; toAgentId: string; body: string }): Promise<TeamResult<null>> {
+  const check = await requireManager(admin, machine, input.agentId);
+  if (!check.ok) return check;
+  const { data: member } = await admin.from("agents").select("id, parent_id").eq("id", input.toAgentId).maybeSingle();
+  if (!member || member.parent_id !== check.data.id) return { ok: false, status: 404, error: "not a member of your team" };
+  await admin.from("agent_messages").insert({ agent_id: member.id, body: input.body, from_agent_id: check.data.id });
+  return { ok: true, data: null };
+}
+
+export type TeamMember = { agentId: string; name: string; role: string; status: string; waitingReason: string | null; mission: string | null; lastReport: string | null };
+
+export async function handleTeamStatus(admin: Admin, machine: Machine, agentId: string): Promise<TeamResult<TeamMember[]>> {
+  const check = await requireManager(admin, machine, agentId);
+  if (!check.ok) return check;
+  const { data: members } = await admin.from("agents").select("id, name, role, status, waiting_reason, mission").eq("parent_id", agentId).order("created_at");
+  const list: TeamMember[] = [];
+  for (const member of members ?? []) {
+    const { data: reply } = await admin.from("agent_events").select("message").eq("agent_id", member.id).eq("type", "reply").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    list.push({
+      agentId: member.id,
+      name: member.name,
+      role: member.role,
+      status: member.status,
+      waitingReason: member.waiting_reason,
+      mission: member.mission,
+      lastReport: reply?.message ? clip(reply.message, 800) : null,
+    });
+  }
+  return { ok: true, data: list };
 }
 
 /* ─────────────────────────────── Images ─────────────────────────────── */

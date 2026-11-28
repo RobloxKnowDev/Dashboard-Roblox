@@ -9,7 +9,7 @@ import {
   sniffImage,
   summarizeTool,
 } from "@/features/agents/ingest";
-import { AGENT_ROLES, isAgentRole, missionSystemPrompt } from "@/features/agents/roles";
+import { AGENT_ROLES, isAgentRole, isMemberRole, MEMBER_ROLES, MISSION_ROLES, missionSystemPrompt } from "@/features/agents/roles";
 
 describe("agent ingestion helpers", () => {
   it("clips long texts on a word boundary", () => {
@@ -68,5 +68,20 @@ describe("agent roles", () => {
     expect(missionSystemPrompt("ui")).toContain("screen_capture");
     expect(isAgentRole("ui")).toBe(true);
     expect(isAgentRole("hacker")).toBe(false);
+  });
+
+  it("builds a team: the manager delegates, members report back", () => {
+    expect(MEMBER_ROLES).not.toContain("manager");
+    expect(MISSION_ROLES).not.toContain("manager");
+    expect(isMemberRole("sfx")).toBe(true);
+    expect(isMemberRole("manager")).toBe(false);
+    const manager = missionSystemPrompt("manager", true);
+    expect(manager).toContain("delegate");
+    expect(manager).toContain("ask for their OK");
+    expect(manager).not.toContain("report to the manager");
+    expect(missionSystemPrompt("sfx", true)).toContain("report to the manager");
+    expect(missionSystemPrompt("sfx", false)).not.toContain("report to the manager");
+    expect(missionSystemPrompt("game_designer", true)).toContain("Guide Tizzy");
+    expect(missionSystemPrompt("ui")).toContain("ui-resources.com");
   });
 });

@@ -5,9 +5,9 @@ import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/layout/session-widgets";
 import { Skeleton } from "@/components/ui/primitives";
-import { AutoRefresh, NewMissionButton } from "@/features/agents/client";
+import { AutoRefresh, NewGameButton, NewMissionButton } from "@/features/agents/client";
 import { AGENT_STATUS_ORDER, AgentCard, AgentStatusOverview, BridgeStatus } from "@/features/agents/components";
-import { isAgentController, knownFolders, listAgents, listMachines } from "@/features/agents/data";
+import { isAgentController, knownFolders, listAgents, listMachines, type AgentSummary } from "@/features/agents/data";
 import { getT } from "@/i18n/server";
 import { checkAccess } from "@/lib/auth/session";
 
@@ -16,11 +16,30 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.nav.items.agents.title };
 }
 
-/** The controller's "New mission" button. */
+/** The controller's "New game" and "New mission" buttons. */
 async function HeaderAction() {
   const access = await checkAccess("admin");
   if (access.status !== "allowed" || !(await isAgentController(access.user.id))) return null;
-  return <NewMissionButton folders={await knownFolders()} />;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <NewGameButton />
+      <NewMissionButton folders={await knownFolders()} />
+    </div>
+  );
+}
+
+/** Agents grouped by game (team), most recently active game first; other sessions last. */
+function groupByGame(agents: AgentSummary[]): { key: string; name: string | null; agents: AgentSummary[] }[] {
+  const groups = new Map<string, { key: string; name: string | null; agents: AgentSummary[] }>();
+  for (const agent of agents) {
+    const key = agent.projectId ?? "";
+    const group = groups.get(key) ?? { key, name: agent.projectName, agents: [] };
+    group.agents.push(agent);
+    groups.set(key, group);
+  }
+  const games = [...groups.values()].filter((g) => g.key);
+  const others = groups.get("");
+  return others ? [...games, others] : games;
 }
 
 async function AgentsSection({ searchParams }: { searchParams: PageProps<"/[lang]/agents">["searchParams"] }) {
@@ -59,13 +78,21 @@ async function AgentsSection({ searchParams }: { searchParams: PageProps<"/[lang
           />
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {shown.map((agent) => (
-            <li key={agent.id}>
-              <AgentCard agent={agent} now={now} />
-            </li>
-          ))}
-        </ul>
+        groupByGame(shown).map((group) => (
+          <section key={group.key || "others"} className="space-y-3" aria-label={group.key ? t.agents.team.project(group.name ?? "") : t.agents.team.others}>
+            {/* Headings only when there is at least one game team. */}
+            {shown.some((a) => a.projectId) ? (
+              <h2 className="text-sm font-semibold text-fg">{group.key ? t.agents.team.project(group.name ?? "") : t.agents.team.others}</h2>
+            ) : null}
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {group.agents.map((agent) => (
+                <li key={agent.id}>
+                  <AgentCard agent={agent} now={now} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </>
   );

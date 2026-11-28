@@ -54,15 +54,36 @@ Le pilote choisit un dossier de projet, un rôle et écrit la mission. Le pont l
 | Rôle | Spécialité |
 |---|---|
 | Général | N'importe quelle tâche |
+| Manager | Dirige l'équipe d'un jeu (lancé par « Nouveau jeu », voir plus bas) : planifie, délègue, vérifie, rend compte. Ne code pas |
+| Game designer | `docs/Game Design.md` : boucle, 90 premières secondes, progression, monétisation dès le lancement, rétention, métriques, guide de style |
+| Build | Maps, niveaux, décors dans Studio |
 | UI | Interfaces Roblox, vérifiées en playtest avec `screen_capture` (téléphone, tablette, PC), **capture finale partagée sur le dashboard** |
-| Construction | Maps, niveaux, décors dans Studio |
-| Scripts | Luau, testé en playtest (console sans erreur) |
-| QA | Teste et signale les bugs avec étapes de reproduction |
+| SFX | Sons choisis dans la bibliothèque Gamemaster, copiés dans les assets du jeu, déclarés dans `Sounds.luau`, joués avec `Sfx` |
+| Scripts | Luau dans les fichiers du projet (Services/Controllers), synchronisé par Rojo, testé en playtest |
+| QA | Teste comme un nouveau joueur et signale les bugs avec étapes de reproduction |
 | Art 3D | Blender (MCP), rendu partagé sur le dashboard |
 
 - **Mode de permissions auto** (choix du studio) : Claude agit seul, les actions risquées sont bloquées par le classifieur de Claude Code.
 - Le pont retire `ANTHROPIC_API_KEY` de l'environnement : les missions utilisent la connexion Claude Code du PC (abonnement), pas les crédits API.
-- Deux exécutions en parallèle au maximum. Bouton **Arrêter** : le pont tue l'arbre de processus (`taskkill /T /F`).
+- **Trois exécutions en parallèle** au maximum (choix du studio). Bouton **Arrêter** : le pont tue l'arbre de processus (`taskkill /T /F`).
+- Toutes les consignes renvoient aux guides du studio, rangés sur le PC (pas dans ce dépôt public) : `E:\Roblox\Templates\Ressources.md` (packs d'icônes, sons Gamemaster, modèles 3D, règles d'ui-resources.com : une ressource à la fois, licence vérifiée, jamais de téléchargement en masse) et `E:\Roblox\Templates\Guide Tizzy.md` (conseils de design et de lancement de la chaîne de Tizzy).
+
+## Équipes de jeu
+
+Bouton **Nouveau jeu** (pilote des agents) : un nom et l'idée principale.
+
+1. Le dashboard crée le **projet** (table `projects`, statut « planning ») et son **agent manager**.
+2. Au premier poll, le pont exécute `tools/agents/new-game.mjs` :
+   - projet `E:\Roblox\RobloxProjects\<Jeu>` copié depuis le modèle `E:\Roblox\Templates\GameTemplate` (Rojo 7.7.1, structure et règles de Glider : `Shared.Packages.Core`, `RemoteManager`, `Config/Images.luau`, `Config/Sounds.luau`, `Utils/Sfx`, `RobuxPrice`), git local avec un premier commit (le dossier est ajouté aux `safe.directory` de git, comme les autres jeux du disque E:) ;
+   - dossier d'assets `E:\Roblox\AssetsProjects\<Jeu>\` (Icon, Ui/Logo, Ui/Frame, Ui/Icon, Ui/Inspiration, Ui/Police, SFX, Docs) avec `SOURCES.md` ;
+   - place `<Jeu>.rbxl` (copie de `E:\Roblox\Map\Baseplate.rbxl`, non versionné), ouvert dans Studio, et `rojo serve` lancé.
+   Le pont signale le dossier au dashboard (`set_cwd`), puis lance le manager.
+3. Le manager fait écrire le design par le game designer, rédige `docs/Plan.md`, puis **présente le plan et attend l'OK du pilote** (choix du studio) avant de lancer le reste de l'équipe.
+4. Il délègue avec `tools/agents/team.mjs` (`delegate`, `message`, `status`) ; chaque membre apparaît sur la page, rattaché au jeu. À la fin de chaque exécution d'un membre, son rapport est envoyé au manager (`agent_messages.from_agent_id`), ce qui le relance. Statut du manager entre deux : « Attend l'équipe » ou « T'attend ».
+
+Garde-fous : seul un manager lancé par le pilote peut déléguer (vérifié côté serveur), les membres ne délèguent pas, 8 membres au plus en file ou au travail par manager, 3 exécutions en même temps sur le PC. Les agents ne publient jamais et ne poussent jamais sur GitHub.
+
+À faire par la personne : cliquer sur « Connect » dans le plugin Rojo de Studio au début d'une session de travail ; importer les sons dans Roblox (pas d'outil d'envoi audio) et donner leurs IDs ; publier.
 
 ## Outils sur le PC
 
@@ -72,6 +93,8 @@ Le pilote choisit un dossier de projet, un rôle et écrit la mission. Le pont l
 | `tools/agents/hook.mjs` | Hook Claude Code : envoie un résumé de chaque événement ; ajoute au début de chaque session la commande de partage de captures |
 | `tools/agents/bridge.mjs` | Pont : poll, lancement et arrêt des exécutions, journal `~/.dashboard-agents/bridge.log` |
 | `tools/agents/share.mjs` + `capture-window.ps1` | Partage d'une image (`--file`) ou capture d'une fenêtre (`--window studio`, `--window blender`) |
+| `tools/agents/new-game.mjs` | Crée un jeu depuis le modèle (projet, assets, place, Studio, Rojo) — lancé par le pont ; chemins réglables dans `config.json` (`gamesDir`, `assetsDir`, `templateDir`, `baseplate`) |
+| `tools/agents/team.mjs` | Commandes d'équipe du manager (`delegate`, `message`, `status`), identifié par `DASHBOARD_AGENT_ID` |
 
 Le jeton du PC est dans `~/.dashboard-agents/config.json` (jamais dans le dépôt). Les erreurs des hooks vont dans `~/.dashboard-agents/hooks.log` et n'interrompent jamais Claude.
 

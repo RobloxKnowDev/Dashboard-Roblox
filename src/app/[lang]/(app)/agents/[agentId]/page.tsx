@@ -9,7 +9,7 @@ import { RequireRole } from "@/components/layout/session-widgets";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/primitives";
 import { AutoRefresh, MessageComposer, StopAgentButton } from "@/features/agents/client";
-import { AgentStatusBadge, AgentTimeline, OriginIcon } from "@/features/agents/components";
+import { AgentStatusBadge, AgentTimeline, OriginIcon, TeamCard } from "@/features/agents/components";
 import { BRIDGE_ONLINE_MS, getAgentDetail, isAgentController, listMachines, type AgentSummary } from "@/features/agents/data";
 import type { Messages } from "@/i18n/messages";
 import { getI18n, getT } from "@/i18n/server";
@@ -45,6 +45,7 @@ async function AgentDetail({ params }: { params: Promise<{ agentId: string }> })
   const canStop = controller && agent.status === "working" && agent.origin === "mission";
 
   const facts: [string, string][] = [
+    ...(agent.projectName ? ([[t.agents.detail.game, agent.projectName]] as [string, string][]) : []),
     [t.agents.detail.origin, t.agents.origin[agent.origin]],
     [t.agents.detail.role, t.agents.roles[agent.role].label],
     [t.agents.detail.machine, agent.machineName ?? "—"],
@@ -76,20 +77,23 @@ async function AgentDetail({ params }: { params: Promise<{ agentId: string }> })
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="h-fit p-5 lg:col-span-1">
-          <p className="mb-4 flex items-center gap-2 text-xs text-fg-3">
-            <OriginIcon origin={agent.origin} />
-            {t.agents.origin[agent.origin]}
-          </p>
-          <dl className="space-y-3 text-[13px]">
-            {facts.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-3">
-                <dt className="shrink-0 text-fg-3">{label}</dt>
-                <dd className="min-w-0 break-words text-right text-fg">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
+        <div className="flex h-fit flex-col gap-4 lg:col-span-1">
+          <Card className="p-5">
+            <p className="mb-4 flex items-center gap-2 text-xs text-fg-3">
+              <OriginIcon origin={agent.origin} />
+              {t.agents.origin[agent.origin]}
+            </p>
+            <dl className="space-y-3 text-[13px]">
+              {facts.map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-3">
+                  <dt className="shrink-0 text-fg-3">{label}</dt>
+                  <dd className="min-w-0 break-words text-right text-fg">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+          {detail.team.length > 0 ? <TeamCard team={detail.team} currentId={agent.id} /> : null}
+        </div>
         <Card className="min-w-0 lg:col-span-2">
           <CardHeader title={t.agents.timeline.title} description={t.agents.timeline.description} />
           <div className="px-2 pb-3 pt-2">

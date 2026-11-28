@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Send, Square, X } from "lucide-react";
+import { Gamepad2, Plus, Send, Square, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -10,8 +10,10 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useT } from "@/i18n/client";
-import { cancelAgentMessage, sendAgentMessage, startMission, stopAgent } from "./actions";
-import { AGENT_ROLES, type AgentRole } from "./roles";
+import { cancelAgentMessage, sendAgentMessage, startGame, startMission, stopAgent } from "./actions";
+import { MISSION_ROLES } from "./roles";
+
+type MissionRole = (typeof MISSION_ROLES)[number];
 
 /** Re-renders the page's server data every few seconds while the tab is visible. */
 export function AutoRefresh({ intervalMs }: { intervalMs: number }) {
@@ -143,7 +145,7 @@ export function NewMissionButton({ folders }: { folders: string[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [cwd, setCwd] = useState(folders[0] ?? "");
-  const [role, setRole] = useState<AgentRole>("general");
+  const [role, setRole] = useState<MissionRole>("general");
   const [instruction, setInstruction] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -221,8 +223,8 @@ export function NewMissionButton({ folders }: { folders: string[] }) {
           <Select
             id={ids.role}
             value={role}
-            onValueChange={(value) => setRole(value as AgentRole)}
-            options={AGENT_ROLES.map((value) => ({ value, label: t.agents.roles[value].label }))}
+            onValueChange={(value) => setRole(value as MissionRole)}
+            options={MISSION_ROLES.map((value) => ({ value, label: t.agents.roles[value].label }))}
             aria-describedby={describedBy(ids.role)}
           />
         </Field>
@@ -236,6 +238,84 @@ export function NewMissionButton({ folders }: { folders: string[] }) {
             onChange={(event) => setInstruction(event.target.value)}
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy(ids.instruction)}
+          />
+        </Field>
+      </form>
+    </Modal>
+  );
+}
+
+/** Controller: a new game — its manager agent sets up the project and the team. */
+export function NewGameButton() {
+  const t = useT();
+  const g = t.agents.newGame;
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [idea, setIdea] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const ids = { name: useId(), idea: useId() };
+
+  const submit = () =>
+    startTransition(async () => {
+      setError(null);
+      const result = await startGame({ name, idea });
+      if (!result.ok) {
+        setError(result.message ?? t.agents.errors.failed);
+        return;
+      }
+      toast.success(g.started);
+      setOpen(false);
+      setName("");
+      setIdea("");
+      if (result.data) router.push(`/agents/${result.data.agentId}`);
+    });
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={setOpen}
+      size="lg"
+      title={g.title}
+      description={g.description}
+      trigger={
+        <Button size="sm">
+          <Gamepad2 aria-hidden />
+          {g.button}
+        </Button>
+      }
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+            {g.cancel}
+          </Button>
+          <Button size="sm" loading={pending} disabled={name.trim().length < 2 || idea.trim().length < 10} onClick={submit}>
+            {g.start}
+          </Button>
+        </>
+      }
+    >
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+        <Field htmlFor={ids.name} label={g.name} required>
+          <Input id={ids.name} value={name} maxLength={60} placeholder={g.namePlaceholder} onChange={(event) => setName(event.target.value)} autoComplete="off" />
+        </Field>
+        <Field htmlFor={ids.idea} label={g.idea} error={error ?? undefined} required>
+          <Textarea
+            id={ids.idea}
+            rows={7}
+            value={idea}
+            maxLength={4000}
+            placeholder={g.ideaPlaceholder}
+            onChange={(event) => setIdea(event.target.value)}
+            aria-invalid={Boolean(error)}
+            aria-describedby={describedBy(ids.idea)}
           />
         </Field>
       </form>

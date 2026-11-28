@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig, log, postJson, readStdin } from "./lib.mjs";
 
 const SHARE_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "share.mjs");
+const TEAM_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "team.mjs");
 
 function pick(input, keys, max) {
   const out = {};
@@ -54,6 +55,14 @@ function shareContext(sessionId, agentId) {
     "When your instructions or the person ask for an image on the dashboard (for example a screenshot of a UI you built), share it with one of:",
     `  "${node}" "${SHARE_SCRIPT}" --session ${sessionId}${agent} --window studio --caption "<short caption>"   (captures the Roblox Studio window; --window blender for Blender)`,
     `  "${node}" "${SHARE_SCRIPT}" --session ${sessionId}${agent} --file "<path to a PNG or JPEG>" --caption "<short caption>"`,
+    ...(agentId
+      ? [
+          "Team command (game managers only — members' reports come back to the manager as messages):",
+          `  "${node}" "${TEAM_SCRIPT}" delegate --role <game_designer|build|ui|sfx|scripting|qa|art> --title "<short title>" --file <brief.md>`,
+          `  "${node}" "${TEAM_SCRIPT}" message --to <member agent id> --file <message.md>`,
+          `  "${node}" "${TEAM_SCRIPT}" status`,
+        ]
+      : []),
   ].join("\n");
 }
 

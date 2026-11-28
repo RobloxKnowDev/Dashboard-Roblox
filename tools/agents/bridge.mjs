@@ -5,8 +5,11 @@
 // Claude Code login — ANTHROPIC_API_KEY is removed so it never bills the API).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { findClaude, HOME_DIR, loadConfig, log, postJson } from "./lib.mjs";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 const LOG = "bridge.log";
 const LOCK = join(HOME_DIR, "bridge.pid");
@@ -75,8 +78,44 @@ async function report(agentId, result) {
   }
 }
 
-function startRun(item) {
+/** New game: create the project from the studio template, then tell the dashboard its folder. */
+async function scaffold(item) {
+  const result = spawnSync(process.execPath, [join(here, "new-game.mjs"), "--name", item.scaffold.name, "--idea", item.scaffold.idea], {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 120_000,
+  });
+  const last = (result.stdout ?? "").trim().split("\n").at(-1) ?? "";
+  let cwd = null;
+  try {
+    cwd = JSON.parse(last).cwd ?? null;
+  } catch {
+    // Reported below.
+  }
+  if (result.status !== 0 || !cwd) {
+    const error = `Project creation failed: ${(result.stderr || result.stdout || "").trim().slice(0, 400)}`;
+    log(LOG, `scaffold ${item.agentId} failed: ${error}`);
+    await report(item.agentId, { exitCode: null, error });
+    return null;
+  }
+  try {
+    await postJson(config, "/api/agents/ingest", { type: "set_cwd", agentId: item.agentId, cwd }, 15_000);
+  } catch (error) {
+    log(LOG, `set_cwd ${item.agentId} failed: ${error.message}`);
+  }
+  log(LOG, `scaffold ${item.agentId}: ${cwd}`);
+  return cwd;
+}
+
+async function startRun(item) {
   if (runs.has(item.agentId)) return;
+  if (!item.cwd && item.scaffold) {
+    runs.set(item.agentId, { child: null, stopped: false, tail: "", result: null });
+    const cwd = await scaffold(item);
+    runs.delete(item.agentId);
+    if (!cwd) return;
+    item = { ...item, cwd };
+  }
   if (!item.cwd || !existsSync(item.cwd)) {
     log(LOG, `folder not found for ${item.agentId}: ${item.cwd}`);
     void report(item.agentId, { exitCode: null, error: `Folder not found on the PC: ${item.cwd}` });
@@ -135,7 +174,7 @@ function startRun(item) {
 
 function stopRun(agentId) {
   const run = runs.get(agentId);
-  if (!run || run.stopped) return;
+  if (!run || run.stopped || !run.child) return;
   run.stopped = true;
   log(LOG, `run ${agentId} stop requested`);
   // Kill the whole tree (Claude Code may have started tools or sub-processes).
@@ -148,7 +187,7 @@ async function tick() {
   try {
     const reply = await postJson(config, "/api/agents/ingest", { type: "poll", sessions: openSessions(), running: [...runs.keys()] }, 20_000);
     for (const id of reply.stop ?? []) stopRun(id);
-    for (const item of reply.work ?? []) startRun(item);
+    for (const item of reply.work ?? []) void startRun(item);
     if (typeof reply.pollMs === "number" && reply.pollMs >= 3000) next = reply.pollMs;
   } catch (error) {
     log(LOG, `poll failed: ${error.message}`);

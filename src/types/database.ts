@@ -62,14 +62,14 @@ isOneToOne: false
                   ]
                 },"agent_messages": {
                   Row: {
-                    "agent_id": string,"body": string,"created_at": string,"created_by": string | null,"delivered_at": string | null,"delivered_via": string | null,"id": string,"status": string
+                    "agent_id": string,"body": string,"created_at": string,"created_by": string | null,"delivered_at": string | null,"delivered_via": string | null,"from_agent_id": string | null,"id": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_id": string,"body": string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"id"?: string,"status"?: string
+                    "agent_id": string,"body": string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"status"?: string
                   }
                   Update: {
-                    "agent_id"?: string,"body"?: string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"id"?: string,"status"?: string
+                    "agent_id"?: string,"body"?: string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -83,6 +83,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_messages_from_agent_id_fkey"
+      columns: ["from_agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
       referencedColumns: ["id"]
     }
                   ]
@@ -108,14 +114,14 @@ isOneToOne: false
                   ]
                 },"agents": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"cwd": string | null,"ended_at": string | null,"id": string,"last_activity_at": string | null,"machine_id": string | null,"mission": string | null,"model": string | null,"name": string,"origin": string,"permission_mode": string | null,"project_id": string | null,"role": string,"session_id": string | null,"started_at": string | null,"status": Database["public"]['Enums']["agent_status"],"stop_requested": boolean,"updated_at": string,"waiting_reason": string | null
+                    "created_at": string,"created_by": string | null,"cwd": string | null,"ended_at": string | null,"id": string,"last_activity_at": string | null,"machine_id": string | null,"mission": string | null,"model": string | null,"name": string,"origin": string,"parent_id": string | null,"permission_mode": string | null,"project_id": string | null,"role": string,"session_id": string | null,"started_at": string | null,"status": Database["public"]['Enums']["agent_status"],"stop_requested": boolean,"updated_at": string,"waiting_reason": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name": string,"origin"?: string,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name": string,"origin"?: string,"parent_id"?: string | null,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name"?: string,"origin"?: string,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name"?: string,"origin"?: string,"parent_id"?: string | null,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
                   }
                   Relationships: [
                     {
@@ -129,6 +135,12 @@ isOneToOne: false
       columns: ["machine_id"]
 isOneToOne: false
       referencedRelation: "agent_machines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agents_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "agents_project_id_fkey"

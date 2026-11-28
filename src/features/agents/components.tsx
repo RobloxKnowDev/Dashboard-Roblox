@@ -144,7 +144,7 @@ export async function AgentCard({ agent, now }: { agent: AgentSummary; now: Date
             <OriginIcon origin={agent.origin} />
             {t.agents.origin[agent.origin]}
             {agent.role !== "general" ? <> · {t.agents.roles[agent.role].label}</> : null}
-            {agent.machineName ? <> · {agent.machineName}</> : null}
+            {agent.machineName && !agent.projectName ? <> · {agent.machineName}</> : null}
           </p>
         </div>
         <AgentStatusBadge agent={agent} />
@@ -281,7 +281,15 @@ export async function AgentTimeline({
           const style = STYLE[event.type] ?? STYLE.default!;
           if (event.type === "instruction") {
             const author = typeof event.payload.author === "string" ? event.payload.author : null;
-            const title = event.payload.via === "dashboard" ? (author ? t.agents.timeline.fromDashboard(author) : t.agents.timeline.dashboard) : t.agents.timeline.fromVsCode;
+            const via = event.payload.via;
+            const title =
+              via === "agent"
+                ? t.agents.timeline.fromAgent(author ?? t.agents.team.title)
+                : via === "dashboard"
+                  ? author
+                    ? t.agents.timeline.fromDashboard(author)
+                    : t.agents.timeline.dashboard
+                  : t.agents.timeline.fromVsCode;
             return (
               <TimelineItem key={event.id} style={style} title={title} time={time(event.createdAt)}>
                 <p className="mt-1.5 whitespace-pre-wrap break-words rounded-md border border-line bg-surface-2/50 px-3 py-2 text-[13px] text-fg">{event.message}</p>
@@ -328,5 +336,42 @@ export async function AgentTimeline({
         ))}
       </ol>
     </div>
+  );
+}
+
+/** A game's team on an agent page: the manager, then its members, each with its status. */
+export async function TeamCard({ team, currentId }: { team: AgentSummary[]; currentId: string }) {
+  const t = await getT();
+  const members = team.filter((agent) => agent.role !== "manager");
+  return (
+    <section className="rounded-lg border border-line bg-surface p-5" aria-labelledby="team-heading">
+      <h2 id="team-heading" className="text-sm font-semibold text-fg">
+        {t.agents.team.title}
+      </h2>
+      <p className="mt-0.5 text-xs text-fg-3">{t.agents.team.description}</p>
+      <ul className="mt-3 space-y-1">
+        {team.map((agent) => {
+          const meta = AGENT_STATUS[agent.status];
+          const label = statusLabel(agent, t);
+          return (
+            <li key={agent.id}>
+              <Link
+                href={`/agents/${agent.id}`}
+                aria-current={agent.id === currentId ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors hover:bg-surface-2/60",
+                  agent.id === currentId && "bg-surface-2/70",
+                )}
+              >
+                <StatusDot tone={meta.tone} pulse={meta.pulse} label={label} />
+                <span className="min-w-0 flex-1 truncate text-fg">{t.agents.roles[agent.role].label}</span>
+                <span className="shrink-0 text-[11px] text-fg-3">{label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {members.length === 0 ? <p className="mt-2 text-xs text-fg-3">{t.agents.team.empty}</p> : null}
+    </section>
   );
 }

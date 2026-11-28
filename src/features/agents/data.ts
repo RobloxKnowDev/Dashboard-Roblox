@@ -23,11 +23,15 @@ export type AgentSummary = {
   origin: AgentOrigin;
   role: AgentRole;
   status: AgentStatus;
-  waitingReason: "input" | "permission" | "bridge" | null;
+  waitingReason: WaitingReason | null;
   mission: string | null;
   cwd: string | null;
   model: string | null;
   machineName: string | null;
+  /** Game team: the project (game) and the manager that delegated this mission. */
+  projectId: string | null;
+  projectName: string | null;
+  parentId: string | null;
   startedAt: string | null;
   lastActivityAt: string | null;
   endedAt: string | null;
@@ -57,18 +61,38 @@ export type AgentMachine = { id: string; name: string; lastSeenAt: string | null
 /** The bridge polls every 10 s: silent for longer than this = offline. */
 export const BRIDGE_ONLINE_MS = 60_000;
 
+export type WaitingReason = "input" | "permission" | "bridge" | "team";
+const WAITING_REASONS: readonly string[] = ["input", "permission", "bridge", "team"];
+
 const AGENT_COLUMNS =
-  "id, name, origin, role, status, waiting_reason, mission, cwd, model, started_at, last_activity_at, ended_at, stop_requested, agent_machines(name)";
+  "id, name, origin, role, status, waiting_reason, mission, cwd, model, started_at, last_activity_at, ended_at, stop_requested, project_id, parent_id, agent_machines(name), projects(name)";
 
 type AgentRowWithMachine = Pick<
   Database["public"]["Tables"]["agents"]["Row"],
-  "id" | "name" | "origin" | "role" | "status" | "waiting_reason" | "mission" | "cwd" | "model" | "started_at" | "last_activity_at" | "ended_at" | "stop_requested"
-> & { agent_machines: { name: string } | null };
+  | "id"
+  | "name"
+  | "origin"
+  | "role"
+  | "status"
+  | "waiting_reason"
+  | "mission"
+  | "cwd"
+  | "model"
+  | "started_at"
+  | "last_activity_at"
+  | "ended_at"
+  | "stop_requested"
+  | "project_id"
+  | "parent_id"
+> & { agent_machines: { name: string } | null; projects: { name: string } | null };
 
 function toSummary(row: AgentRowWithMachine, lastEvent: AgentEvent | null): AgentSummary {
   const origin = row.origin === "claude_code" || row.origin === "mission" ? row.origin : "manual";
-  const waiting = row.waiting_reason === "input" || row.waiting_reason === "permission" || row.waiting_reason === "bridge" ? row.waiting_reason : null;
+  const waiting = row.waiting_reason && WAITING_REASONS.includes(row.waiting_reason) ? (row.waiting_reason as WaitingReason) : null;
   return {
+    projectId: row.project_id,
+    projectName: row.projects?.name ?? null,
+    parentId: row.parent_id,
     id: row.id,
     name: row.name,
     origin,
@@ -135,7 +159,20 @@ export type AgentDetail = {
   /** Older events not shown. */
   hiddenEvents: number;
   pending: AgentMessage[];
+  /** Game team (manager first, then members), empty outside a team. */
+  team: AgentSummary[];
 };
+
+/** A game's team, seen from any of its agents: the manager, then its members. */
+async function getTeam(agent: AgentSummary): Promise<AgentSummary[]> {
+  const managerId = agent.role === "manager" ? agent.id : agent.parentId;
+  if (!managerId) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("agents").select(AGENT_COLUMNS).or(`id.eq.${managerId},parent_id.eq.${managerId}`).order("created_at");
+  const rows = (data ?? []) as unknown as AgentRowWithMachine[];
+  const team = rows.map((row) => toSummary(row, null));
+  return [...team.filter((a) => a.id === managerId), ...team.filter((a) => a.id !== managerId)];
+}
 
 const TIMELINE_LIMIT = 250;
 
@@ -163,11 +200,13 @@ export async function getAgentDetail(id: string): Promise<AgentDetail | null> {
   }
 
   const ordered = [...(events ?? [])].reverse().map((e) => toEvent(e, e.image_path ? (urls.get(e.image_path) ?? null) : null));
+  const agent = toSummary(row as unknown as AgentRowWithMachine, null);
   return {
-    agent: toSummary(row as unknown as AgentRowWithMachine, null),
+    agent,
     events: ordered,
     hiddenEvents: Math.max(0, (count ?? ordered.length) - ordered.length),
     pending: (messages ?? []).map((m) => ({ id: m.id, body: m.body, status: m.status as AgentMessage["status"], createdAt: m.created_at })),
+    team: await getTeam(agent),
   };
 }
 

@@ -3,12 +3,12 @@
 import { z } from "zod";
 import { messages } from "@/i18n/messages";
 import { getRequestLocale } from "@/i18n/server";
-import type { ActionResult } from "@/lib/action-result";
+import { slugify, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { baseName, clip, missionFromPrompt } from "./ingest";
 import { isAgentController } from "./data";
-import { AGENT_ROLES } from "./roles";
+import { MISSION_ROLES } from "./roles";
 
 /*
  * Talking to agents — the agent controller only (one account, set in the
@@ -65,7 +65,7 @@ const missionSchema = z.object({
     .min(3)
     .max(500)
     .regex(/^(?:[A-Za-z]:[\\/]|\/)/),
-  role: z.enum(AGENT_ROLES),
+  role: z.enum(MISSION_ROLES),
   instruction: z.string().trim().min(3).max(8000),
 });
 
@@ -112,6 +112,77 @@ export async function startMission(input: MissionInput): Promise<ActionResult<{ 
   if (error || !agent) return { ok: false, message: who.t.failed };
 
   const { error: messageError } = await supabase.from("agent_messages").insert({ agent_id: agent.id, body: instruction, created_by: who.user.id });
+  if (messageError) return { ok: false, message: who.t.failed };
+  return { ok: true, data: { agentId: agent.id } };
+}
+
+const gameSchema = z.object({
+  // Becomes a folder name on the PC: no characters Windows forbids.
+  name: z
+    .string()
+    .trim()
+    .min(2)
+    .max(60)
+    .regex(/^[^\/:*?"<>|]+$/)
+    .refine((value) => !/[. ]$/.test(value)),
+  idea: z.string().trim().min(10).max(4000),
+});
+
+export type GameInput = z.input<typeof gameSchema>;
+
+/**
+ * New game: a project (the game) and its manager agent. The PC's bridge
+ * creates the Rojo project, the assets folder and the place from the studio
+ * template, then starts the manager, which builds the team.
+ */
+export async function startGame(input: GameInput): Promise<ActionResult<{ agentId: string }>> {
+  const who = await controller();
+  if (!who.ok) return { ok: false, message: who.t.controllerOnly };
+  const parsed = gameSchema.safeParse(input);
+  if (!parsed.success) {
+    const field = String(parsed.error.issues[0]?.path[0] ?? "");
+    return { ok: false, message: field === "name" ? who.t.badName : who.t.invalid };
+  }
+  const { name, idea } = parsed.data;
+  const supabase = await createClient();
+
+  const { data: machine } = await supabase
+    .from("agent_machines")
+    .select("id")
+    .is("revoked_at", null)
+    .order("last_seen_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (!machine) return { ok: false, message: who.t.noMachine };
+
+  const slug = slugify(name) || `game-${Date.now()}`;
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .insert({ name, slug, description: idea, status: "planning", created_by: who.user.id })
+    .select("id")
+    .single();
+  if (projectError?.code === "23505") return { ok: false, message: who.t.nameTaken };
+  if (projectError || !project) return { ok: false, message: who.t.failed };
+
+  const { data: agent, error } = await supabase
+    .from("agents")
+    .insert({
+      name: clip(`Manager · ${name}`, 120),
+      origin: "mission",
+      role: "manager",
+      project_id: project.id,
+      mission: missionFromPrompt(idea),
+      status: "waiting",
+      waiting_reason: "bridge",
+      machine_id: machine.id,
+      created_by: who.user.id,
+    })
+    .select("id")
+    .single();
+  if (error || !agent) return { ok: false, message: who.t.failed };
+
+  const brief = `New game: ${name}\n\nThe person's main idea:\n${idea}`;
+  const { error: messageError } = await supabase.from("agent_messages").insert({ agent_id: agent.id, body: brief, created_by: who.user.id });
   if (messageError) return { ok: false, message: who.t.failed };
   return { ok: true, data: { agentId: agent.id } };
 }

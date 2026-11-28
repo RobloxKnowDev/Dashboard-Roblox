@@ -12,7 +12,9 @@ export type ActionSummary =
   | { kind: "fetch"; target: string }
   | { kind: "subagent"; target: string }
   | { kind: "mcp"; server: string; target: string }
-  | { kind: "tool"; target: string };
+  | { kind: "tool"; target: string }
+  /** A manager delegated a task (written by the server, not a tool call). */
+  | { kind: "delegate"; target: string };
 
 /** Tools too frequent or too internal to be worth a line on the timeline. */
 const SKIPPED_TOOLS = new Set([

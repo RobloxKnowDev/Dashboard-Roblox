@@ -161,6 +161,7 @@ L’état de chaque connexion est visible en direct dans *Integrations* (Admin+)
 | D+ | Page jeu : onglets Acquisition (sources, conversion, first play bounce rate, nouveaux/revenants) et Thumbnails ; passe mobile (champs à 16 px sur écrans tactiles, fenêtres à la hauteur visible, sélecteurs défilants, titres de cartes qui passent à la ligne, assistant utilisable sur téléphone) | ✅ |
 | D++ | Interface **anglais/français** (sélecteur dans le menu du compte et Réglages → Profil), **Claude connecté** (assistant Haiku 5.5 sur les vraies données, idées hebdomadaires Steam → Roblox avec Opus 5.5, Réglages → IA pour l'Owner) | ✅ |
 | D+++ | **Agents IA en direct** : sessions Claude Code du PC visibles en temps réel, messages livrés en fin d'étape ou par le pont, missions par rôle (UI, construction, scripts, QA, art 3D), captures partagées, PC connectés dans Réglages → API | ✅ |
+| D++++ | **Équipes de jeu** : bouton « Nouveau jeu » → un manager crée le projet (modèle Rojo, assets, place), fait écrire le design, attend l'OK, puis délègue à game designer, build, UI, SFX, scripts, QA, art 3D ; rapports renvoyés au manager ; 3 agents en parallèle |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |
 
 ## 9. Langues (anglais / français)
