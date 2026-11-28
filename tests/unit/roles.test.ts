@@ -5,6 +5,7 @@ import { APP_ROLES, can, hasMinRole, type AppRole, type Permission } from "@/lib
 const EXPECTED: Record<Permission, AppRole[]> = {
   "studio.read": ["owner", "admin", "developer", "viewer"],
   "work.write": ["owner", "admin", "developer"],
+  "agents.read": ["owner", "admin"],
   "work.delete_any": ["owner", "admin"],
   "games.manage": ["owner", "admin"],
   "finance.read": ["owner", "admin"],

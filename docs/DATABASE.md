@@ -20,6 +20,7 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `20261126001200_team_member_for_profiles.sql` | Crée automatiquement la fiche « membre d'équipe » de tout compte qui reçoit un rôle (nom et avatar synchronisés) |
 | `20261126001300_market_snapshots.sql` | `market_snapshots` : rang et joueurs de chaque jeu des classements Roblox, un relevé par jour (écrit uniquement par la tâche quotidienne) |
 | `20261127000100_ai.sql` | Claude : colonnes `ai_assistant_enabled` et `ai_monthly_budget_usd` sur `studio_settings` (modifiables par l'**Owner seulement**, trigger `guard_ai_settings`) ; `ai_usage` (une ligne par requête à Claude, coût estimé — lecture Owner) ; `idea_runs` et `weekly_ideas` (idées hebdomadaires Steam → Roblox, en anglais et en français — lecture Viewer+, écriture par la clé secrète uniquement) |
+| `20261128000100_agents_live.sql` | Agents IA en direct : `agent_machines` (PC autorisés, empreinte du jeton), `agent_sessions` (session Claude Code → agent), `agent_messages` (messages du dashboard jusqu'à leur livraison), colonnes live sur `agents` (origine, session, dossier, rôle, raison d'attente, arrêt demandé), captures (`agent_events.image_path`, bucket privé `agent-media`), nouveaux types d'événement ; `studio_settings.agent_controller_id` (le **pilote des agents**, modifiable par la clé secrète seulement) et `is_agent_controller()` ; lecture des agents réservée à Owner/Admin |
 | `20261126001500_game_payouts.sql` | `game_payouts` : Robux mensuels par jeu de **Creator Rewards** et **Roblox Plus**, saisis depuis le Creator Hub (aucune API Roblox ne les fournit) ; lecture Viewer+, saisie Admin+ |
 | `20261126001400_notifications_for_work.sql` | `profiles.notification_prefs` + triggers qui notifient un membre quand quelqu’un d’autre lui assigne une tâche ou l’ajoute à un projet (désactivable dans *Settings → Notifications*) |
 
@@ -42,8 +43,11 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | `projects` | Projets du studio | `name`, `slug` (unique), `status`, `progress` (0 à 100), `target_release_date`, `completed_at` | `game_id` → `games` (mis à NULL si le jeu est supprimé) |
 | `project_members` | Membres associés à un projet | `role` | `projects` ↔ `team_members`, clé primaire composée |
 | `tasks` | Tâches | `title`, `priority`, `status`, `due_date`, `completed_at`, `position` | `project_id` → `projects` (cascade), `assignee_id` → `team_members` |
-| `agents` | Agents IA suivis | `name`, `mission`, `status`, `model`, `started_at`, `last_activity_at` | `project_id` → `projects` |
-| `agent_events` | Historique des agents, ajout uniquement | `type`, `message`, `payload` (JSON) | `agent_id` → `agents` (cascade) |
+| `agents` | Une conversation Claude Code (session VS Code/terminal ou mission) | `name`, `origin`, `role`, `status`, `waiting_reason`, `session_id` (dernière session), `cwd`, `mission`, `model`, `stop_requested`, `last_activity_at` | `machine_id` → `agent_machines`, `project_id` → `projects` |
+| `agent_events` | Historique des agents, ajout uniquement | `type`, `message`, `payload` (JSON : résumé d'action…), `image_path` (capture) | `agent_id` → `agents` (cascade) |
+| `agent_sessions` | Chaque session Claude Code → son agent | `session_id` (clé) | `agent_id` → `agents` (cascade) |
+| `agent_messages` | Messages du pilote vers un agent | `body`, `status` (pending/delivered/cancelled/failed), `delivered_via` (hook/bridge) | `agent_id` → `agents` (cascade), `created_by` → `profiles` |
+| `agent_machines` | PC dont Claude Code rend compte | `name`, `token_hash` (SHA-256), `last_seen_at`, `revoked_at` | — |
 | `finance_transactions` | Revenus et dépenses saisis | `type`, `category`, `amount` (> 0), `currency` (USD), `robux_amount`, `occurred_on` | `game_id`, `project_id` (optionnels) |
 | `game_watchlist` | Jeux Roblox d'autres studios suivis | `universe_id` (unique), `name`, `genre`, `notes` | `added_by` → `profiles` |
 | `watchlist_snapshots` | Historique de suivi, ajout uniquement | `recorded_at`, `ccu`, `visits`, `favorites` | `watchlist_id` → `game_watchlist` (cascade) |
@@ -88,7 +92,7 @@ profiles 1─n notifications      profiles 1─n assistant_conversations 1─n a
 | `task_status` | `todo`, `in_progress`, `in_review`, `done`, `cancelled` |
 | `task_priority` | `low`, `medium`, `high`, `critical` |
 | `agent_status` | `working`, `waiting`, `completed`, `error`, `offline` |
-| `agent_event_type` | `started`, `progress`, `waiting`, `completed`, `error`, `log`, `status_change` |
+| `agent_event_type` | `started`, `progress`, `waiting`, `completed`, `error`, `log`, `status_change`, `instruction`, `action`, `reply`, `screenshot` |
 | `transaction_type` | `revenue`, `expense` |
 | `transaction_category` | `roblox_payout`, `devex`, `sponsorship`, `development`, `advertising`, `tools`, `salaries`, `assets`, `other` |
 | `idea_origin` | `manual`, `ai` |
@@ -112,8 +116,10 @@ Ces fonctions s'exécutent avec les droits du propriétaire de la base (`SECURIT
 
 | Capacité | Owner | Admin | Developer | Viewer | Mise en œuvre |
 |---|:-:|:-:|:-:|:-:|---|
-| Consulter jeux, métriques, projets, tâches, agents, marché, idées, équipe | ✓ | ✓ | ✓ | ✓ | `select … using (true)` pour tout utilisateur connecté |
-| Créer ou modifier projets, tâches, idées, watchlist, agents | ✓ | ✓ | ✓ | — | `has_min_role('developer')` ; à la création, l'auteur doit être l'utilisateur lui-même |
+| Consulter jeux, métriques, projets, tâches, marché, idées, équipe | ✓ | ✓ | ✓ | ✓ | `select … using (true)` pour tout utilisateur connecté |
+| Consulter les agents IA, leurs messages et leurs PC | ✓ | ✓ | — | — | `has_min_role('admin')` |
+| Écrire aux agents, lancer/arrêter une mission | le pilote des agents seulement |||| `is_agent_controller()` ; événements et sessions écrits par la clé secrète (API d'ingestion) |
+| Créer ou modifier projets, tâches, idées, watchlist | ✓ | ✓ | ✓ | — | `has_min_role('developer')` ; à la création, l'auteur doit être l'utilisateur lui-même |
 | Supprimer projets et agents | ✓ | ✓ | — | — | `has_min_role('admin')` |
 | Supprimer les tâches, idées et éléments de watchlist des autres | ✓ | ✓ | — | — | Admin+, ou Developer+ s'il en est l'auteur |
 | Ajouter ou modifier les jeux du studio et leurs métriques | ✓ | ✓ | — | — | `has_min_role('admin')` |

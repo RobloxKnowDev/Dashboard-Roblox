@@ -23,12 +23,14 @@ import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { Badge, StatusDot } from "@/components/ui/badge";
 import { buttonStyles } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { DEMO_AGENTS, demoTime } from "@/features/agents/demo";
+import { statusLabel } from "@/features/agents/components";
+import { listAgents } from "@/features/agents/data";
+import { checkAccess } from "@/lib/auth/session";
 import { describeActivity } from "@/features/shared/activity";
 import { parseRange } from "@/features/shared/range";
 import { MetricBarChart, MetricChart } from "@/features/shared/metric-chart";
 import { ACTIVE_AGENT_STATUSES, AGENT_STATUS, TASK_PRIORITY } from "@/features/shared/status";
-import { DEMO_NOW, type DataSource } from "@/lib/data/source";
+import type { DataSource } from "@/lib/data/source";
 import { cn } from "@/lib/utils/cn";
 import { getChart } from "@/features/discover/data";
 import { revenueChart } from "@/features/games/payouts-compute";
@@ -57,9 +59,16 @@ function delta(current: number | null, previous: number | null): number | undefi
 export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) {
   const range = await rangeFrom(searchParams);
   const today = await todayIso();
-  const [studio, counts, { t, f }] = await Promise.all([getStudioMetrics(range.key, today, await getLocale()), getStudioCounts(today), getI18n()]);
+  const [studio, counts, { t, f }, agentAccess] = await Promise.all([
+    getStudioMetrics(range.key, today, await getLocale()),
+    getStudioCounts(today),
+    getI18n(),
+    checkAccess("admin"),
+  ]);
   const k = t.overview.kpis;
-  const activeAgents = DEMO_AGENTS.filter((a) => ACTIVE_AGENT_STATUSES.includes(a.status)).length; // DEMO
+  // Agents are visible to Owner and Admin only (RLS): others see a dash, not a false zero.
+  const agents = agentAccess.status === "allowed" ? await listAgents() : null;
+  const activeAgents = agents ? agents.filter((a) => ACTIVE_AGENT_STATUSES.includes(a.status)).length : null;
   const unavailable = k.unavailable;
   const comparison = range.granularity === "month" ? undefined : range.comparison;
 
@@ -127,7 +136,13 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           icon={FolderKanban}
           hint={!counts.projects ? unavailable : counts.projects.active === 0 ? k.noActiveProject : k.activeProjectsHint}
         />
-        <StatCard label={k.activeAgents} value={f.formatNumber(activeAgents)} source="demo" icon={Bot} hint={k.agentsTotal(DEMO_AGENTS.length)} />
+        <StatCard
+          label={k.activeAgents}
+          value={activeAgents === null ? "—" : f.formatNumber(activeAgents)}
+          source="live"
+          icon={Bot}
+          hint={agentAccess.status !== "allowed" ? k.agentsAdminOnly : agents ? k.agentsTotal(agents.length) : unavailable}
+        />
         <StatCard
           label={k.pendingTasks}
           value={counts.tasks ? f.formatNumber(counts.tasks.pending) : "—"}
@@ -349,31 +364,45 @@ export async function RecentActivity() {
   );
 }
 
+/** Live: Claude Code agents at work (Owner and Admin). */
 export async function ActiveAgents() {
-  const { t, f, locale } = await getI18n();
+  await connection();
+  const now = new Date();
+  const [{ t, f }, access] = await Promise.all([getI18n(), checkAccess("admin")]);
+  const a = t.overview.agents;
+  const agents = access.status === "allowed" ? await listAgents(20) : null;
+  const active = (agents ?? []).filter((agent) => ACTIVE_AGENT_STATUSES.includes(agent.status)).slice(0, 5);
   return (
-    <ListCard title={t.overview.agents.title} description={t.overview.agents.description} source="demo" href="/agents">
-      <ul>
-        {DEMO_AGENTS.map((agent) => {
-          const status = AGENT_STATUS[agent.status];
-          const statusLabel = t.common.status.agent[agent.status];
-          return (
-            <li key={agent.id} className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
-              <StatusDot tone={status.tone} pulse={status.pulse} label={statusLabel} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-fg">
-                  {agent.name} <span className="font-normal text-fg-3">· {agent.project}</span>
-                </p>
-                <p className="truncate text-xs text-fg-3">{agent.missions[locale]}</p>
-              </div>
-              <div className="shrink-0 text-right">
-                <Badge tone={status.tone}>{statusLabel}</Badge>
-                <p className="mt-1 text-[11px] text-fg-3">{f.formatRelative(demoTime(agent.lastActivityMinutesAgo), DEMO_NOW)}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+    <ListCard title={a.title} description={a.description} source="live" href="/agents">
+      {access.status !== "allowed" ? (
+        <EmptyState compact title={a.adminOnly} />
+      ) : !agents ? (
+        <ErrorState compact title={t.agents.page.errorTitle} description={t.agents.page.errorDescription} />
+      ) : active.length === 0 ? (
+        <EmptyState compact title={a.empty} />
+      ) : (
+        <ul>
+          {active.map((agent) => {
+            const status = AGENT_STATUS[agent.status];
+            const label = statusLabel(agent, t);
+            return (
+              <li key={agent.id}>
+                <Link href={`/agents/${agent.id}`} className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                  <StatusDot tone={status.tone} pulse={status.pulse} label={label} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-fg">{agent.name}</p>
+                    <p className="truncate text-xs text-fg-3">{agent.mission ?? t.agents.origin[agent.origin]}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <Badge tone={status.tone}>{label}</Badge>
+                    {agent.lastActivityAt ? <p className="mt-1 text-[11px] text-fg-3">{f.formatRelative(agent.lastActivityAt, now)}</p> : null}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </ListCard>
   );
 }

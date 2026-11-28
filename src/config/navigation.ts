@@ -56,7 +56,7 @@ export const navigation: NavSection[] = [
       { key: "games", href: "/games", icon: Gamepad2 },
       { key: "projects", href: "/projects", icon: FolderKanban },
       { key: "tasks", href: "/tasks", icon: ListTodo },
-      { key: "agents", href: "/agents", icon: Bot },
+      { key: "agents", href: "/agents", icon: Bot, minRole: "admin" },
     ],
   },
   {

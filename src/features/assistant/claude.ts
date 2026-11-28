@@ -264,7 +264,10 @@ function systemPrompt(user: SessionUser, locale: Locale, today: string) {
     },
     {
       type: "text" as const,
-      text: `Today is ${today}. The user is ${user.name} (dashboard role: ${user.role ?? "pending"}). Always reply in ${LOCALE_NAMES[locale]}.`,
+      text: `Today is ${today}. The user is ${user.name} (dashboard role: ${user.role ?? "pending"}). Always reply in ${LOCALE_NAMES[locale]}.${
+        // The dashboard speaks to its team informally in French ("tu").
+        locale === "fr" ? ' Address the user informally with "tu" (never "vous"), like the rest of the dashboard.' : ""
+      }`,
     },
   ];
 }

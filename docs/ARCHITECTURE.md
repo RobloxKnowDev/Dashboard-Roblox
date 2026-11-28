@@ -45,6 +45,7 @@ src/
 │  │     ├─ settings/{general,profile,members,permissions,integrations,api,ai,notifications,security}/
 │  │     └─ design-system/   référence interne de tous les composants
 │  ├─ api/cron/              daily-snapshot, weekly-ideas (CRON_SECRET)
+│  ├─ api/agents/            ingest, media — hooks Claude Code et pont du PC (jeton de machine, docs/AGENTS.md)
 │  ├─ auth/                  callbacks e-mail (non localisés)
 │  └─ globals.css
 ├─ i18n/           langues : config, dictionnaires messages/{en,fr}, accès serveur/client
@@ -62,6 +63,7 @@ src/
 │  ├─ hooks/  utils/  env.ts
 ├─ config/         site · navigation · data-sources
 supabase/          config + migrations SQL (voir docs/DATABASE.md)
+tools/agents/      côté PC des agents IA : hooks, pont, partage de captures, installation (docs/AGENTS.md)
 ```
 
 ## 4. Règles Cache Components (Next.js 16)
@@ -80,7 +82,7 @@ Chaque domaine est déclaré `live` ou `demo` dans `src/config/data-sources.ts`.
 
 | Réel (Supabase / API Roblox) | Démo jusqu'à l'intégration |
 |---|---|
-| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées | Agents IA ; l'assistant tant qu'`ANTHROPIC_API_KEY` n'est pas défini (réponses d'exemple, rien n'est enregistré) |
+| Projets, tâches, équipe, finances (saisies), jeux, watchlist, idées saisies, notifications, réglages, **stats publiques Roblox** (joueurs en ligne, visites, favoris, notes) et **Roblox Analytics** (DAU, revenus, rétention, sessions — pour les jeux autorisés par la clé), alertes calculées, **Discover** (classements Roblox publics + historique quotidien), watchlist, bibliothèque d'idées, **Agents IA** (sessions Claude Code du PC du studio et missions) | L'assistant tant qu'`ANTHROPIC_API_KEY` n'est pas défini (réponses d'exemple, rien n'est enregistré) |
 
 **Revenu d’un jeu** = ventes (métrique `DailyRevenue` de Roblox Analytics : game passes, developer products, serveurs privés, commissions avatar — vérifié via la ventilation `RevenueSource`) **+ Creator Rewards + Roblox Plus** (saisis chaque mois). Ce total alimente la page du jeu, l’Overview et l’estimation Roblox de Finance ; les alertes de revenu utilisent les ventes seules.
 
@@ -135,6 +137,7 @@ Garanties :
 | Steam (API publiques, sans clé) | Jeux les plus joués, nouveautés populaires, top SteamSpy 14 j, fiche de chaque jeu (genres, prix, sortie, avis), joueurs en ligne | `lib/integrations/steam.ts`. Le store Steam renvoie « Access Denied » quelques minutes après ~150 requêtes rapprochées : 90 fiches max, 2 à la fois, pause de 250 ms, arrêt après 5 refus. L'API des notes d'avis refuse les appels automatisés (seul le nombre d'avis est gardé) ; la page « top releases » n'est plus mise à jour depuis 2025 (ignorée si > 4 mois) | ✅ |
 | Recherche Roblox | Vérifier qu'une idée n'existe pas déjà | `lib/integrations/roblox/search.ts` (`omni-search`, publique) : joueurs en ligne, votes ; sponsorisés exclus | ✅ |
 | Coût et garde-fous IA | — | Chaque requête est journalisée dans `ai_usage` avec un coût estimé (tarifs publics). *Réglages → IA* (Owner) : activer/couper l'assistant, **budget mensuel** (20 $ par défaut) au-delà duquel l'assistant et les générations manuelles s'arrêtent, consommation du mois | ✅ |
+| Claude Code — agents IA | Sessions Claude Code du PC du studio (VS Code, terminal) et **missions** lancées depuis le dashboard, en direct : consignes, actions résumées, réponses, captures Roblox Studio / Blender | Hooks Claude Code + pont local (`tools/agents/`) → `/api/agents/ingest` et `/api/agents/media` avec un **jeton par PC** (empreinte en base, table `agent_machines`). Lecture Owner/Admin ; écrire aux agents : **le pilote des agents** seul. Missions en mode de permissions **auto**, avec la connexion Claude Code du PC. Serveurs MCP Roblox Studio (intégré à Studio) et Blender. Détails : [AGENTS.md](AGENTS.md) | ✅ |
 | Tâches planifiées (Vercel Cron) | Classements Roblox, watchlist, statistiques publiques des jeux → historique ; idées de jeux | `/api/cron/daily-snapshot` à 06:00 UTC et `/api/cron/weekly-ideas` le lundi à 07:00 UTC (`maxDuration` 300 s), protégées par `CRON_SECRET`, écrivent avec `SUPABASE_SECRET_KEY` | ✅ |
 
 ### Page d'un jeu : onglets de statistiques
@@ -157,6 +160,7 @@ L’état de chaque connexion est visible en direct dans *Integrations* (Admin+)
 | D | Discover (classements Roblox réels, sorties récentes, watchlist, idées, tâche quotidienne), Finance (transactions, 6 KPI, 4 graphiques, estimation Roblox séparée), Team (fiches, projets, tâches, activité ; membres sans compte), Settings → Members (création de comptes, rôles), AI Assistant (interface, mode démo), Settings (General, Notifications, Security, API, Integrations), Integrations (état en direct), notifications « tâche assignée » / « ajouté à un projet » | ✅ |
 | D+ | Page jeu : onglets Acquisition (sources, conversion, first play bounce rate, nouveaux/revenants) et Thumbnails ; passe mobile (champs à 16 px sur écrans tactiles, fenêtres à la hauteur visible, sélecteurs défilants, titres de cartes qui passent à la ligne, assistant utilisable sur téléphone) | ✅ |
 | D++ | Interface **anglais/français** (sélecteur dans le menu du compte et Réglages → Profil), **Claude connecté** (assistant Haiku 5.5 sur les vraies données, idées hebdomadaires Steam → Roblox avec Opus 5.5, Réglages → IA pour l'Owner) | ✅ |
+| D+++ | **Agents IA en direct** : sessions Claude Code du PC visibles en temps réel, messages livrés en fin d'étape ou par le pont, missions par rôle (UI, construction, scripts, QA, art 3D), captures partagées, PC connectés dans Réglages → API | ✅ |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |
 
 ## 9. Langues (anglais / français)

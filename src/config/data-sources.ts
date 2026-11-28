@@ -24,7 +24,7 @@ export const dataSources = {
 
   // Demo until their integration ships
   weeklyIdeas: "live", // Steam trends checked against Roblox, written by Claude (weekly)
-  agents: "demo", // agent status + events ingestion
+  agents: "live", // Claude Code hooks + bridge (docs/AGENTS.md)
   assistant: "live", // Claude (falls back to demo answers without ANTHROPIC_API_KEY)
 } as const satisfies Record<string, DataSource>;
 

@@ -1,15 +1,15 @@
-import { CircleCheck, CircleDashed, TriangleExclamationPoint } from "lucide-react";
+import { CircleCheck, CircleDashed, Monitor, TriangleExclamationPoint } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ComingSoonPanel } from "@/components/feedback/coming-soon";
 import { RequireRole } from "@/components/layout/session-widgets";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/primitives";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { SettingsSectionHeader } from "@/features/settings/section-header";
-import { getT } from "@/i18n/server";
+import { listMachines } from "@/features/agents/data";
+import { getI18n, getT } from "@/i18n/server";
 import { environmentStatus, robloxKeyCount } from "@/lib/env-status";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,6 +64,32 @@ async function EnvironmentTable() {
   );
 }
 
+/** PCs whose Claude Code reports to the dashboard (machine tokens, docs/AGENTS.md). */
+async function AgentMachines() {
+  await connection();
+  const now = new Date();
+  const [{ t, f }, machines] = await Promise.all([getI18n(), listMachines()]);
+  const a = t.settings.api;
+  return (
+    <Card>
+      <CardHeader title={a.agentTokensTitle} description={a.agentTokensDescription} />
+      {machines.length === 0 ? (
+        <p className="px-5 pb-5 text-[13px] text-fg-3">{a.agentMachinesEmpty}</p>
+      ) : (
+        <ul className="px-5 pb-4">
+          {machines.map((machine) => (
+            <li key={machine.id} className="flex items-center gap-2 border-t border-line py-2.5 text-[13px] first:border-t-0">
+              <Monitor className="size-3.5 text-fg-3" aria-hidden />
+              <span className="font-medium text-fg">{machine.name}</span>
+              <span className="text-xs text-fg-3">· {machine.lastSeenAt ? a.agentMachineSeen(f.formatRelative(machine.lastSeenAt, now)) : a.agentMachineNever}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export default async function ApiSettingsPage() {
   const t = await getT();
   return (
@@ -75,7 +101,9 @@ export default async function ApiSettingsPage() {
           <Suspense fallback={<Skeleton className="h-72 rounded-lg" />}>
             <EnvironmentTable />
           </Suspense>
-          <ComingSoonPanel title={t.settings.api.agentTokensTitle} description={t.settings.api.agentTokensDescription} />
+          <Suspense fallback={<Skeleton className="h-32 rounded-lg" />}>
+            <AgentMachines />
+          </Suspense>
         </div>
       </RequireRole>
     </>

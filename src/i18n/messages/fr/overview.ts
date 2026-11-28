@@ -29,6 +29,7 @@ export const overview: Messages["overview"] = {
     activeProjectsHint: "En planification, en cours ou en test",
     activeAgents: "Agents actifs",
     agentsTotal: (count) => `${count} agent${count > 1 ? "s" : ""} au total`,
+    agentsAdminOnly: "Owners et admins uniquement",
     pendingTasks: "Tâches en attente",
     overdue: (count) => `${count} en retard`,
     nothingWaiting: "Rien en attente",
@@ -81,7 +82,9 @@ export const overview: Messages["overview"] = {
   },
   agents: {
     title: "Agents actifs",
-    description: "Statut en direct des agents IA",
+    description: "Les agents Claude Code au travail en ce moment",
+    empty: "Aucun agent au travail en ce moment.",
+    adminOnly: "Les agents sont visibles par les Owners et les Admins.",
   },
   market: {
     title: "Tendances du marché",

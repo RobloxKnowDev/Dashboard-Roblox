@@ -142,8 +142,9 @@ export const settings: Messages["settings"] = {
     allowed: "Autorisé",
     notAllowed: "Non autorisé",
     rows: {
-      "studio.read": "Voir les jeux, projets, tâches, agents, le marché et l'équipe",
+      "studio.read": "Voir les jeux, projets, tâches, le marché et l'équipe",
       "work.write": "Créer et modifier projets, tâches, idées et jeux suivis",
+      "agents.read": "Voir les agents IA et leurs résultats (seul le pilote des agents peut leur parler)",
       "work.delete_any": "Supprimer les projets et tâches des autres",
       "games.manage": "Ajouter et modifier les jeux du studio",
       "finance.read": "Voir les finances",
@@ -180,8 +181,11 @@ export const settings: Messages["settings"] = {
     },
     robloxKeysConfigured: (count) =>
       `Statistiques Roblox — ${count} ${count > 1 ? "clés configurées" : "clé configurée"}`,
-    agentTokensTitle: "Jetons d'ingestion des agents",
-    agentTokensDescription: "Les jetons que tes agents IA utiliseront pour envoyer leur état et leurs événements au dashboard.",
+    agentTokensTitle: "PC connectés aux agents IA",
+    agentTokensDescription: "Chaque PC dont Claude Code rend compte au dashboard a son propre jeton secret, créé par le script d'installation (node tools/agents/setup.mjs — docs/AGENTS.md). Seule son empreinte est enregistrée.",
+    agentMachinesEmpty: "Aucun PC connecté pour l'instant.",
+    agentMachineSeen: (when) => `Vu ${when}`,
+    agentMachineNever: "Jamais vu",
   },
   notifications: {
     intro:

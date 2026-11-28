@@ -28,14 +28,14 @@ isOneToOne: false
                   ]
                 },"agent_events": {
                   Row: {
-                    "agent_id": string,"created_at": string,"id": string,"message": string | null,"payload": NonNullable<Json>,"type": Database["public"]['Enums']["agent_event_type"]
+                    "agent_id": string,"created_at": string,"id": string,"image_path": string | null,"message": string | null,"payload": NonNullable<Json>,"type": Database["public"]['Enums']["agent_event_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_id": string,"created_at"?: string,"id"?: string,"message"?: string | null,"payload"?: NonNullable<Json>,"type": Database["public"]['Enums']["agent_event_type"]
+                    "agent_id": string,"created_at"?: string,"id"?: string,"image_path"?: string | null,"message"?: string | null,"payload"?: NonNullable<Json>,"type": Database["public"]['Enums']["agent_event_type"]
                   }
                   Update: {
-                    "agent_id"?: string,"created_at"?: string,"id"?: string,"message"?: string | null,"payload"?: NonNullable<Json>,"type"?: Database["public"]['Enums']["agent_event_type"]
+                    "agent_id"?: string,"created_at"?: string,"id"?: string,"image_path"?: string | null,"message"?: string | null,"payload"?: NonNullable<Json>,"type"?: Database["public"]['Enums']["agent_event_type"]
                   }
                   Relationships: [
                     {
@@ -46,16 +46,76 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"agents": {
+                },"agent_machines": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"last_activity_at": string | null,"mission": string | null,"model": string | null,"name": string,"project_id": string | null,"started_at": string | null,"status": Database["public"]['Enums']["agent_status"],"updated_at": string
+                    "created_at": string,"id": string,"last_seen_at": string | null,"name": string,"revoked_at": string | null,"token_hash": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_activity_at"?: string | null,"mission"?: string | null,"model"?: string | null,"name": string,"project_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"updated_at"?: string
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string | null,"name": string,"revoked_at"?: string | null,"token_hash": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_activity_at"?: string | null,"mission"?: string | null,"model"?: string | null,"name"?: string,"project_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"updated_at"?: string
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string | null,"name"?: string,"revoked_at"?: string | null,"token_hash"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"agent_messages": {
+                  Row: {
+                    "agent_id": string,"body": string,"created_at": string,"created_by": string | null,"delivered_at": string | null,"delivered_via": string | null,"id": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "agent_id": string,"body": string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"id"?: string,"status"?: string
+                  }
+                  Update: {
+                    "agent_id"?: string,"body"?: string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_messages_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_messages_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"agent_sessions": {
+                  Row: {
+                    "agent_id": string,"created_at": string,"session_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "agent_id": string,"created_at"?: string,"session_id": string
+                  }
+                  Update: {
+                    "agent_id"?: string,"created_at"?: string,"session_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_sessions_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"agents": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"cwd": string | null,"ended_at": string | null,"id": string,"last_activity_at": string | null,"machine_id": string | null,"mission": string | null,"model": string | null,"name": string,"origin": string,"permission_mode": string | null,"project_id": string | null,"role": string,"session_id": string | null,"started_at": string | null,"status": Database["public"]['Enums']["agent_status"],"stop_requested": boolean,"updated_at": string,"waiting_reason": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name": string,"origin"?: string,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"cwd"?: string | null,"ended_at"?: string | null,"id"?: string,"last_activity_at"?: string | null,"machine_id"?: string | null,"mission"?: string | null,"model"?: string | null,"name"?: string,"origin"?: string,"permission_mode"?: string | null,"project_id"?: string | null,"role"?: string,"session_id"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["agent_status"],"stop_requested"?: boolean,"updated_at"?: string,"waiting_reason"?: string | null
                   }
                   Relationships: [
                     {
@@ -63,6 +123,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agents_machine_id_fkey"
+      columns: ["machine_id"]
+isOneToOne: false
+      referencedRelation: "agent_machines"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "agents_project_id_fkey"
@@ -412,17 +478,23 @@ isOneToOne: false
                   ]
                 },"studio_settings": {
                   Row: {
-                    "ai_assistant_enabled": boolean,"ai_monthly_budget_usd": number,"created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
+                    "agent_controller_id": string | null,"ai_assistant_enabled": boolean,"ai_monthly_budget_usd": number,"created_at": string,"currency": string,"devex_rate_usd": number,"id": boolean,"studio_name": string,"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "agent_controller_id"?: string | null,"ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "agent_controller_id"?: string | null,"ai_assistant_enabled"?: boolean,"ai_monthly_budget_usd"?: number,"created_at"?: string,"currency"?: string,"devex_rate_usd"?: number,"id"?: boolean,"studio_name"?: string,"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "studio_settings_agent_controller_id_fkey"
+      columns: ["agent_controller_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "studio_settings_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false
@@ -537,6 +609,9 @@ isOneToOne: false
 "has_min_role":
 { Args: { "min_role": Database["public"]['Enums']["app_role"] }; Returns: boolean
                            },
+"is_agent_controller":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "notification_enabled":
 { Args: { "p_key": string,"p_profile": string }; Returns: boolean
                            },
@@ -545,7 +620,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "agent_event_type": "started"|"progress"|"waiting"|"completed"|"error"|"log"|"status_change","agent_status": "working"|"waiting"|"completed"|"error"|"offline","app_role": "owner"|"admin"|"developer"|"viewer","assistant_role": "user"|"assistant","game_status": "in_development"|"testing"|"live"|"paused"|"archived","idea_origin": "manual"|"ai","idea_status": "suggested"|"saved"|"archived","integration_provider": "roblox"|"anthropic","integration_status": "disconnected"|"connected"|"error","member_status": "active"|"inactive","metric_period": "hour"|"day","notification_type": "info"|"success"|"warning"|"error"|"task"|"agent"|"finance"|"system","payout_source": "creator_rewards"|"roblox_plus","project_status": "planning"|"in_progress"|"testing"|"completed"|"on_hold"|"cancelled","task_priority": "low"|"medium"|"high"|"critical","task_status": "todo"|"in_progress"|"in_review"|"done"|"cancelled","transaction_category": "roblox_payout"|"devex"|"sponsorship"|"development"|"advertising"|"tools"|"salaries"|"assets"|"other","transaction_type": "revenue"|"expense"
+            "agent_event_type": "started"|"progress"|"waiting"|"completed"|"error"|"log"|"status_change"|"instruction"|"action"|"reply"|"screenshot","agent_status": "working"|"waiting"|"completed"|"error"|"offline","app_role": "owner"|"admin"|"developer"|"viewer","assistant_role": "user"|"assistant","game_status": "in_development"|"testing"|"live"|"paused"|"archived","idea_origin": "manual"|"ai","idea_status": "suggested"|"saved"|"archived","integration_provider": "roblox"|"anthropic","integration_status": "disconnected"|"connected"|"error","member_status": "active"|"inactive","metric_period": "hour"|"day","notification_type": "info"|"success"|"warning"|"error"|"task"|"agent"|"finance"|"system","payout_source": "creator_rewards"|"roblox_plus","project_status": "planning"|"in_progress"|"testing"|"completed"|"on_hold"|"cancelled","task_priority": "low"|"medium"|"high"|"critical","task_status": "todo"|"in_progress"|"in_review"|"done"|"cancelled","transaction_category": "roblox_payout"|"devex"|"sponsorship"|"development"|"advertising"|"tools"|"salaries"|"assets"|"other","transaction_type": "revenue"|"expense"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -661,7 +736,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "agent_event_type": ["started", "progress", "waiting", "completed", "error", "log", "status_change"],"agent_status": ["working", "waiting", "completed", "error", "offline"],"app_role": ["owner", "admin", "developer", "viewer"],"assistant_role": ["user", "assistant"],"game_status": ["in_development", "testing", "live", "paused", "archived"],"idea_origin": ["manual", "ai"],"idea_status": ["suggested", "saved", "archived"],"integration_provider": ["roblox", "anthropic"],"integration_status": ["disconnected", "connected", "error"],"member_status": ["active", "inactive"],"metric_period": ["hour", "day"],"notification_type": ["info", "success", "warning", "error", "task", "agent", "finance", "system"],"payout_source": ["creator_rewards", "roblox_plus"],"project_status": ["planning", "in_progress", "testing", "completed", "on_hold", "cancelled"],"task_priority": ["low", "medium", "high", "critical"],"task_status": ["todo", "in_progress", "in_review", "done", "cancelled"],"transaction_category": ["roblox_payout", "devex", "sponsorship", "development", "advertising", "tools", "salaries", "assets", "other"],"transaction_type": ["revenue", "expense"]
+            "agent_event_type": ["started", "progress", "waiting", "completed", "error", "log", "status_change", "instruction", "action", "reply", "screenshot"],"agent_status": ["working", "waiting", "completed", "error", "offline"],"app_role": ["owner", "admin", "developer", "viewer"],"assistant_role": ["user", "assistant"],"game_status": ["in_development", "testing", "live", "paused", "archived"],"idea_origin": ["manual", "ai"],"idea_status": ["suggested", "saved", "archived"],"integration_provider": ["roblox", "anthropic"],"integration_status": ["disconnected", "connected", "error"],"member_status": ["active", "inactive"],"metric_period": ["hour", "day"],"notification_type": ["info", "success", "warning", "error", "task", "agent", "finance", "system"],"payout_source": ["creator_rewards", "roblox_plus"],"project_status": ["planning", "in_progress", "testing", "completed", "on_hold", "cancelled"],"task_priority": ["low", "medium", "high", "critical"],"task_status": ["todo", "in_progress", "in_review", "done", "cancelled"],"transaction_category": ["roblox_payout", "devex", "sponsorship", "development", "advertising", "tools", "salaries", "assets", "other"],"transaction_type": ["revenue", "expense"]
           }
         }
 } as const

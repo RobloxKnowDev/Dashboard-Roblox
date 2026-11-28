@@ -14,7 +14,8 @@ export function hasMinRole(role: AppRole, minRole: AppRole): boolean {
 
 export const PERMISSIONS = {
   "studio.read": "viewer",
-  "work.write": "developer", // projects, tasks, ideas, watchlist, agents
+  "work.write": "developer", // projects, tasks, ideas, watchlist
+  "agents.read": "admin", // AI agents and their results (talking to them: the agent controller only)
   "work.delete_any": "admin",
   "games.manage": "admin",
   "finance.read": "admin",

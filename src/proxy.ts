@@ -3,8 +3,9 @@ import { isLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, negotiateLocale, type L
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 /** Pages reachable without a session. Everything else requires sign-in. */
-// /api/cron authenticates itself with CRON_SECRET (no user session).
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/auth", "/api/cron"];
+// /api/cron authenticates itself with CRON_SECRET, /api/agents with a
+// machine token (no user session).
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/auth", "/api/cron", "/api/agents"];
 /** Signed-in users are sent away from these. */
 const GUEST_ONLY_PATHS = ["/login", "/forgot-password"];
 /** Route handlers: they live outside app/[lang] and are never rewritten. */

@@ -147,8 +147,9 @@ export const settings = {
     notAllowed: "Not allowed",
     /** One label per permission of src/lib/auth/roles.ts. */
     rows: {
-      "studio.read": "View games, projects, tasks, agents, market and team",
+      "studio.read": "View games, projects, tasks, market and team",
       "work.write": "Create and edit projects, tasks, ideas and watchlist",
+      "agents.read": "View AI agents and their results (only the agent controller can talk to them)",
       "work.delete_any": "Delete other people's projects and tasks",
       "games.manage": "Add and edit the studio's games",
       "finance.read": "View finance",
@@ -185,8 +186,11 @@ export const settings = {
       anthropicKey: "Claude — AI Assistant (Haiku 5.5) and weekly game ideas (Opus 5.5)",
     },
     robloxKeysConfigured: (count: number) => `Roblox analytics — ${count} ${count === 1 ? "key" : "keys"} configured`,
-    agentTokensTitle: "Agent ingestion tokens",
-    agentTokensDescription: "Tokens your AI agents will use to report their status and events to the dashboard.",
+    agentTokensTitle: "PCs connected to the AI agents",
+    agentTokensDescription: "Each PC whose Claude Code reports to the dashboard has its own secret token, created by the setup script (node tools/agents/setup.mjs — docs/AGENTS.md). Only its fingerprint is stored.",
+    agentMachinesEmpty: "No PC connected yet.",
+    agentMachineSeen: (when: string) => `Last seen ${when}`,
+    agentMachineNever: "Never seen",
   },
   notifications: {
     intro: "In-app notifications appear under the bell in the top bar. Changes you make yourself never notify you.",

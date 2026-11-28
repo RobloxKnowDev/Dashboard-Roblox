@@ -28,6 +28,7 @@ export const overview = {
     activeProjectsHint: "Planning, in progress or testing",
     activeAgents: "Active agents",
     agentsTotal: (count: number) => `${count} agents in total`,
+    agentsAdminOnly: "Owners and admins only",
     pendingTasks: "Pending tasks",
     overdue: (count: number) => `${count} overdue`,
     nothingWaiting: "Nothing waiting",
@@ -81,7 +82,9 @@ export const overview = {
   },
   agents: {
     title: "Active agents",
-    description: "Live status of AI agents",
+    description: "Claude Code agents at work right now",
+    empty: "No agent at work right now.",
+    adminOnly: "Agents are visible to Owners and Admins.",
   },
   market: {
     title: "Market highlights",
