@@ -1,16 +1,29 @@
 import type { ReactNode } from "react";
 
 /*
- * Minimal, safe Markdown for assistant answers: headings (#–###), bullet and
- * numbered lists, paragraphs, **bold**, *italic* and `code`. Builds React
- * elements — never injects HTML.
+ * Minimal, safe Markdown for assistant answers and agent replies: headings
+ * (#–###), bullet and numbered lists, tables, paragraphs, **bold**, *italic*
+ * and `code`. Builds React elements — never injects HTML.
  */
 
 type Block =
   | { kind: "heading"; text: string }
   | { kind: "ul"; items: string[] }
   | { kind: "ol"; items: string[] }
+  | { kind: "table"; header: string[]; rows: string[][] }
   | { kind: "p"; text: string };
+
+const TABLE_ROW = /^\s*\|.*\|\s*$/;
+const TABLE_SEPARATOR = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+
+function cells(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
 
 export function parseBlocks(source: string): Block[] {
   const blocks: Block[] = [];
@@ -20,8 +33,23 @@ export function parseBlocks(source: string): Block[] {
     paragraph = [];
   };
 
-  for (const raw of source.split("\n")) {
-    const line = raw.trimEnd();
+  const lines = source.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = (lines[index] ?? "").trimEnd();
+    // A table: header row, separator row (|---|---|), then body rows.
+    if (TABLE_ROW.test(line) && TABLE_SEPARATOR.test(lines[index + 1] ?? "")) {
+      flush();
+      const header = cells(line);
+      const rows: string[][] = [];
+      index += 2;
+      while (index < lines.length && TABLE_ROW.test(lines[index] ?? "")) {
+        rows.push(cells(lines[index] ?? ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push({ kind: "table", header, rows });
+      continue;
+    }
     const heading = /^#{1,3}\s+(.*)$/.exec(line);
     const bullet = /^\s*[-*]\s+(.*)$/.exec(line);
     const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
@@ -75,6 +103,34 @@ export function Markdown({ source }: { source: string }) {
             <h4 key={i} className="pt-1 text-[13.5px] font-semibold text-fg">
               {inline(block.text)}
             </h4>
+          );
+        }
+        if (block.kind === "table") {
+          return (
+            <div key={i} className="relative overflow-x-auto rounded-md border border-line">
+              <table className="w-full text-left text-[12.5px]">
+                <thead className="bg-surface-2/60 text-fg">
+                  <tr>
+                    {block.header.map((cell, j) => (
+                      <th key={j} scope="col" className="whitespace-nowrap px-2.5 py-1.5 font-medium">
+                        {inline(cell)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, j) => (
+                    <tr key={j} className="border-t border-line">
+                      {row.map((cell, k) => (
+                        <td key={k} className="px-2.5 py-1.5 align-top">
+                          {inline(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           );
         }
         if (block.kind === "ul" || block.kind === "ol") {

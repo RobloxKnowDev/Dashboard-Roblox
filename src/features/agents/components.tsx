@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge, StatusDot } from "@/components/ui/badge";
+import { Markdown } from "@/features/assistant/markdown";
 import { AGENT_STATUS } from "@/features/shared/status";
 import type { Messages } from "@/i18n/messages";
 import { getI18n, getT } from "@/i18n/server";
@@ -290,7 +291,9 @@ export async function AgentTimeline({
           if (event.type === "reply") {
             return (
               <TimelineItem key={event.id} style={style} title={t.agents.timeline.claude} time={time(event.createdAt)}>
-                <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-fg-2">{event.message}</p>
+                <div className="mt-1.5 min-w-0 break-words">
+                  <Markdown source={event.message ?? ""} />
+                </div>
               </TimelineItem>
             );
           }

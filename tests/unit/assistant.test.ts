@@ -14,6 +14,15 @@ describe("assistant markdown", () => {
       { kind: "p", text: "End" },
     ]);
   });
+
+  it("parses tables (header, separator, rows) and leaves lone pipes alone", () => {
+    const blocks = parseBlocks("Sizes:\n| Screen | Scale |\n|---|:-:|\n| PC | 1,30 |\n| Phone | 0,93 |\nAfter\n| not a table |");
+    expect(blocks).toEqual([
+      { kind: "p", text: "Sizes:" },
+      { kind: "table", header: ["Screen", "Scale"], rows: [["PC", "1,30"], ["Phone", "0,93"]] },
+      { kind: "p", text: "After | not a table |" },
+    ]);
+  });
 });
 
 describe("demo replies", () => {
