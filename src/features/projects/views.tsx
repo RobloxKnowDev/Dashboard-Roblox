@@ -104,7 +104,7 @@ export function ProjectCover({ project, className }: { project: ProjectItem; cla
       {src ? (
         <Image src={src} alt="" fill unoptimized sizes="400px" className="object-cover opacity-90" />
       ) : (
-        <div className="flex size-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgb(51_105_255/0.18),transparent_60%),linear-gradient(135deg,var(--color-surface-2),var(--color-surface-3))]">
+        <div className="flex size-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgb(176_29_251/0.18),transparent_60%),linear-gradient(135deg,var(--color-surface-2),var(--color-surface-3))]">
           <span className="font-display text-2xl font-semibold text-fg-3">{initials(project.name)}</span>
         </div>
       )}

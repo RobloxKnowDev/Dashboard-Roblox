@@ -1,7 +1,7 @@
 # Architecture
 
 Application web privée de pilotage du studio : jeux Roblox, projets, tâches, agents IA, veille marché, finances.
-Nom et logo provisoires (« Dashboard ») — ils se changent uniquement dans `src/config/site.ts` et `src/components/layout/logo.tsx`.
+Nom : **Nexya Studio** (`src/config/site.ts`, seul endroit où il est écrit). Logo : `public/brand/` (`nexya-mark.png` transparent pour l'interface, `nexya-logo.png`), affiché par `src/components/layout/logo.tsx` ; icônes d'onglet `src/app/icon.png` et `apple-icon.png` (logo sur fond sombre).
 
 ## 1. Stack
 
@@ -161,7 +161,7 @@ L’état de chaque connexion est visible en direct dans *Integrations* (Admin+)
 | D+ | Page jeu : onglets Acquisition (sources, conversion, first play bounce rate, nouveaux/revenants) et Thumbnails ; passe mobile (champs à 16 px sur écrans tactiles, fenêtres à la hauteur visible, sélecteurs défilants, titres de cartes qui passent à la ligne, assistant utilisable sur téléphone) | ✅ |
 | D++ | Interface **anglais/français** (sélecteur dans le menu du compte et Réglages → Profil), **Claude connecté** (assistant Haiku 5.5 sur les vraies données, idées hebdomadaires Steam → Roblox avec Opus 5.5, Réglages → IA pour l'Owner) | ✅ |
 | D+++ | **Agents IA en direct** : sessions Claude Code du PC visibles en temps réel, messages livrés en fin d'étape ou par le pont, missions par rôle (UI, construction, scripts, QA, art 3D), captures partagées, PC connectés dans Réglages → API | ✅ |
-| D+++++ | **Nouveau style** (noir et bleu inspiré des dashboards d'agences : police Inter, bloc « Résumé » avec le chiffre clé en bleu, bulles (i) qui expliquent chaque chiffre, menu regroupé, sélecteur de jeu en haut, menu repliable depuis la barre du haut), page **Gains** (dollars uniquement, aucune mention de la plateforme, plein écran), Owners pilotes des agents, suppression d'agents, images dans les messages aux agents | ✅ |
+| D+++++ | **Nouveau style** (noir et violet Nexya, inspiré des dashboards d'agences ; nom **Nexya Studio** et logo du studio : police Inter, bloc « Résumé » avec le chiffre clé en bleu, bulles (i) qui expliquent chaque chiffre, menu regroupé, sélecteur de jeu en haut, menu repliable depuis la barre du haut), page **Gains** (dollars uniquement, aucune mention de la plateforme, plein écran), Owners pilotes des agents, suppression d'agents, images dans les messages aux agents | ✅ |
 | D++++ | **Équipes de jeu** : bouton « Nouveau jeu » → un manager crée le projet (modèle Rojo, assets, place), fait écrire le design, attend l'OK, puis délègue à game designer, build, UI, SFX, scripts, QA, art 3D ; rapports renvoyés au manager ; 3 agents en parallèle |
 | E | Tests, accessibilité, sécurité, déploiement | à venir |
 

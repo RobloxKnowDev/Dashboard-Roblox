@@ -5,7 +5,7 @@ Tous les tokens sont dans `src/app/globals.css` (bloc `@theme`) : changer l'iden
 
 ## Concept
 
-Inspiré des dashboards d'agences de créateurs (style Infloww, version sombre), en **noir et bleu** (choix du studio, 28/11/2026) : fond noir neutre, cartes un cran plus claires à bordures fines, **un seul bleu** pour les actions, les barres et le chiffre clé. Priorité à la **compréhension** : chaque chiffre a un nom simple (« Joueurs en ligne » plutôt que « CCU ») et une bulle **(i)** qui l'explique.
+Inspiré des dashboards d'agences de créateurs (style Infloww, version sombre), en **noir et violet Nexya** (la couleur du logo du studio, choix du 28/11/2026) : fond noir neutre, cartes un cran plus claires à bordures fines, **un seul violet** pour les actions, les barres et le chiffre clé. Priorité à la **compréhension** : chaque chiffre a un nom simple (« Joueurs en ligne » plutôt que « CCU ») et une bulle **(i)** qui l'explique.
 
 ## Couleurs
 
@@ -18,8 +18,8 @@ Inspiré des dashboards d'agences de créateurs (style Infloww, version sombre),
 | `fg-2` | `#a8a8b0` | Texte secondaire — 7,7:1 |
 | `fg-3` | `#8a8a93` | Texte atténué, labels — 5,3:1 (≥ 4,5 requis, 4,6:1 sur `surface-3`) |
 | `fg-4` | `#5b5b63` | **Décoratif uniquement** — jamais pour du texte à lire |
-| `accent` | `#3369ff` | Bleu signature : boutons principaux (texte blanc 4,6:1), barres, page active, focus, grand chiffre clé |
-| `accent-ink` | `#7a9dff` | **Texte et liens en bleu** (≥ 6:1 sur toutes les surfaces) — `accent` est réservé aux aplats et aux très grands chiffres |
+| `accent` | `#b01dfb` | Violet Nexya (pris dans le logo) : boutons principaux (texte blanc 4,8:1), barres, page active, focus, grand chiffre clé |
+| `accent-ink` | `#c788ff` | **Texte et liens en violet** (≥ 6,2:1 sur toutes les surfaces) — `accent` est réservé aux aplats et aux très grands chiffres |
 | `good` `warning` `serious` `critical` `info` | voir CSS | États — toujours accompagnés d'une icône ou d'un libellé |
 
 Les contrastes ont été mesurés (WCAG) pour chaque encre sur chaque surface.
@@ -32,8 +32,8 @@ Les contrastes ont été mesurés (WCAG) pour chaque encre sur chaque surface.
 
 ## Graphiques
 
-- Palette catégorielle en **ordre fixe** (bleu signature `#3369ff`, orange, aqua, jaune, magenta, vert, violet, rouge), validée avec l'outil de contrôle dataviz sur la surface des cartes `#151517` : séparation daltonisme ΔE ≥ 8,4, vision normale ΔE ≥ 19,3, contraste ≥ 3:1. Valeurs dans `src/components/charts/theme.ts`.
-- Les évolutions dans le temps de montants (revenus, gains) sont en **barres bleues** (une par jour ou par mois, dates espacées sur l'axe : `timeAxis`).
+- Palette catégorielle en **ordre fixe** (violet Nexya `#b01dfb`, orange, aqua, jaune, magenta, vert, bleu, rouge), validée avec l'outil de contrôle dataviz sur la surface des cartes `#151517` : séparation daltonisme ΔE ≥ 8,4, vision normale ΔE ≥ 19,3, contraste ≥ 3:1. Valeurs dans `src/components/charts/theme.ts`.
+- Les évolutions dans le temps de montants (revenus, gains) sont en **barres violettes** (une par jour ou par mois, dates espacées sur l'axe : `timeAxis`).
 - Une couleur suit l'entité, jamais son rang ; on ne génère jamais de 9ᵉ couleur.
 - Traits de 2 px, aplats à ~10 %, barres ≤ 24 px aux coins arrondis côté valeur, grille horizontale en filet, axes discrets, **jamais deux axes Y**.
 - Survol : réticule + une infobulle listant toutes les séries (courbes) ; infobulle par barre (barres).

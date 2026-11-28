@@ -8,17 +8,17 @@ import { FormattedDelta } from "./formatted-delta";
 
 /** Colored square behind a figure's icon: identity only, never a status. */
 export const ICON_TILE = {
-  blue: "bg-accent/15 text-accent-ink",
+  accent: "bg-accent/15 text-accent-ink",
+  blue: "bg-chart-7/15 text-info",
   green: "bg-chart-6/15 text-good",
   aqua: "bg-chart-3/15 text-chart-3",
   amber: "bg-chart-4/15 text-warning",
-  violet: "bg-chart-7/15 text-chart-7",
   red: "bg-chart-8/15 text-critical",
   neutral: "bg-surface-3 text-fg-2",
 } as const;
 export type IconTone = keyof typeof ICON_TILE;
 
-export function IconTile({ icon: Icon, tone = "blue", className }: { icon: LucideIcon; tone?: IconTone; className?: string }) {
+export function IconTile({ icon: Icon, tone = "accent", className }: { icon: LucideIcon; tone?: IconTone; className?: string }) {
   return (
     <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", ICON_TILE[tone], className)} aria-hidden>
       <Icon className="size-[18px]" />
@@ -77,7 +77,7 @@ export function StatCard({
   value,
   source,
   icon,
-  tone = "blue",
+  tone = "accent",
   info,
   delta,
   deltaLabel,

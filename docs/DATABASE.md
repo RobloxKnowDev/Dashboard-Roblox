@@ -39,7 +39,7 @@ Base PostgreSQL hébergée par Supabase. Le schéma est entièrement décrit par
 | Table | Rôle | Colonnes clés | Relations |
 |---|---|---|---|
 | `profiles` | Un profil par compte, porte le **rôle d'accès** | `email` (copie, lecture seule), `full_name`, `avatar_url`, `role`, `notification_prefs` | 1-1 avec `auth.users` (suppression en cascade) |
-| `studio_settings` | Réglages du studio, **ligne unique** | `studio_name` (« Dashboard »), `currency` (USD), `timezone`, `devex_rate_usd` | — |
+| `studio_settings` | Réglages du studio, **ligne unique** | `studio_name` (« Nexya Studio »), `currency` (USD), `timezone`, `devex_rate_usd` | — |
 | `team_members` | Membres du studio, avec ou sans compte | `display_name`, `studio_role` (intitulé de poste), `status`, `joined_at` | `profile_id` → `profiles`, optionnel et unique |
 | `games` | Jeux Roblox du studio | `universe_id` (unique), `place_id`, `name`, `genre`, `status`, `launched_at` | `created_by` → `profiles` |
 | `game_metrics` | Séries temporelles par jeu, ajout uniquement | `period` (heure/jour), `recorded_at`, `ccu`, `peak_ccu`, `dau`, `visits`, `favorites`, `revenue_robux`, `retention_d1/d7/d30` (0 à 1), `source` | `game_id` → `games` (cascade) ; unique sur (`game_id`, `period`, `recorded_at`) |

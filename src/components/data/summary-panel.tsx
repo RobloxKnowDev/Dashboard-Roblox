@@ -54,7 +54,7 @@ export function SummaryPanel({ title, description, info, hero, figures }: Summar
       <CardHeader title={title} description={description} info={info} />
       <div className="mt-3 grid grid-cols-1 border-t border-line lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         <div className="flex min-w-0 flex-col justify-center gap-4 border-b border-line p-5 lg:border-b-0 lg:border-r">
-          <IconTile icon={hero.icon} tone="blue" />
+          <IconTile icon={hero.icon} tone="accent" />
           <div className="min-w-0">
             <div className="flex items-center gap-1">
               <h3 className="text-xs font-medium text-accent-ink">{hero.label}</h3>

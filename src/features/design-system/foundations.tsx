@@ -29,8 +29,8 @@ const INK: Swatch[] = [
 ];
 
 const BRAND_STATUS: Swatch[] = [
-  { token: "accent", hex: "#3369ff" },
-  { token: "accent-ink", hex: "#7a9dff" },
+  { token: "accent", hex: "#b01dfb" },
+  { token: "accent-ink", hex: "#c788ff" },
   { token: "good", hex: "#3fcb6e" },
   { token: "warning", hex: "#f5b53d" },
   { token: "serious", hex: "#ef8a5f" },

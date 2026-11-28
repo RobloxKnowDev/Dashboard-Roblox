@@ -1,7 +1,7 @@
-# Dashboard — centre de contrôle du studio
+# Nexya Studio — centre de contrôle du studio
 
 Application web privée : jeux Roblox, projets, tâches, agents IA, veille marché, finances et équipe.
-(Nom et logo provisoires.)
+Nom et logo : `src/config/site.ts` et `public/brand/` (icônes d'onglet : `src/app/icon.png`, `apple-icon.png`).
 
 ## Démarrer
 

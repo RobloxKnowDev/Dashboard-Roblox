@@ -82,7 +82,7 @@ export async function EarningsBoard({ searchParams }: { searchParams: SearchPara
             icon: Trophy,
             tone: "amber",
           },
-          { label: e.figures.pace, value: money(perDay * 365), info: e.figures.paceInfo, hint: e.figures.atThisPace, icon: Rocket, tone: "violet" },
+          { label: e.figures.pace, value: money(perDay * 365), info: e.figures.paceInfo, hint: e.figures.atThisPace, icon: Rocket, tone: "blue" },
           {
             label: monthly ? e.figures.lastMonth : e.figures.lastDay,
             value: latest ? money(latest.usd) : "—",

@@ -105,7 +105,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
       info: k.dauInfo,
       hint: hasAnalytics ? k.dailyAverage(coverage) : noData,
       icon: Activity,
-      tone: "violet",
+      tone: "blue",
     },
     {
       label: k.visits,
@@ -141,7 +141,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={counts.games ? f.formatNumber(counts.games.live) : "—"}
           source="live"
           icon={Gamepad2}
-          tone="blue"
+          tone="accent"
           info={k.activeGamesInfo}
           hint={!counts.games ? unavailable : counts.games.total === 0 ? k.noGamesYet : k.trackedTotal(counts.games.total)}
         />
@@ -150,7 +150,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={counts.projects ? f.formatNumber(counts.projects.active) : "—"}
           source="live"
           icon={FolderKanban}
-          tone="violet"
+          tone="blue"
           info={k.activeProjectsInfo}
           hint={!counts.projects ? unavailable : counts.projects.active === 0 ? k.noActiveProject : k.activeProjectsHint}
         />

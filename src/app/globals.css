@@ -23,13 +23,14 @@
   --color-fg-3: #8a8a93;
   --color-fg-4: #5b5b63; /* decorative / disabled only — never body text */
 
-  /* Signature accent ("Blue") — fills: primary buttons, bars, active nav, focus.
-     White on accent 4.6:1. For blue TEXT use accent-ink (≥6:1 on every surface). */
-  --color-accent: #3369ff;
-  --color-accent-hover: #2857e8;
+  /* Signature accent: the Nexya violet of the logo — fills: primary buttons, bars,
+     active nav, focus. White on accent 4.8:1. For violet TEXT use accent-ink
+     (≥6.2:1 on every surface). */
+  --color-accent: #b01dfb;
+  --color-accent-hover: #9a14e0;
   --color-accent-fg: #ffffff;
-  --color-accent-soft: rgb(51 105 255 / 0.14);
-  --color-accent-ink: #7a9dff;
+  --color-accent-soft: rgb(176 29 251 / 0.14);
+  --color-accent-ink: #c788ff;
 
   /* Status — always paired with an icon + label, never color alone */
   --color-good: #3fcb6e;
@@ -39,13 +40,13 @@
   --color-info: #5ba2f0;
 
   /* Charts — categorical order validated for CVD on --color-surface (dataviz validator) */
-  --color-chart-1: #3369ff;
+  --color-chart-1: #b01dfb;
   --color-chart-2: #d95926;
   --color-chart-3: #199e70;
   --color-chart-4: #c98500;
   --color-chart-5: #d55181;
   --color-chart-6: #0ca30c;
-  --color-chart-7: #9085e9;
+  --color-chart-7: #3987e5;
   --color-chart-8: #e66767;
   --color-chart-grid: #26262b;
   --color-chart-axis: #34343a;
@@ -109,7 +110,7 @@
   }
 
   ::selection {
-    background-color: rgb(51 105 255 / 0.35);
+    background-color: rgb(176 29 251 / 0.35);
     color: var(--color-fg);
   }
 
