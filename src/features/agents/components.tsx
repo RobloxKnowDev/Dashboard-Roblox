@@ -21,7 +21,7 @@ import { AGENT_STATUS } from "@/features/shared/status";
 import type { Messages } from "@/i18n/messages";
 import { getI18n, getT } from "@/i18n/server";
 import { cn } from "@/lib/utils/cn";
-import { CancelMessageButton } from "./client";
+import { CancelMessageButton, DeleteAgentButton } from "./client";
 import { BRIDGE_ONLINE_MS, isActionSummary, type AgentEvent, type AgentMachine, type AgentMessage, type AgentStatus, type AgentSummary } from "./data";
 
 export const AGENT_STATUS_ORDER = ["working", "waiting", "error", "completed", "offline"] as const satisfies readonly AgentStatus[];
@@ -126,10 +126,22 @@ export function eventLine(event: AgentEvent, t: Messages): string {
   }
 }
 
-export async function AgentCard({ agent, now }: { agent: AgentSummary; now: Date }) {
+export async function AgentCard({
+  agent,
+  now,
+  canDelete = false,
+  teamSize = 0,
+}: {
+  agent: AgentSummary;
+  now: Date;
+  /** The viewer pilots agents (Owner): show the delete button. */
+  canDelete?: boolean;
+  /** A manager's members, deleted with it. */
+  teamSize?: number;
+}) {
   const { t, f } = await getI18n();
   const last = agent.lastEvent;
-  return (
+  const card = (
     <Link
       href={`/agents/${agent.id}`}
       className={cn(
@@ -139,7 +151,7 @@ export async function AgentCard({ agent, now }: { agent: AgentSummary; now: Date
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent">{agent.name}</h3>
+          <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent-ink">{agent.name}</h3>
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-fg-3">
             <OriginIcon origin={agent.origin} />
             {t.agents.origin[agent.origin]}
@@ -160,7 +172,7 @@ export async function AgentCard({ agent, now }: { agent: AgentSummary; now: Date
           {eventLine(last, t)}
         </p>
       ) : null}
-      <dl className="mt-auto grid grid-cols-2 gap-2 pt-4 text-[11px]">
+      <dl className={cn("mt-auto grid grid-cols-2 gap-2 pt-4 text-[11px]", canDelete && "pr-8")}>
         <div>
           <dt className="text-fg-3">{t.agents.card.started}</dt>
           <dd className="mt-0.5 text-fg-2">{agent.startedAt ? f.formatRelative(agent.startedAt, now) : "—"}</dd>
@@ -171,6 +183,34 @@ export async function AgentCard({ agent, now }: { agent: AgentSummary; now: Date
         </div>
       </dl>
     </Link>
+  );
+  if (!canDelete) return card;
+  return (
+    <div className="relative h-full">
+      {card}
+      <div className="absolute bottom-3 right-3">
+        <DeleteAgentButton agentId={agent.id} name={agent.name} teamSize={teamSize} working={agent.status === "working"} compact />
+      </div>
+    </div>
+  );
+}
+
+/** Images sent with a message: thumbnails that open full size. */
+async function AttachedImages({ urls }: { urls: string[] }) {
+  if (!urls.length) return null;
+  const t = await getT();
+  return (
+    <ul className="mt-2 flex flex-wrap gap-2">
+      {urls.map((url, index) => (
+        <li key={url}>
+          <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-line hover:border-line-strong">
+            {/* Signed URL from private storage: next/image would need the bucket as a remote pattern. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={t.agents.timeline.attachedImage(index + 1)} className="h-28 w-auto max-w-[220px] object-cover" loading="lazy" />
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -192,7 +232,7 @@ function toBlocks(events: AgentEvent[]): Block[] {
 
 const STYLE: Record<string, { icon: LucideIcon; box: string }> = {
   instruction: { icon: MessageSquare, box: "border-info/25 bg-info/10 text-info" },
-  reply: { icon: Bot, box: "border-accent/25 bg-accent-soft text-accent" },
+  reply: { icon: Bot, box: "border-accent/25 bg-accent-soft text-accent-ink" },
   actions: { icon: Wrench, box: "border-line-strong bg-surface-2 text-fg-3" },
   screenshot: { icon: ImageIcon, box: "border-info/25 bg-info/10 text-info" },
   waiting: { icon: Hourglass, box: "border-warning/25 bg-warning/10 text-warning" },
@@ -292,7 +332,10 @@ export async function AgentTimeline({
                   : t.agents.timeline.fromVsCode;
             return (
               <TimelineItem key={event.id} style={style} title={title} time={time(event.createdAt)}>
-                <p className="mt-1.5 whitespace-pre-wrap break-words rounded-md border border-line bg-surface-2/50 px-3 py-2 text-[13px] text-fg">{event.message}</p>
+                {event.message ? (
+                  <p className="mt-1.5 whitespace-pre-wrap break-words rounded-md border border-line bg-surface-2/50 px-3 py-2 text-[13px] text-fg">{event.message}</p>
+                ) : null}
+                <AttachedImages urls={event.images} />
               </TimelineItem>
             );
           }
@@ -329,7 +372,12 @@ export async function AgentTimeline({
         {pending.map((message) => (
           <TimelineItem key={message.id} style={STYLE.waiting!} title={t.agents.timeline.pending} time={time(message.createdAt)}>
             <div className="mt-1.5 flex items-start gap-2">
-              <p className="min-w-0 flex-1 whitespace-pre-wrap break-words rounded-md border border-dashed border-line-strong px-3 py-2 text-[13px] text-fg-2">{message.body}</p>
+              <div className="min-w-0 flex-1">
+                {message.body ? (
+                  <p className="whitespace-pre-wrap break-words rounded-md border border-dashed border-line-strong px-3 py-2 text-[13px] text-fg-2">{message.body}</p>
+                ) : null}
+                <AttachedImages urls={message.images} />
+              </div>
               {canCancel ? <CancelMessageButton messageId={message.id} /> : null}
             </div>
           </TimelineItem>

@@ -141,6 +141,15 @@ export function deliveredInstruction(body: string, author: string | null): strin
   return `${author ? `${author} sent you a message` : "New message"} from the studio dashboard. Treat it as the user's next instruction:\n\n${body}`;
 }
 
+/** Images attached to one dashboard message, at most. */
+export const MAX_MESSAGE_IMAGES = 4;
+
+/** Where the browser uploads a message image: messages/<agent id>/<uuid>.<png|jpg|webp> in the private bucket. */
+export function isMessageImage(path: string, agentId: string): boolean {
+  const match = /^messages\/([0-9a-f-]{36})\/[0-9a-f-]{36}\.(?:png|jpg|webp)$/i.exec(path);
+  return Boolean(match && match[1] === agentId.toLowerCase());
+}
+
 /** Image types accepted for screenshots, detected from the file's first bytes. */
 export function sniffImage(bytes: Uint8Array): { mime: "image/png" | "image/jpeg" | "image/webp"; ext: "png" | "jpg" | "webp" } | null {
   if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { mime: "image/png", ext: "png" };

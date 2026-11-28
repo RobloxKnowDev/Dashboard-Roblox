@@ -59,7 +59,7 @@ export function Modal({ open, onOpenChange, trigger, title, description, size = 
               <X className="size-4" />
             </Dialog.Close>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          {children ? <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div> : null}
           {footer ? (
             <footer className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>
           ) : null}

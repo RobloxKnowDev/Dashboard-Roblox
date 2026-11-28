@@ -4,6 +4,7 @@ import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { NotificationCenter } from "@/components/layout/notification-center";
 import {
   AccessGate,
+  SessionGameSwitcher,
   SessionNotifications,
   SessionSidebarNav,
   SessionUserMenu,
@@ -44,6 +45,11 @@ export default async function AppLayout({ children }: LayoutProps<"/[lang]">) {
           <div className="flex min-w-0 flex-1 flex-col">
             <Topbar
               nav={nav}
+              switcher={
+                <Suspense fallback={<Skeleton className="h-9 w-40 rounded-lg" />}>
+                  <SessionGameSwitcher />
+                </Suspense>
+              }
               actions={
                 <>
                   <Suspense fallback={<NotificationCenter />}>

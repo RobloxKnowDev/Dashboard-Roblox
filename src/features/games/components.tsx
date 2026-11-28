@@ -100,7 +100,7 @@ export async function GameCard({ game, roblox, dau }: GameCardProps) {
                 : t.games.card.analyticsError}
           </span>
         )}
-        <span className="inline-flex items-center gap-0.5 text-fg-3 transition-colors group-hover:text-accent">
+        <span className="inline-flex items-center gap-0.5 text-fg-3 transition-colors group-hover:text-accent-ink">
           {t.common.actions.details}
           <ChevronRight className="size-3.5" aria-hidden />
         </span>

@@ -4,6 +4,7 @@ import {
   baseName,
   bridgePlan,
   clip,
+  isMessageImage,
   missionFromPrompt,
   redactSecrets,
   sniffImage,
@@ -83,5 +84,20 @@ describe("agent roles", () => {
     expect(missionSystemPrompt("sfx", false)).not.toContain("report to the manager");
     expect(missionSystemPrompt("game_designer", true)).toContain("Guide Tizzy");
     expect(missionSystemPrompt("ui")).toContain("ui-resources.com");
+  });
+});
+
+describe("isMessageImage", () => {
+  const agent = "3f2b8c1e-1d2a-4b5c-9e8f-0a1b2c3d4e5f";
+  const file = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+  it("accepts an image uploaded for this agent", () => {
+    expect(isMessageImage(`messages/${agent}/${file}.png`, agent)).toBe(true);
+    expect(isMessageImage(`messages/${agent}/${file}.webp`, agent)).toBe(true);
+  });
+  it("refuses another agent's folder, other types and path tricks", () => {
+    expect(isMessageImage(`messages/${file}/${file}.png`, agent)).toBe(false);
+    expect(isMessageImage(`messages/${agent}/${file}.gif`, agent)).toBe(false);
+    expect(isMessageImage(`${agent}/${file}.png`, agent)).toBe(false);
+    expect(isMessageImage(`messages/${agent}/../${file}.png`, agent)).toBe(false);
   });
 });

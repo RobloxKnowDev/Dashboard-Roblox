@@ -111,7 +111,7 @@ async function ProjectDetail({ params }: { params: Promise<{ projectId: string }
               <dt className="text-fg-3">{c.linkedGame}</dt>
               <dd className="min-w-0 truncate">
                 {project.game ? (
-                  <Link href={`/games/${project.game.id}`} className="inline-flex items-center gap-1.5 text-fg hover:text-accent">
+                  <Link href={`/games/${project.game.id}`} className="inline-flex items-center gap-1.5 text-fg hover:text-accent-ink">
                     <Gamepad2 className="size-3.5 text-fg-3" aria-hidden />
                     <span className="truncate">{project.game.name}</span>
                   </Link>

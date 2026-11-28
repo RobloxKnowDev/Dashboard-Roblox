@@ -21,6 +21,8 @@ type BarChartProps = {
   label: string;
   /** Header of the first column in the table view. */
   categoryLabel?: string;
+  /** Categories are dates in order (one bar per day or month): label some ticks in full instead of shortening every one. */
+  timeAxis?: boolean;
 };
 
 const axisTick = { fill: CHART_INK.tick, fontSize: 11 };
@@ -45,6 +47,7 @@ export function BarChart({
   formatValue = formatCompact,
   label,
   categoryLabel,
+  timeAxis = false,
 }: BarChartProps) {
   const t = useT();
   const view = useChartView();
@@ -91,8 +94,9 @@ export function BarChart({
           tickLine={false}
           axisLine={{ stroke: CHART_INK.axis }}
           tickMargin={8}
-          interval={0}
-          tickFormatter={(value: string) => fitLabel(String(value), maxChars)}
+          interval={timeAxis ? "preserveStartEnd" : 0}
+          minTickGap={timeAxis ? 16 : undefined}
+          tickFormatter={timeAxis ? undefined : (value: string) => fitLabel(String(value), maxChars)}
         />
         <YAxis tickFormatter={formatValue} tick={axisTick} tickLine={false} axisLine={false} width="auto" tickMargin={4} />
         <Tooltip

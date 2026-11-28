@@ -43,7 +43,7 @@ async function WatchCard({ game, canEdit, canRemove }: { game: WatchedGame; canE
         )}
         <div className="min-w-0 flex-1">
           {r ? (
-            <a href={robloxGameUrl(r.rootPlaceId)} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-fg hover:text-accent">
+            <a href={robloxGameUrl(r.rootPlaceId)} target="_blank" rel="noopener noreferrer" className="block truncate text-sm font-semibold text-fg hover:text-accent-ink">
               {game.name}
             </a>
           ) : (

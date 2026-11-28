@@ -36,7 +36,7 @@ export function SegmentedControl<T extends string>({
           value={option.value}
           className={cn(
             "inline-flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2.5 text-xs font-medium text-fg-3 transition-colors",
-            "hover:text-fg-2 data-[state=on]:bg-surface-3 data-[state=on]:text-fg data-[state=on]:shadow-[inset_0_0_0_1px_var(--color-line-strong)]",
+            "hover:text-fg-2 data-[state=on]:bg-accent-soft data-[state=on]:text-accent-ink",
             "[&_svg]:size-3.5",
           )}
         >

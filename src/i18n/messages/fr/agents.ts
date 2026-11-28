@@ -104,6 +104,7 @@ export const agents: Messages["agents"] = {
     hidden: (count) => `${count} événements plus anciens masqués`,
     empty: "Rien pour l'instant — l'historique se remplit pendant que l'agent travaille.",
     openImage: "Ouvrir en grand",
+    attachedImage: (n) => `Image ${n} envoyée avec le message`,
     imageUnavailable: "Image indisponible",
     status: {
       session: "Session démarrée",
@@ -126,6 +127,15 @@ export const agents: Messages["agents"] = {
     sent: "Message en file d'attente",
     cancelled: "Message annulé",
     shortcut: "Ctrl+Entrée pour envoyer",
+    attach: "Image",
+    attached: "Images jointes",
+    imageAlt: (n) => `Image jointe ${n}`,
+    removeImage: (n) => `Retirer l'image ${n}`,
+    uploading: "Envoi…",
+    tooMany: (max) => `${max} images au maximum par message.`,
+    badType: "Seulement des images PNG, JPEG ou WebP.",
+    tooLarge: "Image trop lourde (8 Mo maximum).",
+    uploadFailed: "L'image n'a pas pu être envoyée. Réessaie.",
     hint: {
       working: "Claude le reçoit dès qu'il termine son étape en cours.",
       vscodeIdle: "La session VS Code est inactive : le PC continue cette conversation en arrière-plan.",
@@ -138,6 +148,16 @@ export const agents: Messages["agents"] = {
     label: "Arrêter",
     requested: "Arrêt…",
     done: "Arrêt demandé",
+  },
+  delete: {
+    label: "Supprimer",
+    labelFor: (name) => `Supprimer ${name}`,
+    title: (name) => `Supprimer « ${name} » ?`,
+    description: "Son historique, ses messages et ses images sont supprimés définitivement. Les fichiers sur le PC (projet, code) ne sont pas touchés.",
+    working: "Cet agent travaille : arrête-le d'abord (une session VS Code réapparaît si tu continues à lui écrire).",
+    withTeam: (count) => `C'est le manager d'un jeu : ${count > 1 ? `les ${count} agents` : "l'agent"} de son équipe ${count > 1 ? "seront supprimés" : "sera supprimé"} aussi.`,
+    confirm: "Supprimer",
+    done: (count) => (count > 1 ? `${count} agents supprimés` : "Agent supprimé"),
   },
   mission: {
     title: "Nouvelle mission",
@@ -174,5 +194,7 @@ export const agents: Messages["agents"] = {
     noMachine: "Aucun PC n'est encore connecté au dashboard.",
     badName: "Donne un nom au jeu (2 à 60 caractères, sans \\ / : * ? \" < > |).",
     nameTaken: "Un projet porte déjà ce nom.",
+    imageMissing: "Une image n'a pas fini de s'envoyer. Retire-la et ajoute-la à nouveau.",
+    stillWorking: "Cet agent (ou un membre de son équipe) travaille : arrête-le d'abord.",
   },
 };

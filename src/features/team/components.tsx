@@ -45,7 +45,7 @@ export async function MemberCards({ members }: { members: TeamMember[] }) {
             <div className="flex items-start gap-3">
               <Avatar name={m.name} src={m.avatarUrl} size="lg" />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-fg group-hover:text-accent">{m.name}</p>
+                <p className="truncate font-medium text-fg group-hover:text-accent-ink">{m.name}</p>
                 <p className="truncate text-xs text-fg-3">{m.studioRole || c.noJobTitle}</p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">

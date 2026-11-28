@@ -10,7 +10,15 @@ export const shell = {
     mainNav: "Main",
   },
   mobileNav: { open: "Open navigation", close: "Close navigation", title: "Navigation", description: "Main navigation" },
-  breadcrumb: "Breadcrumb",
+  gameSwitcher: {
+    label: "Choose a game",
+    allGames: "All games",
+    studioView: "Studio overview",
+    studioViewHint: "Every game's figures together",
+    yourGames: "Your games",
+    empty: "No game yet: add one on the Games page.",
+    manage: "Manage games",
+  },
   search: {
     trigger: "Search…",
     triggerLabel: "Search (opens command palette)",

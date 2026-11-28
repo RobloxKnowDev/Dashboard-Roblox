@@ -67,7 +67,7 @@ export function DropdownMenuCheckboxItem({ className, children, ...props }: Comp
   return (
     <Menu.CheckboxItem className={cn(itemStyles, "pl-8", className)} {...props}>
       <Menu.ItemIndicator className="absolute left-2 inline-flex">
-        <Check className="text-accent!" />
+        <Check className="text-accent-ink!" />
       </Menu.ItemIndicator>
       {children}
     </Menu.CheckboxItem>

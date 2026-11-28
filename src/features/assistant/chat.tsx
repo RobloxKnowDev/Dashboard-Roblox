@@ -316,7 +316,7 @@ export function AssistantChat({ mode, savedConversations = [] }: { mode: Assista
         <div ref={logRef} role="log" aria-live="polite" aria-busy={generating} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           {messages.length === 0 ? (
             <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center text-center">
-              <div className="flex size-11 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-accent">
+              <div className="flex size-11 items-center justify-center rounded-lg border border-line-strong bg-surface-2 text-accent-ink">
                 <Sparkles className="size-5" aria-hidden />
               </div>
               <h2 className="mt-4 text-base font-semibold text-fg">{t.assistant.emptyTitle}</h2>
@@ -345,7 +345,7 @@ export function AssistantChat({ mode, savedConversations = [] }: { mode: Assista
                   </li>
                 ) : (
                   <li key={m.id} className="flex gap-3">
-                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-accent">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-accent-ink">
                       <Sparkles className="size-3.5" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">

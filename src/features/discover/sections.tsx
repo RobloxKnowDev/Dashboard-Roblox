@@ -97,7 +97,7 @@ export async function ChartPills({ active, params }: { active: ChartSortId; para
             scroll={false}
             className={cn(
               "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              tab.id === active ? "border-accent/40 bg-accent-soft text-accent" : "border-line text-fg-3 hover:border-line-strong hover:text-fg",
+              tab.id === active ? "border-accent/40 bg-accent-soft text-accent-ink" : "border-line text-fg-3 hover:border-line-strong hover:text-fg",
             )}
           >
             {tab.label}
@@ -182,7 +182,7 @@ export async function ReleasesSection({ params }: { params: SearchParams }) {
             scroll={false}
             className={cn(
               "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              within === days ? "border-accent/40 bg-accent-soft text-accent" : "border-line text-fg-3 hover:border-line-strong hover:text-fg",
+              within === days ? "border-accent/40 bg-accent-soft text-accent-ink" : "border-line text-fg-3 hover:border-line-strong hover:text-fg",
             )}
           >
             {days === 7 ? l.thisWeek : l.thisMonth}

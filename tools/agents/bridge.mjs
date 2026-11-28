@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findClaude, HOME_DIR, loadConfig, log, postJson } from "./lib.mjs";
+import { attachmentNote, findClaude, HOME_DIR, loadConfig, log, postJson } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -132,13 +132,15 @@ async function startRun(item) {
   delete env.ANTHROPIC_AUTH_TOKEN;
   delete env.CLAUDECODE;
 
+  // Attached images are downloaded before the run starts; the prompt says where they are.
+  const prompt = item.prompt + (await attachmentNote(item.attachments, item.agentId, LOG));
   const child = spawn(claude, args, { cwd: item.cwd, env, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
   const run = { child, stopped: false, tail: "", result: null };
   runs.set(item.agentId, run);
   log(LOG, `run ${item.agentId} started (pid ${child.pid}${item.resume ? `, resume ${item.resume}${item.fork ? " fork" : ""}` : ""}) in ${item.cwd}`);
 
   // The instruction goes through stdin: no command-line quoting or length issues.
-  child.stdin.end(item.prompt);
+  child.stdin.end(prompt);
 
   let buffer = "";
   child.stdout.on("data", (chunk) => {

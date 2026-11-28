@@ -25,7 +25,7 @@ function NavList({ activeSlug }: { activeSlug: string | null }) {
                   active ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-2/60 hover:text-fg-2",
                 )}
               >
-                <Icon className={cn("size-4", active ? "text-accent" : "text-fg-3")} aria-hidden />
+                <Icon className={cn("size-4", active ? "text-accent-ink" : "text-fg-3")} aria-hidden />
                 {t.settings.sections[section.slug].title}
               </Link>
             </li>

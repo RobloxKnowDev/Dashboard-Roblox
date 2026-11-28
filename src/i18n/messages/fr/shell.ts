@@ -11,7 +11,15 @@ export const shell: Messages["shell"] = {
     mainNav: "Principal",
   },
   mobileNav: { open: "Ouvrir le menu", close: "Fermer le menu", title: "Navigation", description: "Navigation principale" },
-  breadcrumb: "Fil d'Ariane",
+  gameSwitcher: {
+    label: "Choisir un jeu",
+    allGames: "Tous les jeux",
+    studioView: "Vue d'ensemble du studio",
+    studioViewHint: "Les chiffres de tous les jeux réunis",
+    yourGames: "Tes jeux",
+    empty: "Aucun jeu pour l'instant : ajoute-en un dans la page Jeux.",
+    manage: "Gérer les jeux",
+  },
   search: {
     trigger: "Rechercher…",
     triggerLabel: "Rechercher (ouvre la palette de commandes)",

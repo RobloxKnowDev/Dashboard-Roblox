@@ -6,28 +6,30 @@
  * (see docs/DESIGN_SYSTEM.md). Change the brand by editing this block only.
  */
 @theme {
-  /* Surfaces — cool near-black, three elevation steps above the canvas */
-  --color-canvas: #08090b;
-  --color-surface: #0f1114;
-  --color-surface-2: #15181c;
-  --color-surface-3: #1b1f24;
-  --color-overlay: rgb(4 5 6 / 0.72);
+  /* Surfaces — neutral near-black, three elevation steps above the canvas */
+  --color-canvas: #0c0c0e;
+  --color-surface: #151517;
+  --color-surface-2: #1c1c1f;
+  --color-surface-3: #232327;
+  --color-overlay: rgb(4 4 5 / 0.72);
 
   /* Lines */
-  --color-line: #1f232a;
-  --color-line-strong: #2b3039;
+  --color-line: #26262b;
+  --color-line-strong: #34343a;
 
-  /* Ink (text) — primary ≥14:1, secondary ≥6.9:1, muted ≥4.5:1 on cards */
-  --color-fg: #edeef0;
-  --color-fg-2: #a3a8b2;
-  --color-fg-3: #7d838e;
-  --color-fg-4: #5a606a; /* decorative / disabled only — never body text */
+  /* Ink (text) — primary ≥14:1, secondary ≥6.6:1, muted ≥4.5:1 on every surface */
+  --color-fg: #f4f4f5;
+  --color-fg-2: #a8a8b0;
+  --color-fg-3: #8a8a93;
+  --color-fg-4: #5b5b63; /* decorative / disabled only — never body text */
 
-  /* Signature accent ("Volt") — used sparingly: primary actions, active nav, focus */
-  --color-accent: #c6f24e;
-  --color-accent-hover: #d4f76e;
-  --color-accent-fg: #0a0b0d;
-  --color-accent-soft: rgb(198 242 78 / 0.1);
+  /* Signature accent ("Blue") — fills: primary buttons, bars, active nav, focus.
+     White on accent 4.6:1. For blue TEXT use accent-ink (≥6:1 on every surface). */
+  --color-accent: #3369ff;
+  --color-accent-hover: #2857e8;
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: rgb(51 105 255 / 0.14);
+  --color-accent-ink: #7a9dff;
 
   /* Status — always paired with an icon + label, never color alone */
   --color-good: #3fcb6e;
@@ -37,7 +39,7 @@
   --color-info: #5ba2f0;
 
   /* Charts — categorical order validated for CVD on --color-surface (dataviz validator) */
-  --color-chart-1: #3987e5;
+  --color-chart-1: #3369ff;
   --color-chart-2: #d95926;
   --color-chart-3: #199e70;
   --color-chart-4: #c98500;
@@ -45,14 +47,14 @@
   --color-chart-6: #0ca30c;
   --color-chart-7: #9085e9;
   --color-chart-8: #e66767;
-  --color-chart-grid: #1f232a;
-  --color-chart-axis: #2b3039;
+  --color-chart-grid: #26262b;
+  --color-chart-axis: #34343a;
 
   /* Radii */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 10px;
   --radius-xl: 16px;
 
   /* Motion */
@@ -82,7 +84,7 @@
 
 /* Fonts are injected by next/font as CSS variables on <html>. */
 @theme inline {
-  --font-sans: var(--font-mona-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
@@ -107,7 +109,7 @@
   }
 
   ::selection {
-    background-color: rgb(198 242 78 / 0.25);
+    background-color: rgb(51 105 255 / 0.35);
     color: var(--color-fg);
   }
 
@@ -154,12 +156,10 @@ html {
 }
 
 @layer utilities {
-  /* Expanded width axis of Mona Sans for display headings and the wordmark */
+  /* Display headings and the wordmark: same family, tighter tracking */
   .font-display {
     font-family: var(--font-sans);
-    font-stretch: 112%;
-    font-variation-settings: "wdth" 112;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .tabular {

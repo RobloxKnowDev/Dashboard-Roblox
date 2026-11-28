@@ -4,11 +4,13 @@ import {
   CalendarClock,
   CircleExclamationPoint,
   Coins,
+  DollarSign,
   FolderKanban,
   Gamepad2,
   Info,
   KeyRound,
   ListTodo,
+  MousePointerClick,
   ShieldCheck,
   TrendingUp,
   TriangleExclamationPoint,
@@ -18,6 +20,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { StatCard } from "@/components/data/stat-card";
+import { SummaryPanel, type SummaryFigure } from "@/components/data/summary-panel";
 import { SourceBadge } from "@/components/feedback/demo-badge";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { Badge, StatusDot } from "@/components/ui/badge";
@@ -76,57 +79,70 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
   const hasAnalytics = ok && studio.analyticsCount > 0;
   const coverage = ok ? k.coverage(studio.analyticsCount, studio.gameCount) : "";
   const noData = studio.status === "no_games" ? k.noGames : studio.status === "error" ? unavailable : k.notAuthorized;
+  const revenueDelta = hasAnalytics ? delta(studio.revenue.total, studio.revenue.previous) : undefined;
+  const visits = hasAnalytics ? studio.perGame.reduce((sum, g) => sum + g.visits, 0) : null;
+
+  const figures: SummaryFigure[] = [
+    {
+      label: k.usd,
+      value: hasAnalytics ? f.formatCurrency(studio.revenue.total * studio.devexRate) : "—",
+      info: k.usdInfo,
+      hint: hasAnalytics ? k.usdHint : noData,
+      icon: DollarSign,
+      tone: "green",
+    },
+    {
+      label: k.totalCcu,
+      value: ok && studio.playingNow !== null ? f.formatNumber(studio.playingNow) : "—",
+      info: k.ccuInfo,
+      hint: ok ? (studio.playingNow === null ? k.robloxUnreachable : k.playersOnline(studio.gameCount)) : noData,
+      icon: Users,
+      tone: "aqua",
+    },
+    {
+      label: k.totalDau,
+      value: hasAnalytics && studio.dau.average !== null ? f.formatNumber(Math.round(studio.dau.average)) : "—",
+      info: k.dauInfo,
+      hint: hasAnalytics ? k.dailyAverage(coverage) : noData,
+      icon: Activity,
+      tone: "violet",
+    },
+    {
+      label: k.visits,
+      value: visits !== null ? f.formatNumber(visits) : "—",
+      info: k.visitsInfo,
+      hint: hasAnalytics ? k.visitsHint(coverage) : noData,
+      icon: MousePointerClick,
+      tone: "amber",
+    },
+  ];
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label={k.totalRevenue}
-          value={hasAnalytics ? f.formatRobux(studio.revenue.total) : "—"}
-          source="live"
-          icon={Coins}
-          delta={hasAnalytics ? delta(studio.revenue.total, studio.revenue.previous) : undefined}
-          deltaLabel={comparison}
-          hint={
-            hasAnalytics
-              ? k.revenueHint(
-                  f.formatCurrency(studio.revenue.total * studio.devexRate),
-                  studio.revenue.rewards > 0 ? k.includingRewards(f.formatRobux(studio.revenue.rewards)) : coverage,
-                )
-              : noData
-          }
-          trend={hasAnalytics ? studio.revenue.series.slice(-12).map((p) => p.value) : undefined}
-        />
-        <StatCard
-          label={k.totalCcu}
-          value={ok && studio.playingNow !== null ? f.formatNumber(studio.playingNow) : "—"}
-          source="live"
-          icon={Users}
-          hint={
-            ok
-              ? studio.playingNow === null
-                ? k.robloxUnreachable
-                : k.playersOnline(studio.gameCount)
-              : noData
-          }
-        />
-        <StatCard
-          label={k.totalDau}
-          value={hasAnalytics && studio.dau.average !== null ? f.formatCompact(Math.round(studio.dau.average)) : "—"}
-          source="live"
-          icon={Activity}
-          delta={hasAnalytics ? delta(studio.dau.average, studio.dau.previous) : undefined}
-          deltaLabel={comparison ? k.dailyAverageComparison(comparison) : undefined}
-          hint={hasAnalytics ? k.dailyAverage(coverage) : noData}
-          trend={hasAnalytics ? studio.dau.series.slice(-12).map((p) => p.value) : undefined}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="space-y-4">
+      <SummaryPanel
+        title={k.summaryTitle}
+        description={k.summaryDescription(range.label)}
+        info={k.summaryInfo}
+        hero={{
+          label: k.totalRevenue,
+          value: hasAnalytics ? f.formatRobux(studio.revenue.total) : "—",
+          info: k.revenueInfo,
+          icon: Coins,
+          delta: revenueDelta,
+          deltaLabel: comparison,
+          hint: hasAnalytics ? (studio.revenue.rewards > 0 ? k.includingRewards(f.formatRobux(studio.revenue.rewards)) : coverage) : noData,
+        }}
+        figures={figures}
+      />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={k.activeGames}
           value={counts.games ? f.formatNumber(counts.games.live) : "—"}
           source="live"
           icon={Gamepad2}
+          tone="blue"
+          info={k.activeGamesInfo}
           hint={!counts.games ? unavailable : counts.games.total === 0 ? k.noGamesYet : k.trackedTotal(counts.games.total)}
         />
         <StatCard
@@ -134,6 +150,8 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={counts.projects ? f.formatNumber(counts.projects.active) : "—"}
           source="live"
           icon={FolderKanban}
+          tone="violet"
+          info={k.activeProjectsInfo}
           hint={!counts.projects ? unavailable : counts.projects.active === 0 ? k.noActiveProject : k.activeProjectsHint}
         />
         <StatCard
@@ -141,6 +159,8 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={activeAgents === null ? "—" : f.formatNumber(activeAgents)}
           source="live"
           icon={Bot}
+          tone="aqua"
+          info={k.activeAgentsInfo}
           hint={agentAccess.status !== "allowed" ? k.agentsAdminOnly : agents ? k.agentsTotal(agents.length) : unavailable}
         />
         <StatCard
@@ -148,6 +168,8 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
           value={counts.tasks ? f.formatNumber(counts.tasks.pending) : "—"}
           source="live"
           icon={ListTodo}
+          tone="amber"
+          info={k.pendingTasksInfo}
           hint={
             !counts.tasks
               ? unavailable
@@ -168,7 +190,7 @@ export async function KpiGrid({ searchParams }: { searchParams: SearchParams }) 
 export async function OverviewCharts({ searchParams }: { searchParams: SearchParams }) {
   const range = await rangeFrom(searchParams);
   const studio = await getStudioMetrics(range.key, await todayIso(), await getLocale());
-  const t = await getT();
+  const { t, f } = await getI18n();
   const c = t.overview.charts;
 
   if (studio.status !== "ok" || studio.analyticsCount === 0) {
@@ -198,20 +220,33 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
   const common = { source: "live" as const, granularity: range.granularity };
   const coverage = t.overview.kpis.coverage(studio.analyticsCount, studio.gameCount);
   const granularity = t.common.granularity[range.granularity];
+  // Revenue as bars, one per day or month (sales and Roblox rewards stacked).
+  const revenue = revenueChart(studio.revenue.salesSeries, studio.revenue.rewardsSeries, t.games.revenueChart);
+  const revenueBars = revenue.rows.map(({ date, ...values }) => ({
+    category: range.granularity === "month" ? f.formatMonth(date) : f.formatShortDate(date),
+    ...values,
+  }));
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <MetricChart
+        <MetricBarChart
+          className="xl:col-span-2"
           title={c.revenueTitle}
+          info={c.revenueInfo}
           description={c.revenueDescription(granularity, range.label, coverage)}
           label={c.revenueLabel(granularity, range.label)}
           format="robux"
-          {...revenueChart(studio.revenue.salesSeries, studio.revenue.rewardsSeries, t.games.revenueChart)}
-          {...common}
+          rows={revenueBars}
+          series={revenue.series}
+          stacked
+          timeAxis
+          categoryLabel={t.common.chart.date}
+          source="live"
         />
         <MetricChart
           title={c.ccuTitle}
+          info={c.ccuInfo}
           description={c.ccuDescription(coverage)}
           label={c.ccuLabel}
           format="compact"
@@ -222,6 +257,7 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
         />
         <MetricBarChart
           title={c.performanceTitle}
+          info={c.performanceInfo}
           description={c.performanceDescription(range.label)}
           label={c.performanceDescription(range.label)}
           format="compact"
@@ -230,7 +266,9 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
           source="live"
         />
         <MetricChart
+          className="xl:col-span-2"
           title={c.growthTitle}
+          info={c.growthInfo}
           description={c.growthDescription(range.label, coverage)}
           label={c.growthLabel(range.label)}
           format="compact"
@@ -251,12 +289,14 @@ export async function OverviewCharts({ searchParams }: { searchParams: SearchPar
 async function ListCard({
   title,
   description,
+  info,
   source,
   href,
   children,
 }: {
   title: string;
   description?: string;
+  info?: string;
   source: DataSource;
   href?: string;
   children: ReactNode;
@@ -267,11 +307,12 @@ async function ListCard({
       <CardHeader
         title={title}
         description={description}
+        info={info}
         actions={
           <>
             <SourceBadge source={source} />
             {href ? (
-              <Link href={href} className="text-xs text-fg-3 transition-colors hover:text-accent">
+              <Link href={href} className="text-xs font-medium text-accent-ink transition-colors hover:text-fg">
                 {t.common.actions.viewAll}
               </Link>
             ) : null}
@@ -298,7 +339,7 @@ export async function UpcomingTasks() {
   const l = t.overview.tasks;
 
   return (
-    <ListCard title={l.title} description={l.description} source="live" href="/tasks">
+    <ListCard title={l.title} description={l.description} info={l.info} source="live" href="/tasks">
       {tasks === null ? (
         <ErrorState compact description={l.error} />
       ) : tasks.length === 0 ? (
@@ -339,7 +380,7 @@ export async function RecentActivity() {
   const l = t.overview.activity;
 
   return (
-    <ListCard title={l.title} description={l.description} source="live">
+    <ListCard title={l.title} description={l.description} info={l.info} source="live">
       {activity === null ? (
         <ErrorState compact description={l.error} />
       ) : activity.length === 0 ? (
@@ -373,7 +414,7 @@ export async function ActiveAgents() {
   const agents = access.status === "allowed" ? await listAgents(20) : null;
   const active = (agents ?? []).filter((agent) => ACTIVE_AGENT_STATUSES.includes(agent.status)).slice(0, 5);
   return (
-    <ListCard title={a.title} description={a.description} source="live" href="/agents">
+    <ListCard title={a.title} description={a.description} info={a.info} source="live" href="/agents">
       {access.status !== "allowed" ? (
         <EmptyState compact title={a.adminOnly} />
       ) : !agents ? (
@@ -414,7 +455,7 @@ export async function MarketHighlights() {
   const m = t.overview.market;
 
   return (
-    <ListCard title={m.title} description={m.description} source="live" href="/discover?chart=up-and-coming">
+    <ListCard title={m.title} description={m.description} info={m.info} source="live" href="/discover?chart=up-and-coming">
       {chart.status !== "ok" ? (
         <ErrorState compact title={m.errorTitle} description={m.errorDescription} />
       ) : (
@@ -492,7 +533,7 @@ export async function ImportantAlerts({ searchParams }: { searchParams: SearchPa
   items.sort((a, b) => order[a.severity] - order[b.severity]);
 
   return (
-    <ListCard title={a.title} description={a.description(range.label)} source="live">
+    <ListCard title={a.title} description={a.description(range.label)} info={a.info} source="live">
       {studio.status === "error" ? (
         <ErrorState compact description={a.error} />
       ) : items.length === 0 ? (

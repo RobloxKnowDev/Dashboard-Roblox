@@ -20,6 +20,8 @@ export function useChartView(): ChartView {
 type ChartCardProps = {
   title: string;
   description?: string;
+  /** Plain-language explanation behind the (i) next to the title. */
+  info?: string;
   source: DataSource;
   /** Extra header controls (rendered left of the chart/table toggle). */
   actions?: ReactNode;
@@ -31,7 +33,7 @@ type ChartCardProps = {
  * Card wrapper for every chart: title, source badge, and a chart ↔ table
  * toggle so every value is reachable without hovering.
  */
-export function ChartCard({ title, description, source, actions, className, children }: ChartCardProps) {
+export function ChartCard({ title, description, info, source, actions, className, children }: ChartCardProps) {
   const [view, setView] = useState<ChartView>("chart");
   const t = useT();
   const nextView = view === "chart" ? "table" : "chart";
@@ -40,6 +42,7 @@ export function ChartCard({ title, description, source, actions, className, chil
       <CardHeader
         title={title}
         description={description}
+        info={info}
         actions={
           <>
             <SourceBadge source={source} />

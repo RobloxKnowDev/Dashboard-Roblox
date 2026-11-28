@@ -5,7 +5,7 @@
 // the session: any error is logged to ~/.dashboard-agents/hooks.log and ignored.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig, log, postJson, readStdin } from "./lib.mjs";
+import { attachmentNote, loadConfig, log, postJson, readStdin } from "./lib.mjs";
 
 const SHARE_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "share.mjs");
 const TEAM_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "team.mjs");
@@ -92,7 +92,8 @@ try {
   const reply = await postJson(config, "/api/agents/ingest", { type: "hook", agentId, event: trim(event) }, timeouts[name] ?? 8000);
   // A dashboard message waiting for this agent: Claude continues with it.
   if (name === "Stop" && reply?.decision === "block" && typeof reply.reason === "string") {
-    await emit({ decision: "block", reason: reply.reason });
+    const note = await attachmentNote(reply.attachments, agentId ?? event.session_id, "hooks.log");
+    await emit({ decision: "block", reason: reply.reason + note });
   }
 } catch (error) {
   log("hooks.log", `${name} ${event.session_id}: ${error instanceof Error ? error.message : String(error)}`);

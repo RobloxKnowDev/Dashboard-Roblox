@@ -47,11 +47,15 @@ export type AgentEvent = {
   payload: Record<string, unknown>;
   createdAt: string;
   imageUrl: string | null;
+  /** Images attached to an instruction (signed URLs, 1 hour). */
+  images: string[];
 };
 
 export type AgentMessage = {
   id: string;
   body: string;
+  /** Attached images (signed URLs, 1 hour). */
+  images: string[];
   status: "pending" | "delivered" | "cancelled" | "failed";
   createdAt: string;
 };
@@ -111,9 +115,20 @@ function toSummary(row: AgentRowWithMachine, lastEvent: AgentEvent | null): Agen
   };
 }
 
-function toEvent(row: Pick<Database["public"]["Tables"]["agent_events"]["Row"], "id" | "type" | "message" | "payload" | "created_at" | "image_path">, imageUrl: string | null): AgentEvent {
-  const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? (row.payload as Record<string, unknown>) : {};
-  return { id: row.id, type: row.type, message: row.message, payload, createdAt: row.created_at, imageUrl };
+type EventRow = Pick<Database["public"]["Tables"]["agent_events"]["Row"], "id" | "type" | "message" | "payload" | "created_at" | "image_path">;
+
+function payloadOf(row: EventRow): Record<string, unknown> {
+  return row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? (row.payload as Record<string, unknown>) : {};
+}
+
+/** Storage paths of the images attached to an instruction event. */
+function attachedPaths(row: EventRow): string[] {
+  const images = payloadOf(row).images;
+  return Array.isArray(images) ? images.filter((path): path is string => typeof path === "string") : [];
+}
+
+function toEvent(row: EventRow, imageUrl: string | null, images: string[] = []): AgentEvent {
+  return { id: row.id, type: row.type, message: row.message, payload: payloadOf(row), createdAt: row.created_at, imageUrl, images };
 }
 
 /** All agents, most recently active first, with their latest timeline line. Null = query failed. */
@@ -181,24 +196,30 @@ export async function getAgentDetail(id: string): Promise<AgentDetail | null> {
       .eq("agent_id", id)
       .order("created_at", { ascending: false })
       .limit(TIMELINE_LIMIT),
-    supabase.from("agent_messages").select("id, body, status, created_at").eq("agent_id", id).eq("status", "pending").order("created_at"),
+    supabase.from("agent_messages").select("id, body, images, status, created_at").eq("agent_id", id).eq("status", "pending").order("created_at"),
   ]);
 
-  // The row was readable under RLS: sign its screenshots (private bucket).
-  const paths = (events ?? []).map((e) => e.image_path).filter((p): p is string => Boolean(p));
+  // The rows were readable under RLS: sign their screenshots and attached images (private bucket).
+  const paths = [
+    ...(events ?? []).flatMap((e) => [...(e.image_path ? [e.image_path] : []), ...attachedPaths(e)]),
+    ...(messages ?? []).flatMap((m) => m.images),
+  ];
   const urls = new Map<string, string>();
   if (paths.length) {
-    const { data: signed } = await createAdminClient().storage.from("agent-media").createSignedUrls(paths, 3600);
+    const { data: signed } = await createAdminClient().storage.from("agent-media").createSignedUrls([...new Set(paths)], 3600);
     for (const entry of signed ?? []) if (entry.path && entry.signedUrl) urls.set(entry.path, entry.signedUrl);
   }
+  const signedList = (list: string[]) => list.map((path) => urls.get(path)).filter((url): url is string => Boolean(url));
 
-  const ordered = [...(events ?? [])].reverse().map((e) => toEvent(e, e.image_path ? (urls.get(e.image_path) ?? null) : null));
+  const ordered = [...(events ?? [])]
+    .reverse()
+    .map((e) => toEvent(e, e.image_path ? (urls.get(e.image_path) ?? null) : null, signedList(attachedPaths(e))));
   const agent = toSummary(row as unknown as AgentRowWithMachine, null);
   return {
     agent,
     events: ordered,
     hiddenEvents: Math.max(0, (count ?? ordered.length) - ordered.length),
-    pending: (messages ?? []).map((m) => ({ id: m.id, body: m.body, status: m.status as AgentMessage["status"], createdAt: m.created_at })),
+    pending: (messages ?? []).map((m) => ({ id: m.id, body: m.body, images: signedList(m.images), status: m.status as AgentMessage["status"], createdAt: m.created_at })),
     team: await getTeam(agent),
   };
 }

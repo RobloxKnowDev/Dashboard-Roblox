@@ -65,7 +65,7 @@ export function Select({
                 className="relative flex h-8 cursor-default select-none items-center rounded-md pl-7 pr-2 text-[13px] text-fg-2 outline-none data-[disabled]:opacity-45 data-[highlighted]:bg-surface-2 data-[highlighted]:text-fg"
               >
                 <SelectPrimitive.ItemIndicator className="absolute left-2 inline-flex">
-                  <Check className="size-3.5 text-accent" />
+                  <Check className="size-3.5 text-accent-ink" />
                 </SelectPrimitive.ItemIndicator>
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
               </SelectPrimitive.Item>

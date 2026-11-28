@@ -167,7 +167,7 @@ export function GamesTable({
               href={`https://www.roblox.com/games/${g.rootPlaceId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex max-w-xs items-center gap-1 font-medium text-fg hover:text-accent"
+              className="group inline-flex max-w-xs items-center gap-1 font-medium text-fg hover:text-accent-ink"
             >
               <span className="truncate">{g.name}</span>
               <ExternalLink className="size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />

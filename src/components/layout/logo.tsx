@@ -11,7 +11,7 @@ export function LogoMark({ className }: { className?: string }) {
       aria-hidden
       className={cn(
         "relative inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg",
-        "shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_0_0_1px_rgb(198_242_78/0.2),0_4px_16px_-4px_rgb(198_242_78/0.35)]",
+        "shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_0_0_1px_rgb(51_105_255/0.25),0_4px_16px_-4px_rgb(51_105_255/0.5)]",
         className,
       )}
     >

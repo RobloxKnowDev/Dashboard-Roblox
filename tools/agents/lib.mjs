@@ -1,6 +1,6 @@
 // Shared helpers for the PC side of the dashboard's AI agents (docs/AGENTS.md).
 // The machine token lives in ~/.dashboard-agents/config.json — never in the repo.
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -27,6 +27,37 @@ export function log(file, line) {
   } catch {
     // Logging must never break a hook.
   }
+}
+
+/**
+ * Images attached to dashboard messages: downloads each signed link into
+ * ~/.dashboard-agents/inbox/<folder>/ and returns the text that tells Claude
+ * where they are (it opens them with its Read tool). Failed downloads are
+ * logged and named, never fatal.
+ */
+export async function attachmentNote(attachments, folder, logFile) {
+  if (!Array.isArray(attachments) || attachments.length === 0) return "";
+  const dir = join(HOME_DIR, "inbox", String(folder).replace(/[^A-Za-z0-9_-]/g, "_"));
+  mkdirSync(dir, { recursive: true });
+  const saved = [];
+  const failed = [];
+  for (const item of attachments.slice(0, 8)) {
+    const name = String(item?.name ?? "").replace(/[^A-Za-z0-9._-]/g, "_") || "image.png";
+    try {
+      const response = await fetch(item.url, { signal: AbortSignal.timeout(15_000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const path = join(dir, name);
+      writeFileSync(path, Buffer.from(await response.arrayBuffer()));
+      saved.push(path);
+    } catch (error) {
+      failed.push(name);
+      log(logFile, `attachment ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  const lines = [];
+  if (saved.length) lines.push("Images attached to this message (open each one with the Read tool before answering):", ...saved.map((path) => `- ${path}`));
+  if (failed.length) lines.push(`(${failed.length} attached image(s) couldn't be downloaded: ${failed.join(", ")} — say so in your answer.)`);
+  return lines.length ? `\n\n${lines.join("\n")}` : "";
 }
 
 /** POSTs JSON to the dashboard with the machine token; resolves the parsed reply. */

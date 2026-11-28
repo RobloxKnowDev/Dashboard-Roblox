@@ -1,8 +1,8 @@
 "use client";
 
-import { Gamepad2, Plus, Send, Square, X } from "lucide-react";
+import { Gamepad2, ImagePlus, LoaderCircle, Plus, Send, Square, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, describedBy } from "@/components/ui/field";
@@ -10,7 +10,10 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useT } from "@/i18n/client";
-import { cancelAgentMessage, sendAgentMessage, startGame, startMission, stopAgent } from "./actions";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
+import { cancelAgentMessage, deleteAgent, sendAgentMessage, startGame, startMission, stopAgent } from "./actions";
+import { MAX_MESSAGE_IMAGES } from "./ingest";
 import { MISSION_ROLES } from "./roles";
 
 type MissionRole = (typeof MISSION_ROLES)[number];
@@ -27,48 +30,126 @@ export function AutoRefresh({ intervalMs }: { intervalMs: number }) {
   return null;
 }
 
-/** The controller's message box at the bottom of an agent's conversation. */
+type Attachment = { id: string; preview: string; path: string | null; state: "uploading" | "ready" | "error" };
+
+const IMAGE_EXT: Record<string, "png" | "jpg" | "webp"> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/** The pilot's message box at the bottom of an agent's conversation: text and up to 4 images. */
 export function MessageComposer({ agentId, hint }: { agentId: string; hint: string }) {
   const t = useT();
+  const c = t.agents.composer;
   const router = useRouter();
   const id = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [body, setBody] = useState("");
+  const [images, setImages] = useState<Attachment[]>([]);
+  const [dragging, setDragging] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Free the previews when the composer goes away.
+  const previews = useRef(new Set<string>());
+  useEffect(() => {
+    const urls = previews.current;
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
+
+  const addFiles = (files: File[]) => {
+    const room = MAX_MESSAGE_IMAGES - images.length;
+    if (files.length > room) toast.error(c.tooMany(MAX_MESSAGE_IMAGES));
+    for (const file of files.slice(0, Math.max(0, room))) {
+      const ext = IMAGE_EXT[file.type];
+      if (!ext) {
+        toast.error(c.badType);
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error(c.tooLarge);
+        continue;
+      }
+      const item: Attachment = { id: crypto.randomUUID(), preview: URL.createObjectURL(file), path: null, state: "uploading" };
+      previews.current.add(item.preview);
+      setImages((list) => [...list, item]);
+      // Straight to the private bucket (Owners only, RLS); the server checks it's there when sending.
+      const path = `messages/${agentId}/${crypto.randomUUID()}.${ext}`;
+      void createClient()
+        .storage.from("agent-media")
+        .upload(path, file, { contentType: file.type, upsert: false })
+        .then(({ error }) => {
+          if (error) toast.error(c.uploadFailed);
+          setImages((list) => list.map((x) => (x.id === item.id ? { ...x, path: error ? null : path, state: error ? "error" : "ready" } : x)));
+        });
+    }
+  };
+
+  const remove = (item: Attachment) => {
+    URL.revokeObjectURL(item.preview);
+    previews.current.delete(item.preview);
+    setImages((list) => list.filter((x) => x.id !== item.id));
+  };
+
+  const uploading = images.some((x) => x.state === "uploading");
+  const ready = images.filter((x) => x.state === "ready" && x.path).map((x) => x.path!);
+  const canSend = !pending && !uploading && (body.trim().length > 0 || ready.length > 0);
+
   const send = () => {
+    if (!canSend) return;
     const text = body.trim();
-    if (!text || pending) return;
     startTransition(async () => {
-      const result = await sendAgentMessage(agentId, text);
+      const result = await sendAgentMessage(agentId, text, ready);
       if (!result.ok) {
         toast.error(result.message ?? t.agents.errors.failed);
         return;
       }
       setBody("");
-      toast.success(t.agents.composer.sent);
+      images.forEach((item) => {
+        URL.revokeObjectURL(item.preview);
+        previews.current.delete(item.preview);
+      });
+      setImages([]);
+      toast.success(c.sent);
       router.refresh();
     });
   };
 
   return (
     <form
-      className="space-y-2"
+      className={cn("space-y-2 rounded-lg", dragging && "outline-2 outline-offset-4 outline-dashed outline-accent")}
       onSubmit={(event) => {
         event.preventDefault();
         send();
       }}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes("Files")) {
+          event.preventDefault();
+          setDragging(true);
+        }
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        addFiles([...event.dataTransfer.files]);
+      }}
     >
       <label htmlFor={id} className="sr-only">
-        {t.agents.composer.label}
+        {c.label}
       </label>
       <Textarea
         id={id}
         rows={3}
         value={body}
         maxLength={8000}
-        placeholder={t.agents.composer.placeholder}
+        placeholder={c.placeholder}
         aria-describedby={`${id}-hint`}
         onChange={(event) => setBody(event.target.value)}
+        onPaste={(event) => {
+          const files = [...event.clipboardData.files].filter((file) => file.type.startsWith("image/"));
+          if (files.length) {
+            event.preventDefault();
+            addFiles(files);
+          }
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
@@ -76,16 +157,143 @@ export function MessageComposer({ agentId, hint }: { agentId: string; hint: stri
           }
         }}
       />
+      {images.length ? (
+        <ul className="flex flex-wrap gap-2" aria-label={c.attached}>
+          {images.map((item, index) => (
+            <li key={item.id} className="relative">
+              {/* Local preview (object URL) of the file being sent. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.preview}
+                alt={c.imageAlt(index + 1)}
+                className={cn(
+                  "size-20 rounded-md border object-cover",
+                  item.state === "error" ? "border-critical/60 opacity-60" : "border-line-strong",
+                  item.state === "uploading" && "opacity-60",
+                )}
+              />
+              {item.state === "uploading" ? (
+                <LoaderCircle className="absolute inset-0 m-auto size-5 animate-spin text-fg" aria-label={c.uploading} />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => remove(item)}
+                aria-label={c.removeImage(index + 1)}
+                className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-line-strong bg-surface-3 text-fg-2 hover:text-fg"
+              >
+                <X className="size-3" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p id={`${id}-hint`} className="text-xs text-fg-3">
-          {hint} <span className="hidden sm:inline">· {t.agents.composer.shortcut}</span>
+          {hint} <span className="hidden sm:inline">· {c.shortcut}</span>
         </p>
-        <Button type="submit" size="sm" loading={pending} disabled={!body.trim()}>
-          <Send aria-hidden />
-          {t.agents.composer.send}
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(event) => {
+              addFiles([...(event.target.files ?? [])]);
+              event.target.value = "";
+            }}
+          />
+          <Button type="button" size="sm" variant="outline" disabled={images.length >= MAX_MESSAGE_IMAGES} onClick={() => fileInput.current?.click()}>
+            <ImagePlus aria-hidden />
+            {c.attach}
+          </Button>
+          <Button type="submit" size="sm" loading={pending} disabled={!canSend}>
+            <Send aria-hidden />
+            {c.send}
+          </Button>
+        </div>
       </div>
     </form>
+  );
+}
+
+/** Deletes a useless agent (and a manager's team) after a confirmation. */
+export function DeleteAgentButton({
+  agentId,
+  name,
+  teamSize = 0,
+  working,
+  compact = false,
+  afterDelete = "refresh",
+}: {
+  agentId: string;
+  name: string;
+  teamSize?: number;
+  working: boolean;
+  compact?: boolean;
+  afterDelete?: "refresh" | "list";
+}) {
+  const t = useT();
+  const d = t.agents.delete;
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const trigger = compact ? (
+    <button
+      type="button"
+      aria-label={d.labelFor(name)}
+      className="flex size-7 items-center justify-center rounded-md text-fg-3 transition-colors hover:bg-critical/10 hover:text-critical"
+    >
+      <Trash2 className="size-3.5" aria-hidden />
+    </button>
+  ) : (
+    <Button size="sm" variant="outline">
+      <Trash2 aria-hidden />
+      {d.label}
+    </Button>
+  );
+  return (
+    <Modal
+      open={open}
+      onOpenChange={setOpen}
+      trigger={trigger}
+      title={d.title(name)}
+      description={working ? d.working : d.description}
+      size="sm"
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+            {t.common.actions.cancel}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={pending}
+            disabled={working}
+            onClick={() =>
+              startTransition(async () => {
+                const result = await deleteAgent(agentId);
+                if (!result.ok) {
+                  toast.error(result.message ?? t.agents.errors.failed);
+                  return;
+                }
+                setOpen(false);
+                toast.success(d.done(result.data?.deleted ?? 1));
+                if (afterDelete === "list") router.push("/agents");
+                else router.refresh();
+              })
+            }
+          >
+            <Trash2 aria-hidden />
+            {d.confirm}
+          </Button>
+        </>
+      }
+    >
+      {teamSize > 0 && !working ? <p className="text-[13px] text-fg-2">{d.withTeam(teamSize)}</p> : null}
+    </Modal>
   );
 }
 

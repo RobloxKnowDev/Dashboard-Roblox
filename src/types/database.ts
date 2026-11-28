@@ -62,14 +62,14 @@ isOneToOne: false
                   ]
                 },"agent_messages": {
                   Row: {
-                    "agent_id": string,"body": string,"created_at": string,"created_by": string | null,"delivered_at": string | null,"delivered_via": string | null,"from_agent_id": string | null,"id": string,"status": string
+                    "agent_id": string,"body": string,"created_at": string,"created_by": string | null,"delivered_at": string | null,"delivered_via": string | null,"from_agent_id": string | null,"id": string,"images": (string)[],"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_id": string,"body": string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"status"?: string
+                    "agent_id": string,"body": string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"images"?: (string)[],"status"?: string
                   }
                   Update: {
-                    "agent_id"?: string,"body"?: string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"status"?: string
+                    "agent_id"?: string,"body"?: string,"created_at"?: string,"created_by"?: string | null,"delivered_at"?: string | null,"delivered_via"?: string | null,"from_agent_id"?: string | null,"id"?: string,"images"?: (string)[],"status"?: string
                   }
                   Relationships: [
                     {

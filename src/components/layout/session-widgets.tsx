@@ -7,6 +7,8 @@ import { markAllNotificationsRead } from "@/features/notifications/actions";
 import type { AppRole } from "@/lib/auth/roles";
 import { checkAccess, getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { listGames } from "@/features/games/data";
+import { GameSwitcher } from "./game-switcher";
 import { NotificationCenter } from "./notification-center";
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
@@ -21,6 +23,18 @@ import { UserMenu } from "./user-menu";
 export async function SessionSidebarNav() {
   const user = await getSessionUser();
   return <SidebarNav role={user ? user.role : undefined} />;
+}
+
+/** The game switcher, once the user may read the studio's games (RLS). */
+export async function SessionGameSwitcher() {
+  const user = await getSessionUser();
+  if (!user?.role) return null;
+  const games = await listGames();
+  return (
+    <GameSwitcher
+      games={games ? games.filter((g) => g.status !== "archived").map((g) => ({ id: g.id, name: g.name, iconUrl: g.thumbnail_url, status: g.status })) : null}
+    />
+  );
 }
 
 export async function SessionUserMenu() {

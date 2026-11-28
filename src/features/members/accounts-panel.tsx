@@ -196,7 +196,7 @@ export function AccountsPanel({
       <div className="min-w-0">
         <p className="truncate font-medium text-fg">
           {a.teamMemberId ? (
-            <Link href={`/team/${a.teamMemberId}`} className="hover:text-accent">
+            <Link href={`/team/${a.teamMemberId}`} className="hover:text-accent-ink">
               {a.name}
             </Link>
           ) : (

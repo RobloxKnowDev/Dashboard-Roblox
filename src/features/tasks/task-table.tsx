@@ -135,7 +135,7 @@ export function TaskTable({
         <div className="min-w-0 max-w-md">
           <p className={cn("truncate font-medium", task.status === "done" ? "text-fg-3 line-through" : "text-fg")}>{task.title}</p>
           {!hideProject && task.project ? (
-            <Link href={`/projects/${task.project.id}`} className="truncate text-xs text-fg-3 hover:text-accent">
+            <Link href={`/projects/${task.project.id}`} className="truncate text-xs text-fg-3 hover:text-accent-ink">
               {task.project.name}
             </Link>
           ) : null}

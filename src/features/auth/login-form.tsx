@@ -49,7 +49,7 @@ function LoginFormInner({ next, linkError }: { next?: string; linkError?: string
         </Field>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-xs text-fg-3 transition-colors hover:text-accent">
+          <Link href="/forgot-password" className="text-xs text-fg-3 transition-colors hover:text-accent-ink">
             {t.auth.login.forgot}
           </Link>
         </div>

@@ -62,7 +62,7 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
       type="button"
       onClick={() => setOpen(true)}
       className={cn(
-        "flex h-8 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-[13px] text-fg-3 transition-colors",
+        "flex h-9 items-center justify-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-[13px] text-fg-3 transition-colors sm:justify-start",
         "hover:border-line-strong hover:text-fg-2",
         className,
       )}
@@ -70,7 +70,7 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
       aria-keyshortcuts="Control+K Meta+K"
     >
       <Search className="size-3.5" aria-hidden />
-      <span className="flex-1 truncate text-left">{t.shell.search.trigger}</span>
+      <span className="hidden flex-1 truncate text-left sm:block">{t.shell.search.trigger}</span>
       <span className="hidden items-center gap-0.5 sm:flex" aria-hidden>
         <Kbd>{mod}</Kbd>
         <Kbd>K</Kbd>
@@ -81,7 +81,7 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
 
 const itemClass =
   "flex h-9 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-[13px] text-fg-2 " +
-  "data-[selected=true]:bg-surface-3 data-[selected=true]:text-fg [&_svg]:size-4 [&_svg]:text-fg-3 data-[selected=true]:[&_svg]:text-accent";
+  "data-[selected=true]:bg-surface-3 data-[selected=true]:text-fg [&_svg]:size-4 [&_svg]:text-fg-3 data-[selected=true]:[&_svg]:text-accent-ink";
 
 function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
@@ -117,7 +117,7 @@ function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (
           <Command.Group
             key={section.key}
             heading={t.nav.sections[section.key]}
-            className="mb-1 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-fg-3"
+            className="mb-1 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-3"
           >
             {section.items.map((item) => {
               const Icon = item.icon;

@@ -6,8 +6,9 @@ import { getRequestLocale } from "@/i18n/server";
 import { slugify, type ActionResult } from "@/lib/action-result";
 import { checkAccess } from "@/lib/auth/session";
 import { PERMISSIONS } from "@/lib/auth/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { baseName, clip, missionFromPrompt } from "./ingest";
+import { baseName, clip, isMessageImage, MAX_MESSAGE_IMAGES, missionFromPrompt } from "./ingest";
 import { MISSION_ROLES } from "./roles";
 
 /*
@@ -23,18 +24,69 @@ async function controller() {
   return { ok: true as const, t, locale, user: access.user };
 }
 
-const bodySchema = z.string().trim().min(1).max(8000);
+const bodySchema = z.string().trim().max(8000);
 
-/** Queues a message: delivered by the Stop hook (agent at work) or the bridge. */
-export async function sendAgentMessage(agentId: string, body: string): Promise<ActionResult> {
+/** Queues a message (text and/or images): delivered by the Stop hook (agent at work) or the bridge. */
+export async function sendAgentMessage(agentId: string, body: string, images: string[] = []): Promise<ActionResult> {
   const who = await controller();
   if (!who.ok) return { ok: false, message: who.t.controllerOnly };
   const text = bodySchema.safeParse(body);
   if (!z.uuid().safeParse(agentId).success || !text.success) return { ok: false, message: who.t.invalid };
+  const paths = [...new Set(images)];
+  if (paths.length > MAX_MESSAGE_IMAGES || paths.some((path) => !isMessageImage(path, agentId))) return { ok: false, message: who.t.invalid };
+  if (!text.data && paths.length === 0) return { ok: false, message: who.t.invalid };
+  if (paths.length) {
+    // Every image must really be in the bucket (uploaded just before, by the browser).
+    const { data: stored } = await createAdminClient().storage.from("agent-media").list(`messages/${agentId}`, { limit: 1000 });
+    const names = new Set((stored ?? []).map((entry) => entry.name));
+    if (paths.some((path) => !names.has(baseName(path)))) return { ok: false, message: who.t.imageMissing };
+  }
   const supabase = await createClient();
-  const { error } = await supabase.from("agent_messages").insert({ agent_id: agentId, body: text.data, created_by: who.user.id });
+  const { error } = await supabase.from("agent_messages").insert({ agent_id: agentId, body: text.data, images: paths, created_by: who.user.id });
   if (error) return { ok: false, message: who.t.failed };
   return { ok: true };
+}
+
+/**
+ * Deletes an agent that's no longer useful, with its history, its pending
+ * messages and its images. A game manager goes with its team. An agent at
+ * work must be stopped first (a VS Code session reappears if it continues).
+ */
+export async function deleteAgent(agentId: string): Promise<ActionResult<{ deleted: number }>> {
+  const who = await controller();
+  if (!who.ok) return { ok: false, message: who.t.controllerOnly };
+  if (!z.uuid().safeParse(agentId).success) return { ok: false, message: who.t.invalid };
+  const supabase = await createClient();
+  const [{ data: agent }, { data: members }] = await Promise.all([
+    supabase.from("agents").select("id, status").eq("id", agentId).maybeSingle(),
+    supabase.from("agents").select("id, status").eq("parent_id", agentId),
+  ]);
+  if (!agent) return { ok: false, message: who.t.failed };
+  const all = [agent, ...(members ?? [])];
+  if (all.some((a) => a.status === "working")) return { ok: false, message: who.t.stillWorking };
+  const ids = all.map((a) => a.id);
+
+  // Files to remove from the private bucket: screenshots, then message images.
+  const admin = createAdminClient();
+  const [{ data: shots }, ...folders] = await Promise.all([
+    admin.from("agent_events").select("image_path").in("agent_id", ids).not("image_path", "is", null),
+    ...ids.map((id) => admin.storage.from("agent-media").list(`messages/${id}`, { limit: 1000 })),
+  ]);
+  const files = [
+    ...(shots ?? []).map((row) => row.image_path).filter((path): path is string => Boolean(path)),
+    ...folders.flatMap((folder, index) => (folder.data ?? []).map((entry) => `messages/${ids[index]}/${entry.name}`)),
+  ];
+
+  // Members first (they point to the manager), then the agent itself. RLS: Owners only.
+  const memberIds = ids.slice(1);
+  if (memberIds.length) {
+    const { error } = await supabase.from("agents").delete().in("id", memberIds);
+    if (error) return { ok: false, message: who.t.failed };
+  }
+  const { data: removed, error } = await supabase.from("agents").delete().eq("id", agentId).select("id");
+  if (error || !removed?.length) return { ok: false, message: who.t.failed };
+  if (files.length) await admin.storage.from("agent-media").remove(files);
+  return { ok: true, data: { deleted: ids.length } };
 }
 
 export async function cancelAgentMessage(messageId: string): Promise<ActionResult> {

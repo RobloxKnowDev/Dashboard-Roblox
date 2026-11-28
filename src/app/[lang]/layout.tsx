@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Mona_Sans } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import { lang } from "next/root-params";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,10 +9,9 @@ import { isLocale, LOCALES } from "@/i18n/config";
 import { messages } from "@/i18n/messages";
 import "../globals.css";
 
-const monaSans = Mona_Sans({
-  variable: "--font-mona-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  axes: ["wdth"],
   display: "swap",
 });
 
@@ -42,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#08090b",
+  themeColor: "#0c0c0e",
   colorScheme: "dark",
 };
 
@@ -51,7 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale} className={`${monaSans.variable} ${jetbrainsMono.variable} h-full`}>
+    <html lang={locale} className={`${inter.variable} ${jetbrainsMono.variable} h-full`}>
       <body className="min-h-full">
         <I18nProvider locale={locale}>
           {children}

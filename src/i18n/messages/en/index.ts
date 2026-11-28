@@ -10,6 +10,7 @@ import { projects } from "./projects";
 import { tasks } from "./tasks";
 import { agents } from "./agents";
 import { finance } from "./finance";
+import { earnings } from "./earnings";
 import { team } from "./team";
 import { settings } from "./settings";
 import { integrations } from "./integrations";
@@ -30,6 +31,7 @@ export const en = {
   tasks,
   agents,
   finance,
+  earnings,
   team,
   settings,
   integrations,

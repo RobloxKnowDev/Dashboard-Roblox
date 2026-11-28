@@ -26,6 +26,7 @@ export const common: Messages["common"] = {
     previousPage: "Page précédente",
     nextPage: "Page suivante",
     pageRange: (from, to, total) => `${from}–${to} sur ${total}`,
+    explain: (subject) => `C’est quoi « ${subject} » ?`,
   },
   states: {
     errorTitle: "Un problème est survenu",

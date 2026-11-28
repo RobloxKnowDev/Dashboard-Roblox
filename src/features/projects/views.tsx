@@ -104,7 +104,7 @@ export function ProjectCover({ project, className }: { project: ProjectItem; cla
       {src ? (
         <Image src={src} alt="" fill unoptimized sizes="400px" className="object-cover opacity-90" />
       ) : (
-        <div className="flex size-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgb(198_242_78/0.14),transparent_60%),linear-gradient(135deg,var(--color-surface-2),var(--color-surface-3))]">
+        <div className="flex size-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgb(51_105_255/0.18),transparent_60%),linear-gradient(135deg,var(--color-surface-2),var(--color-surface-3))]">
           <span className="font-display text-2xl font-semibold text-fg-3">{initials(project.name)}</span>
         </div>
       )}
@@ -134,7 +134,7 @@ export function ProjectCards({ projects }: { projects: ProjectItem[] }) {
               <ProjectCover project={project} className="h-28 border-b border-line" />
               <div className="flex flex-1 flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent">{project.name}</h3>
+                  <h3 className="truncate text-sm font-semibold text-fg group-hover:text-accent-ink">{project.name}</h3>
                   <Badge tone={status.tone} dot className="shrink-0">
                     {t.common.status.project[project.status]}
                   </Badge>
@@ -184,7 +184,7 @@ export function ProjectTable({ projects }: { projects: ProjectItem[] }) {
       header: c.project,
       sortValue: (p) => p.name.toLowerCase(),
       cell: (p) => (
-        <Link href={`/projects/${p.id}`} className="font-medium text-fg hover:text-accent" onClick={(e) => e.stopPropagation()}>
+        <Link href={`/projects/${p.id}`} className="font-medium text-fg hover:text-accent-ink" onClick={(e) => e.stopPropagation()}>
           {p.name}
         </Link>
       ),

@@ -1,4 +1,5 @@
 import {
+  BadgeDollarSign,
   Bot,
   Compass,
   Eye,
@@ -37,17 +38,15 @@ export type NavSection = {
 
 /**
  * Single source of truth for navigation: feeds the sidebar, the command
- * palette (global search) and page-level access checks.
+ * palette (global search) and page-level access checks. Ordered by how often
+ * the studio uses it: home, its own games, then the market, then the studio.
  */
 export const navigation: NavSection[] = [
-  { key: "overview", items: [{ key: "overview", href: "/overview", icon: LayoutDashboard }] },
   {
-    key: "market",
+    key: "overview",
     items: [
-      { key: "discover", href: "/discover", icon: Compass },
-      { key: "releases", href: "/discover/releases", icon: Rocket },
-      { key: "ideas", href: "/discover/ideas", icon: Lightbulb },
-      { key: "watchlist", href: "/discover/watchlist", icon: Eye },
+      { key: "overview", href: "/overview", icon: LayoutDashboard },
+      { key: "assistant", href: "/assistant", icon: Sparkles },
     ],
   },
   {
@@ -60,13 +59,22 @@ export const navigation: NavSection[] = [
     ],
   },
   {
+    key: "market",
+    items: [
+      { key: "discover", href: "/discover", icon: Compass },
+      { key: "releases", href: "/discover/releases", icon: Rocket },
+      { key: "ideas", href: "/discover/ideas", icon: Lightbulb },
+      { key: "watchlist", href: "/discover/watchlist", icon: Eye },
+    ],
+  },
+  {
     key: "business",
     items: [
+      { key: "earnings", href: "/earnings", icon: BadgeDollarSign, minRole: "admin" },
       { key: "finance", href: "/finance", icon: Wallet, minRole: "admin" },
       { key: "team", href: "/team", icon: Users },
     ],
   },
-  { key: "intelligence", items: [{ key: "assistant", href: "/assistant", icon: Sparkles }] },
   {
     key: "system",
     items: [

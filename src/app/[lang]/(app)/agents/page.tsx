@@ -88,7 +88,7 @@ async function AgentsSection({ searchParams }: { searchParams: PageProps<"/[lang
             <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {group.agents.map((agent) => (
                 <li key={agent.id}>
-                  <AgentCard agent={agent} now={now} />
+                  <AgentCard agent={agent} now={now} canDelete={controller} teamSize={agents.filter((a) => a.parentId === agent.id).length} />
                 </li>
               ))}
             </ul>

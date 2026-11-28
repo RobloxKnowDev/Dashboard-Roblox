@@ -137,14 +137,26 @@ async function createSessionAgent(admin: Admin, machine: Machine, event: HookEve
   return agent;
 }
 
-type DeliveredLine = { body: string; via: "dashboard" | "agent"; author: string | null; fromAgentId: string | null };
+type DeliveredLine = { body: string; via: "dashboard" | "agent"; author: string | null; fromAgentId: string | null; images: string[] };
+/** An image attached to a message: the PC downloads it, then tells Claude where it is. */
+export type Attachment = { url: string; name: string };
 type Delivered = {
   /** What the bridge passes to `claude -p`. */
   prompt: string;
   /** What the Stop hook gives Claude as its next instruction. */
   reason: string;
   lines: DeliveredLine[];
+  attachments: Attachment[];
 };
+
+/** Signed download links (1 hour) for the images of the delivered messages. */
+async function signAttachments(admin: Admin, paths: string[]): Promise<Attachment[]> {
+  if (!paths.length) return [];
+  const { data } = await admin.storage.from("agent-media").createSignedUrls(paths, 3600);
+  return (data ?? [])
+    .filter((entry): entry is typeof entry & { path: string; signedUrl: string } => Boolean(entry.path && entry.signedUrl))
+    .map((entry) => ({ url: entry.signedUrl, name: baseName(entry.path) }));
+}
 
 /** Claims every pending message of an agent (oldest first) for one delivery. */
 async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge"): Promise<Delivered | null> {
@@ -164,7 +176,7 @@ async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge
       pending.map((m) => m.id),
     )
     .eq("status", "pending")
-    .select("id, body, created_by, from_agent_id, created_at");
+    .select("id, body, images, created_by, from_agent_id, created_at");
   if (!claimed?.length) return null;
   claimed.sort((a, b) => a.created_at.localeCompare(b.created_at));
 
@@ -179,14 +191,15 @@ async function claimPending(admin: Admin, agentId: string, via: "hook" | "bridge
 
   const lines: DeliveredLine[] = claimed.map((m) =>
     m.from_agent_id
-      ? { body: m.body, via: "agent", author: agents.get(m.from_agent_id) ?? null, fromAgentId: m.from_agent_id }
-      : { body: m.body, via: "dashboard", author: m.created_by ? (people.get(m.created_by) ?? null) : null, fromAgentId: null },
+      ? { body: m.body, via: "agent", author: agents.get(m.from_agent_id) ?? null, fromAgentId: m.from_agent_id, images: m.images }
+      : { body: m.body, via: "dashboard", author: m.created_by ? (people.get(m.created_by) ?? null) : null, fromAgentId: null, images: m.images },
   );
   const fromTeam = (line: DeliveredLine) => `Message from ${line.author ?? "a team agent"} (your game team):\n\n${line.body}`;
   return {
     prompt: lines.map((line) => (line.via === "agent" ? fromTeam(line) : line.body)).join("\n\n---\n\n"),
     reason: lines.map((line) => (line.via === "agent" ? fromTeam(line) : deliveredInstruction(line.body, line.author))).join("\n\n---\n\n"),
     lines,
+    attachments: await signAttachments(admin, lines.flatMap((line) => line.images)),
   };
 }
 
@@ -194,7 +207,7 @@ function instructionEvents(delivered: Delivered): EventInsert[] {
   return delivered.lines.map((line) => ({
     type: "instruction" as const,
     message: line.body,
-    payload: { via: line.via, author: line.author, fromAgentId: line.fromAgentId },
+    payload: { via: line.via, author: line.author, fromAgentId: line.fromAgentId, ...(line.images.length ? { images: line.images } : {}) },
   }));
 }
 
@@ -209,7 +222,7 @@ async function apply(admin: Admin, agentId: string, events: EventInsert[], updat
 /* ──────────────────────────────── Hooks ─────────────────────────────── */
 
 /** What the hook script prints back to Claude Code (Stop: deliver a dashboard message). */
-export type HookResponse = { decision?: "block"; reason?: string };
+export type HookResponse = { decision?: "block"; reason?: string; attachments?: Attachment[] };
 
 export async function handleHook(admin: Admin, machine: Machine, agentId: string | undefined, event: HookEvent): Promise<HookResponse> {
   const name = event.hook_event_name;
@@ -264,7 +277,7 @@ export async function handleHook(admin: Admin, machine: Machine, agentId: string
       if (delivered) {
         events.push(...instructionEvents(delivered));
         Object.assign(update, { status: "working", waiting_reason: null });
-        response = { decision: "block", reason: delivered.reason };
+        response = { decision: "block", reason: delivered.reason, ...(delivered.attachments.length ? { attachments: delivered.attachments } : {}) };
       } else if (!fromBridge && isLatest) {
         // A bridge run ends right after: its exit sets the final status.
         Object.assign(update, { status: "waiting", waiting_reason: "input" });
@@ -306,6 +319,8 @@ export type WorkItem = {
   systemPrompt: string;
   /** New game: create the project from the studio template, then report its folder (set_cwd). */
   scaffold?: { name: string; idea: string };
+  /** Images attached to the messages: the bridge downloads them and adds their paths to the prompt. */
+  attachments?: Attachment[];
 };
 
 export type PollResponse = { work: WorkItem[]; stop: string[]; pollMs: number };
@@ -380,6 +395,7 @@ export async function handlePoll(admin: Admin, machine: Machine, sessions: { ses
         fork: plan.fork,
         systemPrompt: missionSystemPrompt(role, Boolean(agent.parent_id) || role === "manager"),
         scaffold: scaffoldInfo,
+        ...(delivered.attachments.length ? { attachments: delivered.attachments } : {}),
       });
       capacity -= 1;
     }

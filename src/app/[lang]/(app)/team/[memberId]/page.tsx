@@ -114,7 +114,7 @@ async function MemberDetail({ params }: { params: Promise<{ memberId: string }> 
         {canManage && member.access !== "none" ? (
           <p className="text-xs text-fg-3">
             {c.accessNote.before}
-            <Link href="/settings/members" className="text-fg-2 underline-offset-2 hover:text-accent hover:underline">
+            <Link href="/settings/members" className="text-fg-2 underline-offset-2 hover:text-accent-ink hover:underline">
               {c.accessNote.link}
             </Link>
             {c.accessNote.after}

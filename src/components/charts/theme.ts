@@ -3,12 +3,12 @@
  * (SVG presentation attributes need literal colors, not CSS variables).
  *
  * The categorical order was validated with the dataviz validator against the
- * card surface (#0f1114): lightness band, chroma, CVD separation ≥ 8.4,
- * normal-vision ΔE ≥ 19.3, contrast ≥ 3:1. Assign in order, never cycle,
+ * card surface (#151517): lightness band, chroma, CVD separation ≥ 8.4,
+ * normal-vision ΔE ≥ 19.3, contrast ≥ 3:1. Slot 1 is the brand blue. Assign in order, never cycle,
  * and keep a series' color stable when filters change.
  */
 export const SERIES_COLORS = [
-  "#3987e5", // 1 blue
+  "#3369ff", // 1 blue (brand accent)
   "#d95926", // 2 orange
   "#199e70", // 3 aqua
   "#c98500", // 4 yellow
@@ -19,13 +19,13 @@ export const SERIES_COLORS = [
 ] as const;
 
 export const CHART_INK = {
-  grid: "#1f232a",
-  axis: "#2b3039",
-  tick: "#7d838e",
-  surface: "#0f1114",
-  crosshair: "#5a606a",
-  muted: "#5a606a",
-  accent: "#c6f24e",
+  grid: "#26262b",
+  axis: "#34343a",
+  tick: "#8a8a93",
+  surface: "#151517",
+  crosshair: "#5b5b63",
+  muted: "#5b5b63",
+  accent: "#3369ff",
 } as const;
 
 export type SeriesConfig = {

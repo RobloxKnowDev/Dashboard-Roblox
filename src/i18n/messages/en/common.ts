@@ -25,6 +25,7 @@ export const common = {
     previousPage: "Previous page",
     nextPage: "Next page",
     pageRange: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+    explain: (subject: string) => `What is “${subject}”?`,
   },
   states: {
     errorTitle: "Something went wrong",

@@ -27,7 +27,7 @@ tools/agents/share.mjs (capture Studio / Blender ou fichier) ──▶ POST /api
 | | Owner | Admin | Developer | Viewer |
 |---|:-:|:-:|:-:|:-:|
 | Voir les agents, leur historique et leurs captures | ✓ | ✓ | — | — |
-| Écrire à un agent, lancer ou arrêter une mission, lancer un nouveau jeu | ✓ | — | — | — |
+| Écrire à un agent (texte et images), lancer ou arrêter une mission, lancer un nouveau jeu, supprimer un agent | ✓ | — | — | — |
 
 - **Tous les Owners pilotent les agents** (permission `agents.pilot`, choix du studio du 28/11/2026 ; avant, un seul compte désigné). Les politiques RLS (`is_agent_controller()`, qui vérifie le rôle Owner), les Server Actions et l'API d'équipe (un manager doit avoir été lancé par un Owner) appliquent la même règle. Attention : un nouvel Owner obtient donc la main sur les agents, qui tournent sur le PC du studio.
 - Chaque consigne envoyée depuis le dashboard porte le nom de son auteur dans l'historique de l'agent.
@@ -41,6 +41,19 @@ tools/agents/share.mjs (capture Studio / Blender ou fichier) ──▶ POST /api
 | Mission terminée, en erreur ou nouvelle | Le pont | Au poll suivant (≤ 10 s) : `claude -p --resume <session>` |
 | Session VS Code ouverte mais inactive | Le pont | `--resume <session> --fork-session` : la conversation continue en arrière-plan sans toucher la fenêtre VS Code |
 | PC hors ligne | — | Le message attend dans `agent_messages` (statut `pending`, annulable) |
+
+### Images dans un message
+
+- Bouton **Image** du champ de message, coller (Ctrl+V) ou glisser-déposer : **4 images** au plus par message (PNG, JPEG ou WebP, 8 Mo chacune). Un message peut ne contenir que des images.
+- Le navigateur les envoie directement dans le bucket privé `agent-media`, sous `messages/<id de l'agent>/` (politique de stockage réservée aux Owners) ; le serveur vérifie leur chemin et leur présence avant d'enregistrer le message (`agent_messages.images`).
+- À la livraison, le serveur joint des liens signés d'une heure. Le hook Stop ou le pont **télécharge** les images dans `~/.dashboard-agents/inbox/<agent ou session>/` et ajoute leurs chemins à la consigne : Claude les ouvre avec son outil Read. Un téléchargement raté est signalé à Claude, jamais bloquant.
+- Les images restent visibles dans l'historique de l'agent (miniatures, ouvertes en grand au clic).
+
+### Supprimer un agent
+
+- Bouton **Supprimer** sur la page de l'agent et icône corbeille sur sa carte (Owners), avec confirmation.
+- Supprime l'agent, son historique, ses sessions, ses messages et ses images (captures et images jointes) du bucket. Les fichiers du PC (projet, code) ne sont pas touchés.
+- Un **manager** est supprimé avec les agents de son équipe. Un agent **au travail** doit d'abord être arrêté ; une session VS Code supprimée réapparaît si on continue à lui écrire dans VS Code.
 
 ## Ce qui est enregistré (et ce qui ne l'est pas)
 

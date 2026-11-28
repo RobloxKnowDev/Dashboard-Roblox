@@ -21,6 +21,7 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/** Collapsed (icons only) or open, remembered in the browser; shared by the sidebar and its toggle. */
 function useCollapsed(): [boolean, () => void] {
   const collapsed = useSyncExternalStore(
     subscribe,
@@ -34,18 +35,38 @@ function useCollapsed(): [boolean, () => void] {
   return [collapsed, toggle];
 }
 
+/** Top-left button of the top bar (desktop): folds the sidebar down to its icons, or opens it again. */
+export function SidebarToggle() {
+  const [collapsed, toggle] = useCollapsed();
+  const t = useT();
+  const label = collapsed ? t.shell.sidebar.expand : t.shell.sidebar.collapse;
+  return (
+    <Tooltip content={label} side="bottom">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={label}
+        aria-expanded={!collapsed}
+        className="hidden size-9 shrink-0 items-center justify-center rounded-lg text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg lg:flex"
+      >
+        {collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}
+      </button>
+    </Tooltip>
+  );
+}
+
 /**
  * Permanent left sidebar (desktop). On small screens, see <MobileNav>.
  * `nav` is the (session-aware) navigation, rendered by the server layout.
  */
 export function Sidebar({ nav }: { nav: ReactNode }) {
-  const [collapsed, toggle] = useCollapsed();
+  const [collapsed] = useCollapsed();
   const t = useT();
   return (
     <aside
       className={cn(
         "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-200 ease-out lg:flex",
-        collapsed ? "w-[60px]" : "w-60",
+        collapsed ? "w-[64px]" : "w-60",
       )}
     >
       <div className={cn("flex h-14 shrink-0 items-center", collapsed ? "justify-center" : "px-4")}>
@@ -58,20 +79,11 @@ export function Sidebar({ nav }: { nav: ReactNode }) {
         <SidebarCollapsedContext value={collapsed}>{nav}</SidebarCollapsedContext>
       </div>
 
-      <div className={cn("flex h-12 shrink-0 items-center border-t border-line", collapsed ? "justify-center" : "justify-between px-4")}>
-        {collapsed ? null : <span className="font-mono text-[10px] uppercase tracking-wider text-fg-3">{t.shell.sidebar.version}</span>}
-        <Tooltip content={collapsed ? t.shell.sidebar.expand : t.shell.sidebar.collapse} side="right">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={collapsed ? t.shell.sidebar.expand : t.shell.sidebar.collapse}
-            aria-expanded={!collapsed}
-            className="rounded-md p-1.5 text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg"
-          >
-            {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-          </button>
-        </Tooltip>
-      </div>
+      {collapsed ? null : (
+        <div className="flex h-12 shrink-0 items-center border-t border-line px-4">
+          <span className="text-[11px] text-fg-3">{t.shell.sidebar.version}</span>
+        </div>
+      )}
     </aside>
   );
 }

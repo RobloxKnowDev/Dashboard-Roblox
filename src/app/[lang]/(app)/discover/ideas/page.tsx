@@ -42,7 +42,7 @@ async function RobloxGames({ matches }: { matches: RobloxMatch[] }) {
       {matches.map((m) => (
         <li key={m.universeId} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           {m.placeId ? (
-            <a href={robloxGameUrl(m.placeId)} target="_blank" rel="noopener noreferrer" className="font-medium text-fg-2 hover:text-accent">
+            <a href={robloxGameUrl(m.placeId)} target="_blank" rel="noopener noreferrer" className="font-medium text-fg-2 hover:text-accent-ink">
               {m.name}
             </a>
           ) : (
@@ -104,7 +104,7 @@ async function IdeaItem({ idea, index, canSave }: { idea: WeeklyIdea; index: num
               ) : null}
               <div className="min-w-0 space-y-0.5">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-fg-3">{w.inspiredBy}</p>
-                <a href={idea.steam.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-fg hover:text-accent">
+                <a href={idea.steam.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-fg hover:text-accent-ink">
                   {idea.steam.name}
                   <ExternalLink className="size-3" aria-hidden />
                   <span className="sr-only">{w.openOnSteam}</span>
@@ -235,7 +235,7 @@ async function AlreadyOnRoblox() {
           {taken.map((c) => (
             <li key={c.steam.appId} className="space-y-1.5 py-3 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <a href={c.steam.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] font-medium text-fg hover:text-accent">
+                <a href={c.steam.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] font-medium text-fg hover:text-accent-ink">
                   {c.steam.name}
                   <ExternalLink className="size-3" aria-hidden />
                 </a>

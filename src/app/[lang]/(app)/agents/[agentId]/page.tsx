@@ -8,7 +8,7 @@ import { PageContainer } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/layout/session-widgets";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/primitives";
-import { AutoRefresh, MessageComposer, StopAgentButton } from "@/features/agents/client";
+import { AutoRefresh, DeleteAgentButton, MessageComposer, StopAgentButton } from "@/features/agents/client";
 import { AgentStatusBadge, AgentTimeline, OriginIcon, TeamCard } from "@/features/agents/components";
 import { BRIDGE_ONLINE_MS, getAgentDetail, listMachines, type AgentSummary } from "@/features/agents/data";
 import type { Messages } from "@/i18n/messages";
@@ -68,9 +68,16 @@ async function AgentDetail({ params }: { params: Promise<{ agentId: string }> })
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-fg">{agent.name}</h1>
           <AgentStatusBadge agent={agent} />
-          {canStop ? (
-            <div className="ml-auto">
-              <StopAgentButton agentId={agent.id} requested={agent.stopRequested} />
+          {controller ? (
+            <div className="ml-auto flex items-center gap-2">
+              {canStop ? <StopAgentButton agentId={agent.id} requested={agent.stopRequested} /> : null}
+              <DeleteAgentButton
+                agentId={agent.id}
+                name={agent.name}
+                teamSize={detail.team.filter((member) => member.parentId === agent.id).length}
+                working={agent.status === "working"}
+                afterDelete="list"
+              />
             </div>
           ) : null}
         </div>

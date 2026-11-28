@@ -31,12 +31,15 @@ function valueFormatter(f: Formatters, format: ValueFormat): (value: number) => 
 type Common = {
   title: string;
   description?: string;
+  /** Plain-language explanation behind the (i) next to the title. */
+  info?: string;
   source: DataSource;
   format: ValueFormat;
   /** Accessible summary of the chart. */
   label: string;
   /** Shown instead of the chart when there are no points. */
   emptyMessage?: string;
+  className?: string;
 };
 
 export function MetricChart({
@@ -58,7 +61,7 @@ export function MetricChart({
       ? { formatDate: f.formatMonth, formatLabel: f.formatMonthYear }
       : { formatDate: f.formatShortDate, formatLabel: f.formatDate };
   return (
-    <ChartCard title={common.title} description={common.description} source={common.source}>
+    <ChartCard title={common.title} description={common.description} info={common.info} source={common.source} className={common.className}>
       {rows.length === 0 ? (
         <EmptyState compact title={t.common.states.noDataPeriod} description={common.emptyMessage ?? t.common.states.noDataYet} />
       ) : (
@@ -80,17 +83,19 @@ export function MetricBarChart({
   series,
   stacked,
   categoryLabel,
+  timeAxis,
   ...common
 }: Common & {
   rows: CategoryRow[];
   series: { key: string; label: string; color?: string }[];
   stacked?: boolean;
   categoryLabel?: string;
+  timeAxis?: boolean;
 }) {
   const f = useFormat();
   const t = useT();
   return (
-    <ChartCard title={common.title} description={common.description} source={common.source}>
+    <ChartCard title={common.title} description={common.description} info={common.info} source={common.source} className={common.className}>
       {rows.length === 0 ? (
         <EmptyState compact title={t.common.states.noDataPeriod} description={common.emptyMessage} />
       ) : (
@@ -100,6 +105,7 @@ export function MetricBarChart({
           series={series}
           stacked={stacked}
           categoryLabel={categoryLabel}
+          timeAxis={timeAxis}
           formatValue={valueFormatter(f, common.format)}
         />
       )}

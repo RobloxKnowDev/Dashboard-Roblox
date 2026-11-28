@@ -13,23 +13,24 @@ import type { Messages } from "@/i18n/messages";
 type Swatch = { token: string; hex: string };
 
 const SURFACES: Swatch[] = [
-  { token: "canvas", hex: "#08090b" },
-  { token: "surface", hex: "#0f1114" },
-  { token: "surface-2", hex: "#15181c" },
-  { token: "surface-3", hex: "#1b1f24" },
-  { token: "line", hex: "#1f232a" },
-  { token: "line-strong", hex: "#2b3039" },
+  { token: "canvas", hex: "#0c0c0e" },
+  { token: "surface", hex: "#151517" },
+  { token: "surface-2", hex: "#1c1c1f" },
+  { token: "surface-3", hex: "#232327" },
+  { token: "line", hex: "#26262b" },
+  { token: "line-strong", hex: "#34343a" },
 ];
 
 const INK: Swatch[] = [
-  { token: "fg", hex: "#edeef0" },
-  { token: "fg-2", hex: "#a3a8b2" },
-  { token: "fg-3", hex: "#7d838e" },
-  { token: "fg-4", hex: "#5a606a" },
+  { token: "fg", hex: "#f4f4f5" },
+  { token: "fg-2", hex: "#a8a8b0" },
+  { token: "fg-3", hex: "#8a8a93" },
+  { token: "fg-4", hex: "#5b5b63" },
 ];
 
 const BRAND_STATUS: Swatch[] = [
-  { token: "accent", hex: "#c6f24e" },
+  { token: "accent", hex: "#3369ff" },
+  { token: "accent-ink", hex: "#7a9dff" },
   { token: "good", hex: "#3fcb6e" },
   { token: "warning", hex: "#f5b53d" },
   { token: "serious", hex: "#ef8a5f" },
@@ -108,7 +109,7 @@ export function TypeFoundations({ t }: { t: Messages }) {
       <div className="space-y-5">
         <div>
           <p className="font-display text-3xl font-semibold tracking-tight text-fg">{ty.display}</p>
-          <p className="mt-1 font-mono text-[11px] text-fg-3">font-display · 30px · semibold · wdth 112</p>
+          <p className="mt-1 font-mono text-[11px] text-fg-3">font-display · 30px · semibold</p>
         </div>
         <div>
           <p className="font-display text-2xl font-semibold tracking-tight text-fg">{ty.pageTitle}</p>

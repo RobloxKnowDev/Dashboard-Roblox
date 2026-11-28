@@ -27,14 +27,12 @@ function NavList({ activeHref, role }: SidebarNavProps & { activeHref: string | 
   const t = useT();
   return (
     <nav aria-label={t.shell.sidebar.mainNav} className="flex flex-col gap-5">
-      {visibleSections(role).map((section) => (
+      {visibleSections(role).map((section, index) => (
         <div key={section.key}>
-          {collapsed ? (
+          {index === 0 ? null : collapsed ? (
             <div className="mx-auto mb-2 h-px w-5 bg-line" aria-hidden />
           ) : (
-            <p className="mb-1.5 px-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-fg-3">
-              {t.nav.sections[section.key]}
-            </p>
+            <p className="mb-1 px-3 text-[11px] font-medium text-fg-3">{t.nav.sections[section.key]}</p>
           )}
           <ul className="flex flex-col gap-0.5">
             {section.items.map((item) => {
@@ -46,16 +44,13 @@ function NavList({ activeHref, role }: SidebarNavProps & { activeHref: string | 
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group relative flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors",
-                    collapsed ? "justify-center px-0" : "px-2.5",
-                    active ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-2/60 hover:text-fg-2",
+                    "group relative flex h-9 items-center gap-3 rounded-md text-[13px] font-medium transition-colors",
+                    collapsed ? "justify-center px-0" : "px-3",
+                    active ? "bg-accent-soft text-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg",
                   )}
                 >
-                  {active ? (
-                    <span className="absolute -left-3 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-accent" aria-hidden />
-                  ) : null}
                   <Icon
-                    className={cn("size-4 shrink-0 transition-colors", active ? "text-accent" : "text-fg-3 group-hover:text-fg-2")}
+                    className={cn("size-[18px] shrink-0 transition-colors", active ? "text-accent-ink" : "text-fg-3 group-hover:text-fg-2")}
                     aria-hidden
                   />
                   {collapsed ? <span className="sr-only">{title}</span> : <span className="truncate">{title}</span>}

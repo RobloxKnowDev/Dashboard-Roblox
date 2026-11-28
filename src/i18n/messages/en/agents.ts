@@ -102,6 +102,7 @@ export const agents = {
     hidden: (count: number) => `${count} older events not shown`,
     empty: "Nothing yet — the timeline fills in as the agent works.",
     openImage: "Open full size",
+    attachedImage: (n: number) => `Image ${n} sent with the message`,
     imageUnavailable: "Image unavailable",
     status: {
       session: "Session started",
@@ -124,6 +125,15 @@ export const agents = {
     sent: "Message queued",
     cancelled: "Message cancelled",
     shortcut: "Ctrl+Enter to send",
+    attach: "Image",
+    attached: "Attached images",
+    imageAlt: (n: number) => `Attached image ${n}`,
+    removeImage: (n: number) => `Remove image ${n}`,
+    uploading: "Uploading…",
+    tooMany: (max: number) => `${max} images at most per message.`,
+    badType: "Only PNG, JPEG or WebP images.",
+    tooLarge: "Image too large (8 MB at most).",
+    uploadFailed: "The image couldn't be uploaded. Try again.",
     hint: {
       working: "Claude gets it as soon as it finishes its current step.",
       vscodeIdle: "The VS Code session is idle: the PC continues this conversation in the background.",
@@ -136,6 +146,16 @@ export const agents = {
     label: "Stop",
     requested: "Stopping…",
     done: "Stop requested",
+  },
+  delete: {
+    label: "Delete",
+    labelFor: (name: string) => `Delete ${name}`,
+    title: (name: string) => `Delete “${name}”?`,
+    description: "Its history, its messages and its images are deleted for good. Files on the PC (project, code) are not touched.",
+    working: "This agent is working: stop it first (a VS Code session reappears if you keep writing to it).",
+    withTeam: (count: number) => `It's a game manager: the ${count} agent${count > 1 ? "s" : ""} of its team will be deleted too.`,
+    confirm: "Delete",
+    done: (count: number) => (count > 1 ? `${count} agents deleted` : "Agent deleted"),
   },
   mission: {
     title: "New mission",
@@ -172,5 +192,7 @@ export const agents = {
     noMachine: "No PC is connected to the dashboard yet.",
     badName: "Give the game a name (2 to 60 characters, no \\ / : * ? \" < > |).",
     nameTaken: "A project with this name already exists.",
+    imageMissing: "An image wasn't uploaded completely. Remove it and add it again.",
+    stillWorking: "This agent (or one of its team) is working: stop it first.",
   },
 };

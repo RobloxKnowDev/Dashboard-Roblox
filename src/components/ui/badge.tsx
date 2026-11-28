@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils/cn";
 
 const tones = {
   neutral: "border-line-strong bg-surface-2 text-fg-2",
-  accent: "border-accent/25 bg-accent-soft text-accent",
+  accent: "border-accent/25 bg-accent-soft text-accent-ink",
   good: "border-good/25 bg-good/10 text-good",
   warning: "border-warning/25 bg-warning/10 text-warning",
   serious: "border-serious/25 bg-serious/10 text-serious",

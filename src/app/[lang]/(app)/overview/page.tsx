@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DemoBanner } from "@/components/feedback/demo-badge";
 import { ChartSkeleton, ListSkeleton } from "@/components/feedback/states";
 import { PageContainer, PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/primitives";
@@ -23,15 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function KpiSkeleton({ label }: { label: string }) {
   return (
-    <div className="space-y-3" role="status" aria-label={label}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} className="h-[118px] rounded-lg" />
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="space-y-4" role="status" aria-label={label}>
+      <Skeleton className="h-[300px] rounded-lg lg:h-[236px]" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-[108px] rounded-lg" />
+          <Skeleton key={i} className="h-[112px] rounded-lg" />
         ))}
       </div>
     </div>
@@ -42,7 +37,7 @@ function ChartsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {Array.from({ length: 4 }, (_, i) => (
-        <ChartSkeleton key={i} />
+        <ChartSkeleton key={i} className={i === 0 || i === 3 ? "xl:col-span-2" : undefined} />
       ))}
     </div>
   );
@@ -63,14 +58,13 @@ export default async function OverviewPage({ searchParams }: PageProps<"/[lang]/
       <PageHeader
         title={t.nav.items.overview.title}
         description={t.overview.page.description}
+        info={t.overview.page.info}
         actions={
           <Suspense fallback={<RangeFilterFallback />}>
             <RangeFilter />
           </Suspense>
         }
       />
-
-      <DemoBanner>{t.overview.page.demoBanner}</DemoBanner>
 
       <Suspense fallback={<KpiSkeleton label={t.overview.page.loadingKpis} />}>
         <KpiGrid searchParams={searchParams} />
